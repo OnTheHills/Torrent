@@ -13,12 +13,15 @@ services:
     volumes:
       - ./backend:/app
 
-  # frontend:
-  #   build: ./frontend
-  #   image: csp_frontend:1.0.0
-  #   container_name: csp_frontend
-  #   restart: always
-  #   ports:
-  #     - "3000:3000"
-  #   depends_on:
-  #     - node_backend
+  frontend:
+    build: ./frontend
+    image: csp_frontend:1.0.0
+    container_name: csp_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - node_backend
