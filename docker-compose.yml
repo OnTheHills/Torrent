@@ -1,0 +1,24 @@
+services:
+  node_backend:
+    build: ./backend
+    image: node_backend:1.0.0
+    container_name: node_backend
+    restart: always
+    environment:
+      EXPRESS_PORT: 5175
+      MONGO_URI: "mongodb+srv://sandeenakrub_db_user:DtrtkZ6zxaIz7t8P@cluster0.nsacwyj.mongodb.net/"
+      MONGO_DB_NAME: "CSP"
+    ports:
+      - "5175:5175"
+    volumes:
+      - ./backend:/app
+
+  # frontend:
+  #   build: ./frontend
+  #   image: csp_frontend:1.0.0
+  #   container_name: csp_frontend
+  #   restart: always
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - node_backend
