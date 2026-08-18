@@ -1,15 +1,44 @@
 services:
-  node_backend:
-    build: ./backend
-    image: node_backend:1.0.0
-    container_name: node_backend
-    restart: always
-    env_file:
-      - ./backend/.env
+  backend:
+    build:
+      context: ./backend
+
     ports:
       - "5175:5175"
+
     volumes:
       - ./backend:/app
+      - /app/node_modules
+
+    environment:
+      - ./backend/env
+
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  mongo:
+    image: mongo:8.0
+
+    ports:
+      - "27017:27017"
+
+    volumes:
+      - mongo_data:/data/db
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "--quiet",
+          "--eval",
+          "db.adminCommand('ping')"
+        ]
+
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   frontend:
     build: ./frontend
@@ -22,4 +51,7 @@ services:
       - ./frontend:/app
       - /app/node_modules
     depends_on:
-      - node_backend
+      - backend
+
+volumes:
+  mongo_data:
