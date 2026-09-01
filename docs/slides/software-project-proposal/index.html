@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TORRENT — Software Project Proposal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ink: #05080d;
+        --paper: #ffffff;
+        --wash: #f9fafc;
+        --muted: #69758c;
+        --body: #313a4c;
+        --title: #1c2433;
+        --flame: #e46c31;
+        --peach: #f0a06e;
+        --orange-100: #fbe6d8;
+        --mint: #f0faf6;
+        --teal-500: #5eb299;
+        --teal-600: #3d8a75;
+        --teal-800: #1d443a;
+        --hero-muted: #d1e8de;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        height: 100%;
+        background: #0a0f1a;
+        color: var(--ink);
+        font-family: Prompt, "Calibri", sans-serif;
+      }
+
+      .stage {
+        height: 100%;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+      }
+
+      .deck {
+        width: 1920px;
+        height: 1080px;
+        transform-origin: center center;
+      }
+
+      .slide {
+        display: none;
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+      }
+
+      .slide.active {
+        display: block;
+      }
+
+      .hero {
+        color: #fff;
+        background:
+          radial-gradient(ellipse 70% 55% at 78% 18%, color-mix(in srgb, var(--flame) 38%, transparent), transparent 58%),
+          linear-gradient(135deg, var(--teal-800), var(--teal-600) 45%, var(--teal-500));
+      }
+
+      .hero::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image:
+          repeating-linear-gradient(75deg, rgb(255 255 255 / 12%) 0 1px, transparent 1px 22px),
+          repeating-linear-gradient(15deg, rgb(255 255 255 / 8%) 0 1px, transparent 1px 34px);
+        mask-image: linear-gradient(to bottom, black 35%, transparent 90%);
+        pointer-events: none;
+      }
+
+      .stripe {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 8px;
+        background-image: repeating-linear-gradient(
+          75deg,
+          var(--teal-500) 0 2px,
+          transparent 2px 9px
+        );
+      }
+
+      .hero .stripe {
+        bottom: 0;
+      }
+
+      .paper {
+        background: var(--wash);
+      }
+
+      .paper .stripe {
+        top: 0;
+        background-image: repeating-linear-gradient(
+          75deg,
+          var(--teal-500) 0 2px,
+          transparent 2px 9px
+        );
+      }
+
+      .lockup {
+        position: absolute;
+        top: 64px;
+        left: 64px;
+        height: 64px;
+        width: auto;
+      }
+
+      .paper .lockup {
+        top: 40px;
+        height: 48px;
+      }
+
+      .eyebrow {
+        font-size: 13px;
+        font-weight: 500;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--flame);
+      }
+
+      .hero-copy {
+        position: absolute;
+        left: 64px;
+        top: 280px;
+        width: 1100px;
+      }
+
+      .hero-copy h1 {
+        margin: 16px 0 20px;
+        font-size: 96px;
+        font-weight: 600;
+        letter-spacing: -0.03em;
+        line-height: 1.05;
+      }
+
+      .hero-copy p {
+        max-width: 980px;
+        font-size: 22px;
+        font-weight: 400;
+        line-height: 1.5;
+        color: var(--hero-muted);
+      }
+
+      .credits {
+        position: absolute;
+        left: 64px;
+        bottom: 88px;
+      }
+
+      .credits strong {
+        display: block;
+        font-size: 18px;
+        font-weight: 500;
+      }
+
+      .credits span {
+        display: block;
+        margin-top: 8px;
+        font-size: 16px;
+        color: var(--hero-muted);
+      }
+
+      .mark {
+        position: absolute;
+        top: 120px;
+        left: 64px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .badge {
+        display: grid;
+        place-items: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 999px;
+        background: var(--peach);
+        color: #fff;
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .split-left {
+        position: absolute;
+        top: 196px;
+        left: 64px;
+        width: 860px;
+      }
+
+      .split-left h2 {
+        margin-bottom: 28px;
+        font-size: 40px;
+        font-weight: 600;
+        letter-spacing: -0.025em;
+        line-height: 1.15;
+      }
+
+      .split-left p {
+        margin-bottom: 20px;
+        font-size: 18px;
+        line-height: 1.55;
+        color: var(--muted);
+      }
+
+      .panel {
+        position: absolute;
+        top: 120px;
+        right: 64px;
+        width: 876px;
+        padding: 28px;
+        border-radius: 12px;
+        background: var(--paper);
+      }
+
+      .panel .eyebrow {
+        margin-bottom: 16px;
+      }
+
+      .card {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-top: 16px;
+        padding: 20px;
+        border-radius: 8px;
+      }
+
+      .card.mint {
+        background: var(--mint);
+      }
+
+      .card.deep {
+        background: var(--teal-800);
+        color: #fff;
+      }
+
+      .card.peach {
+        background: var(--orange-100);
+      }
+
+      .chip {
+        display: grid;
+        place-items: center;
+        flex: 0 0 28px;
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: #fff;
+        color: var(--flame);
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .card h3 {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--title);
+      }
+
+      .card.deep h3 {
+        color: #fff;
+      }
+
+      .card p {
+        margin-top: 4px;
+        font-size: 14px;
+        line-height: 1.45;
+        color: var(--body);
+      }
+
+      .card.deep p {
+        color: var(--hero-muted);
+      }
+
+      .folio {
+        position: absolute;
+        right: 64px;
+        bottom: 40px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--muted);
+      }
+
+      .hint {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        z-index: 2;
+        font-size: 12px;
+        color: rgb(255 255 255 / 45%);
+        font-family: Prompt, sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <p class="hint">← → to change slide · F fullscreen</p>
+    <div class="stage">
+      <div class="deck" id="deck">
+        <section class="slide hero active" data-slide="1">
+          <div class="stripe"></div>
+          <img class="lockup" src="assets/logo_dark.png" alt="Torrent" />
+          <div class="hero-copy">
+            <p class="eyebrow">Software project proposal</p>
+            <h1>TORRENT</h1>
+            <p>
+              A centralized platform that tracks BMA software procurement (TOR)
+              opportunities and proactively matches them to qualified vendors —
+              a reversed job board for government software procurement.
+            </p>
+          </div>
+          <div class="credits">
+            <strong>Napat Kulnarong · Sethtatad Kijkanjanarat · Jirakorn Chaitanaporn</strong>
+            <span>Software Project Pitching · Proposal</span>
+          </div>
+        </section>
+
+        <section class="slide paper" data-slide="2">
+          <div class="stripe"></div>
+          <img class="lockup" src="assets/logo_light.png" alt="Torrent" />
+          <div class="mark">
+            <span class="badge">01</span>
+            <p class="eyebrow">Introduction</p>
+          </div>
+          <div class="split-left">
+            <h2>A reversed job board for government software procurement</h2>
+            <p>
+              The BMA Software Procurement Platform is a centralized system that
+              tracks software-related procurement opportunities (TORs) issued
+              under the Bangkok Metropolitan Administration and proactively
+              notifies qualified software vendors, studios, freelancers, and
+              agencies about relevant opportunities.
+            </p>
+            <p>
+              Instead of vendors searching for work across dozens of scattered
+              portals, TORRENT surfaces and pushes relevant government software
+              TORs directly to them, from draft stage through publication.
+            </p>
+          </div>
+          <aside class="panel">
+            <p class="eyebrow">How it flips the model</p>
+            <div class="card mint">
+              <span class="chip">1</span>
+              <div>
+                <h3>Government TORs</h3>
+                <p>Published across 16 depts, 50 district offices, e-GP portal</p>
+              </div>
+            </div>
+            <div class="card deep">
+              <span class="chip">2</span>
+              <div>
+                <h3>TORRENT Platform</h3>
+                <p>Filters software TORs, classifies, tracks draft → final</p>
+              </div>
+            </div>
+            <div class="card peach">
+              <span class="chip">3</span>
+              <div>
+                <h3>Matched Vendors</h3>
+                <p>Studios, freelancers &amp; agencies notified automatically</p>
+              </div>
+            </div>
+          </aside>
+          <p class="folio">02</p>
+        </section>
+      </div>
+    </div>
+    <script>
+      const slides = [...document.querySelectorAll(".slide")];
+      const deck = document.getElementById("deck");
+      let i = 0;
+
+      function show(n) {
+        i = (n + slides.length) % slides.length;
+        slides.forEach((s, idx) => s.classList.toggle("active", idx === i));
+      }
+
+      function fit() {
+        const sx = window.innerWidth / 1920;
+        const sy = window.innerHeight / 1080;
+        const s = Math.min(sx, sy);
+        deck.style.transform = "scale(" + s + ")";
+      }
+
+      window.addEventListener("resize", fit);
+      fit();
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") {
+          e.preventDefault();
+          show(i + 1);
+        }
+        if (e.key === "ArrowLeft" || e.key === "PageUp") {
+          e.preventDefault();
+          show(i - 1);
+        }
+        if (e.key === "f" || e.key === "F") {
+          if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+          else document.exitFullscreen();
+        }
+      });
+    </script>
+  </body>
+</html>

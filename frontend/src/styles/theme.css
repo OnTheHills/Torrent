@@ -1,0 +1,248 @@
+/*
+  TORRENT design tokens
+  ----------------------
+  Palette uses --palette-* (not --color-*) so Tailwind v4 does not hoist
+  them into @layer theme. Semantic roles stay --primary, --appbar, etc.
+  @theme inline maps those roles to utilities (bg-primary, bg-appbar, …).
+*/
+
+@theme inline {
+  --font-heading: var(--font-heading);
+  --font-sans: var(--font-sans);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-background-body: var(--background-body);
+
+  --color-appbar: var(--appbar);
+  --color-appbar-foreground: var(--appbar-foreground);
+  --color-appbar-muted-foreground: var(--appbar-muted-foreground);
+  --color-appbar-hover: var(--appbar-hover);
+  --color-appbar-active: var(--appbar-active);
+  --color-appbar-accent-foreground: var(--appbar-accent-foreground);
+  --color-appbar-border: var(--appbar-border);
+  --color-appbar-input: var(--appbar-input);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted-foreground: var(--sidebar-muted-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-divider: var(--sidebar-divider);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-popup: var(--sidebar-popup);
+  --color-sidebar-popup-foreground: var(--sidebar-popup-foreground);
+
+  --color-lifecycle-draft: var(--lifecycle-draft);
+  --color-lifecycle-draft-foreground: var(--lifecycle-draft-foreground);
+  --color-lifecycle-published: var(--lifecycle-published);
+  --color-lifecycle-published-foreground: var(--lifecycle-published-foreground);
+  --color-lifecycle-awarded: var(--lifecycle-awarded);
+  --color-lifecycle-awarded-foreground: var(--lifecycle-awarded-foreground);
+
+  --color-match-high: var(--match-high);
+  --color-match-high-foreground: var(--match-high-foreground);
+  --color-match-mid: var(--match-mid);
+  --color-match-mid-foreground: var(--match-mid-foreground);
+  --color-match-low: var(--match-low);
+  --color-match-low-foreground: var(--match-low-foreground);
+  --color-integrity-ok: var(--integrity-ok);
+  --color-integrity-ok-foreground: var(--integrity-ok-foreground);
+  --color-integrity-risk: var(--integrity-risk);
+  --color-integrity-risk-foreground: var(--integrity-risk-foreground);
+
+  --color-hero-from: var(--hero-from);
+  --color-hero-via: var(--hero-via);
+  --color-hero-to: var(--hero-to);
+  --color-hero-glow: var(--hero-glow);
+  --color-hero-foreground: var(--hero-foreground);
+  --color-hero-muted: var(--hero-muted);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-pattern-line: var(--pattern-line);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  color-scheme: dark;
+
+  --font-sans: "Prompt", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Prompt", "Sora", ui-sans-serif, system-ui, sans-serif;
+
+  --palette-black: #05080d;
+  --palette-white: #ffffff;
+
+  --palette-gray-25: #f9fafc;
+  --palette-gray-50: #f5f7fa;
+  --palette-gray-100: #ebeef2;
+  --palette-gray-200: #dadfe5;
+  --palette-gray-300: #b8bfcc;
+  --palette-gray-400: #8a93a6;
+  --palette-gray-500: #69758c;
+  --palette-gray-600: #475166;
+  --palette-gray-700: #313a4c;
+  --palette-gray-800: #1c2433;
+  --palette-gray-850: #121723;
+  --palette-gray-900: #0a0f1a;
+
+  --palette-orange-50: #fdf4ee;
+  --palette-orange-100: #fbe6d8;
+  --palette-orange-200: #f6c7a8;
+  --palette-orange-300: #f0a06e;
+  --palette-orange-400: #ea8348;
+  --palette-orange-500: #e46c31;
+  --palette-orange-600: #c45322;
+  --palette-orange-700: #9a3e1b;
+  --palette-orange-800: #6e2d16;
+  --palette-orange-900: #3f1a0e;
+
+  --palette-teal-50: #f0faf6;
+  --palette-teal-100: #d5f0e6;
+  --palette-teal-200: #a8decc;
+  --palette-teal-300: #7ecbb3;
+  --palette-teal-400: #6abca6;
+  --palette-teal-500: #5eb299;
+  --palette-teal-600: #3d8a75;
+  --palette-teal-700: #2c6556;
+  --palette-teal-800: #1d443a;
+  --palette-teal-900: #10261f;
+
+  --palette-red-50: #fff2f4;
+  --palette-red-500: #d92121;
+  --palette-green-50: #f0fdf4;
+  --palette-green-600: #16a34a;
+  --palette-green-800: #166534;
+  --palette-yellow-400: #f2d230;
+  --palette-yellow-600: #a67c00;
+  --palette-yellow-900: #402b00;
+  --palette-blue-50: #f2f7ff;
+  --palette-blue-500: #0048ff;
+  --palette-blue-800: #002c9b;
+  --palette-purple-500: #8c66ff;
+
+  --background: var(--palette-black);
+  --foreground: var(--palette-white);
+  --card: var(--palette-gray-900);
+  --card-foreground: var(--foreground);
+  --popover: var(--palette-black);
+  --popover-foreground: var(--foreground);
+
+  --primary: var(--palette-orange-400);
+  --primary-foreground: var(--palette-orange-900);
+  --secondary: var(--palette-teal-800);
+  --secondary-foreground: var(--palette-teal-100);
+  --muted: var(--palette-teal-900);
+  --muted-foreground: var(--palette-gray-400);
+  --accent: var(--palette-teal-600);
+  --accent-foreground: var(--palette-teal-50);
+
+  --destructive: var(--palette-red-500);
+  --success: var(--palette-green-600);
+  --success-foreground: var(--palette-green-50);
+  --warning: var(--palette-yellow-400);
+  --warning-foreground: var(--palette-yellow-900);
+  --info: var(--palette-blue-500);
+  --info-foreground: var(--palette-blue-50);
+
+  --border: var(--palette-gray-700);
+  --input: var(--palette-gray-700);
+  --ring: var(--palette-orange-400);
+  --radius: 0.75rem;
+
+  --chart-1: var(--palette-orange-400);
+  --chart-2: var(--palette-teal-400);
+  --chart-3: var(--palette-purple-500);
+  --chart-4: var(--palette-yellow-400);
+  --chart-5: var(--palette-blue-500);
+
+  --background-body: var(--palette-teal-900);
+
+  --appbar: var(--palette-teal-900);
+  --appbar-foreground: var(--palette-teal-50);
+  --appbar-muted-foreground: var(--palette-teal-300);
+  --appbar-hover: var(--palette-teal-800);
+  --appbar-active: color-mix(in srgb, var(--palette-white) 16%, transparent);
+  --appbar-accent-foreground: var(--palette-teal-300);
+  --appbar-border: var(--palette-teal-700);
+  --appbar-input: color-mix(in srgb, var(--palette-white) 10%, transparent);
+
+  --sidebar: var(--palette-teal-900);
+  --sidebar-foreground: var(--palette-teal-100);
+  --sidebar-muted-foreground: var(--palette-teal-300);
+  --sidebar-primary: var(--palette-teal-400);
+  --sidebar-primary-foreground: var(--palette-teal-900);
+  --sidebar-hover: var(--palette-teal-800);
+  --sidebar-accent: var(--palette-teal-800);
+  --sidebar-accent-foreground: var(--palette-teal-200);
+  --sidebar-border: var(--palette-teal-800);
+  --sidebar-divider: var(--palette-teal-800);
+  --sidebar-ring: var(--palette-orange-400);
+  --sidebar-popup: var(--palette-gray-900);
+  --sidebar-popup-foreground: var(--palette-white);
+
+  --lifecycle-draft: var(--palette-yellow-400);
+  --lifecycle-draft-foreground: var(--palette-yellow-900);
+  --lifecycle-published: var(--palette-orange-400);
+  --lifecycle-published-foreground: var(--palette-orange-900);
+  --lifecycle-awarded: var(--palette-teal-400);
+  --lifecycle-awarded-foreground: var(--palette-teal-900);
+
+  --match-high: var(--palette-teal-400);
+  --match-high-foreground: var(--palette-teal-100);
+  --match-mid: var(--palette-blue-500);
+  --match-mid-foreground: var(--palette-blue-50);
+  --match-low: var(--palette-orange-300);
+  --match-low-foreground: var(--palette-orange-100);
+  --integrity-ok: var(--palette-teal-400);
+  --integrity-ok-foreground: var(--palette-teal-100);
+  --integrity-risk: var(--palette-red-500);
+  --integrity-risk-foreground: var(--palette-red-50);
+
+  --hero-from: var(--palette-teal-900);
+  --hero-via: var(--palette-teal-800);
+  --hero-to: var(--palette-teal-700);
+  --hero-glow: color-mix(in srgb, var(--palette-orange-400) 32%, transparent);
+  --hero-foreground: var(--palette-white);
+  --hero-muted: color-mix(in srgb, var(--palette-teal-100) 72%, transparent);
+  --surface-elevated: color-mix(in srgb, var(--palette-teal-900) 82%, transparent);
+  --pattern-line: color-mix(in srgb, var(--palette-white) 8%, transparent);
+}
