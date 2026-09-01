@@ -10,8 +10,8 @@ services:
       - ./backend:/app
       - /app/node_modules
 
-    environment:
-      - ./backend/env
+    env_file:
+      - ./backend/.env
 
     depends_on:
       mongo:
