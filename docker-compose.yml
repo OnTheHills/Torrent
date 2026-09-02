@@ -23,6 +23,11 @@ services:
     ports:
       - "27017:27017"
 
+    environment:
+      # Docker Desktop’s Linux VM is kernel 6.19+; Mongo 8.0 refuses to boot without this.
+      # https://jira.mongodb.org/browse/SERVER-121912
+      GLIBC_TUNABLES: glibc.pthread.rseq=1
+
     volumes:
       - mongo_data:/data/db
 
