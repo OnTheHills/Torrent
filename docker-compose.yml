@@ -2,7 +2,7 @@ services:
   backend:
     build:
       context: ./backend
-
+    restart: unless-stopped
     ports:
       - "5175:5175"
 
@@ -57,6 +57,3 @@ services:
       - /app/node_modules
     depends_on:
       - backend
-
-volumes:
-  mongo_data:
