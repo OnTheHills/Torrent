@@ -6,6 +6,7 @@ import type { DataSourceKind } from "@/types/tor";
 
 const SOURCE_KEY = {
   "bma-ocds": "sourceOcds",
+  "bma-egp2": "sourceBmaEgp2",
   "egp-rss": "sourceRss",
   html: "sourceHtml",
 } as const;

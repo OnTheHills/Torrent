@@ -7,6 +7,11 @@
 // Base endpoint for SME-GP RSS feed
 const API_URL = "https://thaismegp-api.sme.go.th/smegp/egp_erpocr_rss";
 
+// BMA e-GP 2 public procurement plan API
+const BMA_EGP2_API_BASE_URL = "https://egp2.bangkok.go.th/appapi/api";
+const BMA_EGP2_PLAN_URL = "https://egp2.bangkok.go.th/plan";
+const BMA_EGP2_BUDGET_YEAR = process.env.BMA_EGP2_BUDGET_YEAR || "2569";
+
 // Number of records to fetch per page
 const PAGE_SIZE = 500;
 
@@ -44,10 +49,120 @@ const EXCLUDE_KEYWORDS = [
   "ระบบมาตรฐาน", "ปรับปรุงห้อง", "พลังงานแสงอาทิตย์",
 ];
 
+const BMA_STRONG_TERMS = [
+  "พัฒนาระบบสารสนเทศ",
+  "พัฒนาปรับปรุงระบบสารสนเทศ",
+  "ระบบสารสนเทศ",
+  "เทคโนโลยีสารสนเทศ",
+  "ซอฟต์แวร์",
+  "software",
+  "โปรแกรมประยุกต์",
+  "ระบบโปรแกรม",
+  "โปรแกรมสารสนเทศ",
+  "โปรแกรมระบบ",
+  "ระบบงาน",
+  "ฐานข้อมูล",
+  "database",
+  "เว็บไซต์",
+  "website",
+  "web application",
+  "แอปพลิเคชัน",
+  "แอพพลิเคชัน",
+  "application",
+  "platform",
+  "แพลตฟอร์ม",
+  "สารบรรณอิเล็กทรอนิกส์",
+  "ภูมิสารสนเทศ",
+  "คลาวด์",
+  "cloud",
+  "digital platform",
+];
+
+const BMA_DEV_TERMS = [
+  "พัฒนาระบบ",
+  "พัฒนาโปรแกรม",
+  "พัฒนาเว็บไซต์",
+  "พัฒนาแอป",
+  "พัฒนาแอพ",
+  "จัดทำระบบ",
+  "จัดทําระบบ",
+  "จ้างทำระบบ",
+  "จ้างทําระบบ",
+  "ปรับปรุงระบบ",
+];
+
+const BMA_IT_CONTEXT_TERMS = [
+  "สารสนเทศ",
+  "ดิจิทัล",
+  "digital",
+  "คอมพิวเตอร์",
+  "โปรแกรม",
+  "ซอฟต์แวร์",
+  "software",
+  "เว็บไซต์",
+  "แอป",
+  "แอพ",
+  "ฐานข้อมูล",
+  "database",
+  "platform",
+  "แพลตฟอร์ม",
+  "อิเล็กทรอนิกส์",
+  "ระบบงาน",
+  "cloud",
+  "คลาวด์",
+  "ภูมิสารสนเทศ",
+];
+
+const BMA_EXCLUDE_TERMS = [
+  "ระบบไฟฟ้า",
+  "ระบบประปา",
+  "ระบบปรับอากาศ",
+  "ระบบเครื่องกล",
+  "ระบบระบายน้ำ",
+  "ระบบระบายน้ํา",
+  "ระบบท่อ",
+  "ระบบดับเพลิง",
+  "ระบบลิฟต์",
+  "ระบบแก๊ส",
+  "ระบบก๊าซ",
+  "ระบบเสียง",
+  "ระบบโทรทัศน์",
+  "ระบบกล้อง",
+  "กล้องโทรทัศน์วงจรปิด",
+  "กล้องวงจรปิด",
+  "cctv",
+  "ระบบเครื่องปรับอากาศ",
+  "ระบบสุขาภิบาล",
+  "ระบบบำบัด",
+  "ระบบบําบัด",
+  "ระบบป้องกัน",
+  "ระบบแจ้งเหตุเพลิงไหม้",
+  "ระบบสัญญาณไฟจราจร",
+  "ระบบรดน้ำ",
+  "ระบบรดน้ํา",
+  "ระบบสาธารณูปโภค",
+  "ระบบอุปกรณ์อาคาร",
+  "ระบบเครือข่ายสื่อสารสายเคเบิล",
+  "interactive board",
+  "ชุดอุปกรณ์อัจฉริยะ",
+  "ยา apixaban",
+  "วัสดุกิจกรรม",
+  "วัสดุคอมพิวเตอร์",
+  "เครื่องคอมพิวเตอร์ สำหรับงานสำนักงาน",
+  "เครื่องคอมพิวเตอร์ สำหรับเรียกดูภาพ",
+];
+
 module.exports = {
   API_URL,
+  BMA_EGP2_API_BASE_URL,
+  BMA_EGP2_PLAN_URL,
+  BMA_EGP2_BUDGET_YEAR,
   PAGE_SIZE,
   API_SEARCHES,
   INCLUDE_KEYWORDS,
   EXCLUDE_KEYWORDS,
+  BMA_STRONG_TERMS,
+  BMA_DEV_TERMS,
+  BMA_IT_CONTEXT_TERMS,
+  BMA_EXCLUDE_TERMS,
 };

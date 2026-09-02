@@ -1,160 +1,91 @@
 const cron = require("node-cron");
 const torService = require("../services/torService");
 const {
-  API_URL,
-  PAGE_SIZE,
-  API_SEARCHES,
-  INCLUDE_KEYWORDS,
-  EXCLUDE_KEYWORDS,
-} = require("../constants/smeGpConstants");
+  fetchSmeGpSoftwareTors,
+} = require("./sources/smeGpSource");
+const {
+  fetchBmaEgp2SoftwareTors,
+  fetchBmaPlanProjects,
+} = require("./sources/bmaEgp2PlanSource");
 
-function compactText(value) {
-  return (value || "").toString().replace(/\s+/g, "").toLowerCase();
-}
+async function saveTorBatch(tors) {
+  let saved = 0;
 
-function matchingKeyword(title) {
-  const normalizedTitle = compactText(title);
-  if (!normalizedTitle) return null;
-
-  for (const term of EXCLUDE_KEYWORDS) {
-    if (normalizedTitle.includes(compactText(term))) return null;
-  }
-
-  for (const keyword of INCLUDE_KEYWORDS) {
-    if (normalizedTitle.includes(compactText(keyword))) return keyword;
-  }
-  return null;
-}
-
-async function fetchSearch(searchStr, pageSize = PAGE_SIZE, retries = 3) {
-  const basePayload = {
-    start: "0",
-    length: pageSize.toString(),
-    draw: "10",
-    orders: [{ column: "published", dir: "DESC" }],
-    search: searchStr,
-  };
-
-  let firstResponse;
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(basePayload),
-      });
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      firstResponse = await res.json();
-      break;
-    } catch (error) {
-      if (attempt === retries) {
-        console.error(`Failed to fetch for search "${searchStr}": ${error.message}`);
-        return [];
-      }
-      await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
-    }
-  }
-
-  const total = parseInt(firstResponse.recordsFiltered || firstResponse.recordsTotal || 0, 10);
-  let rows = firstResponse.data || [];
-
-  for (let start = pageSize; start < total; start += pageSize) {
-    const payload = { ...basePayload, start: start.toString() };
-    for (let attempt = 1; attempt <= retries; attempt++) {
-      try {
-        const res = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        const result = await res.json();
-        rows = rows.concat(result.data || []);
-        break;
-      } catch (error) {
-        if (attempt === retries) {
-          console.error(`Failed to fetch page ${start} for "${searchStr}": ${error.message}`);
-        } else {
-          await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
-        }
-      }
-    }
-  }
-
-  return rows;
-}
-
-async function syncSmeGpData() {
-  console.log("Starting SME-GP data sync...");
-  const allRows = [];
-
-  // Fetch data concurrently for each search term
-  const fetchPromises = API_SEARCHES.map((search) => fetchSearch(search));
-  const results = await Promise.all(fetchPromises);
-
-  results.forEach((rows) => {
-    allRows.push(...rows);
-  });
-
-  // Filter out duplicates based on _id
-  const uniqueCandidates = new Map();
-  allRows.forEach((row) => {
-    const id = row._id || row.link || JSON.stringify(row);
-    if (!uniqueCandidates.has(id)) {
-      uniqueCandidates.set(id, row);
-    }
-  });
-
-  const candidates = Array.from(uniqueCandidates.values());
-  console.log(`Fetched ${candidates.length} unique candidates from API.`);
-
-  let savedCount = 0;
-
-  for (const candidate of candidates) {
-    const keyword = matchingKeyword(candidate.title);
-    if (!keyword) continue;
-
-    // Determine category based on matched keyword or generic
-    let category = "Software Development";
-    if (keyword.includes("เว็บไซต์") || keyword.includes("เว็บ")) category = "Web Application";
-    else if (keyword.includes("แอปพลิเคชัน") || keyword.includes("แอพ")) category = "Mobile Application";
-    else if (keyword.includes("ฐานข้อมูล")) category = "Data Platform";
-
-    const torData = {
-      refId: candidate._id || candidate.project_id || `SMEGP-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      title: candidate.title,
-      titleTh: candidate.title, // Assume title is in Thai
-      department: candidate.deptName,
-      departmentTh: candidate.deptName,
-      agencyId: candidate.deptsubName || "sme-gp", // Default fallback if no specific agency code
-      publishedAt: candidate.published ? new Date(candidate.published) : new Date(),
-      source: "SME-GP",
-      egpUrl: candidate.link || "https://thaismegp.com/",
-      category: category,
-      budgetThb: candidate.budget ? parseFloat(candidate.budget.toString().replace(/,/g, "")) : 0, // Assuming API returns budget string
-      status: "published", // Default since it's on the SME-GP site
-      summary: `Matched keyword: ${keyword}`,
-      summaryTh: `พบคำค้นหา: ${keyword}`,
-    };
-
+  for (const torData of tors) {
     try {
       await torService.upsertTorByRefId(torData.refId, torData);
-      savedCount++;
+      saved++;
     } catch (err) {
       console.error(`Error saving TOR ${torData.refId}:`, err.message);
     }
   }
 
-  console.log(`SME-GP sync complete. Saved/Updated ${savedCount} TORs matching software criteria.`);
-  return { fetched: candidates.length, saved: savedCount };
+  return saved;
+}
+
+async function syncSource(sourceResultPromise) {
+  const result = await sourceResultPromise;
+  const saved = await saveTorBatch(result.tors);
+
+  return {
+    budgetYear: result.budgetYear,
+    fetched: result.fetched,
+    matched: result.tors.length,
+    method: result.method,
+    saved,
+    source: result.source,
+  };
+}
+
+async function syncSmeGpOnly() {
+  console.log("Starting SME-GP data sync...");
+  const result = await syncSource(fetchSmeGpSoftwareTors());
+  console.log(
+    `SME-GP sync complete. Saved/Updated ${result.saved} of ${result.matched} matched TORs.`,
+  );
+  return result;
+}
+
+async function syncBmaEgp2Only() {
+  console.log("Starting BMA e-GP2 data sync...");
+  const result = await syncSource(fetchBmaEgp2SoftwareTors());
+  console.log(
+    `BMA e-GP2 sync complete. Saved/Updated ${result.saved} of ${result.matched} matched TORs.`,
+  );
+  return result;
+}
+
+async function syncProcurementData() {
+  console.log("Starting procurement data sync...");
+  const [smeGpResult, bmaEgp2Result] = await Promise.all([
+    syncSmeGpOnly(),
+    syncBmaEgp2Only(),
+  ]);
+
+  console.log(
+    `Procurement sync complete. Saved/Updated ${smeGpResult.saved} ${smeGpResult.source} TORs and ${bmaEgp2Result.saved} ${bmaEgp2Result.source} TORs.`,
+  );
+  return {
+    fetched: smeGpResult.fetched,
+    saved: smeGpResult.saved,
+    matched: smeGpResult.matched,
+    method: smeGpResult.method,
+    source: smeGpResult.source,
+    bmaEgp2BudgetYear: bmaEgp2Result.budgetYear,
+    bmaEgp2Fetched: bmaEgp2Result.fetched,
+    bmaEgp2Matched: bmaEgp2Result.matched,
+    bmaEgp2Method: bmaEgp2Result.method,
+    bmaEgp2Saved: bmaEgp2Result.saved,
+    bmaEgp2Source: bmaEgp2Result.source,
+  };
 }
 
 function startCronJobs() {
   // Schedule to run at 00:00 (midnight) every day
   cron.schedule("0 0 * * *", async () => {
-    console.log("Running scheduled BMA/SME-GP sync job...");
+      console.log("Running scheduled BMA/SME-GP sync job...");
     try {
-      const result = await syncSmeGpData();
+      const result = await syncProcurementData();
       console.log("Scheduled sync job completed successfully:", result);
     } catch (error) {
       console.error("Scheduled sync job failed:", error);
@@ -165,6 +96,10 @@ function startCronJobs() {
 }
 
 module.exports = {
-  syncSmeGpData,
+  fetchBmaPlanProjects,
+  syncBmaEgp2Only,
+  syncProcurementData,
+  syncSmeGpOnly,
+  syncSmeGpData: syncProcurementData,
   startCronJobs,
 };

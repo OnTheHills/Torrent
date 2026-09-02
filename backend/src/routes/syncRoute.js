@@ -1,8 +1,15 @@
 const express = require("express");
-const { triggerSync } = require("../controllers/syncController");
+const {
+  triggerBmaEgp2Sync,
+  triggerSmeGpSync,
+  triggerSyncAll,
+} = require("../controllers/syncController");
 
 const syncRouter = express.Router();
 
-syncRouter.post("/sme-gp", triggerSync);
+syncRouter.post("/", triggerSyncAll);
+syncRouter.post("/all", triggerSyncAll);
+syncRouter.post("/sme-gp", triggerSmeGpSync);
+syncRouter.post("/bma-egp2", triggerBmaEgp2Sync);
 
 module.exports = syncRouter;

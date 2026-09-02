@@ -2,7 +2,9 @@ import { Tor } from "@/types/tor";
 
 const isServer = typeof window === "undefined";
 const API_BASE_URL = isServer
-  ? process.env.BACKEND_API_URL || "http://backend:5175/api"
+  ? process.env.BACKEND_API_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:5175/api"
   : process.env.NEXT_PUBLIC_API_URL;
 
 export async function fetchTors(): Promise<Tor[]> {
@@ -61,7 +63,12 @@ function mapBackendTorToFrontendTor(data: any): Tor {
     skills: data.skillNeededList || [],
     requirements: [],
     egpUrl: data.egpUrl || "",
-    sourceKind: data.source === "SME-GP" ? "egp-rss" : "html",
+    sourceKind:
+      data.source === "BMA-EGP2"
+        ? "bma-egp2"
+        : data.source === "SME-GP"
+          ? "egp-rss"
+          : "html",
     matchScore: 0,
   };
 }
