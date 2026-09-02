@@ -5,3 +5,4 @@ out/
 !.env.example
 .vercel
 guidelines/
+.env.local
