@@ -13,13 +13,16 @@ const vendorProfileRouter = require("./routes/vendorProfileRoute");
 const userBioRouter = require("./routes/userBioRoute");
 const torRouter = require("./routes/torRoute");
 const torMatchRouter = require("./routes/torMatchRoute");
+const syncRouter = require("./routes/syncRoute"); // <== NEW
 
 const app = express();
 const PORT = process.env.PORT || 5175;
 const MONGO_URI = process.env.MONGO_URI;
 
 if (!MONGO_URI) {
-  throw new Error("MONGO_URI is required. Add the MongoDB Atlas URI to backend/.env.");
+  throw new Error(
+    "MONGO_URI is required. Add the MongoDB Atlas URI to backend/.env.",
+  );
 }
 
 app.use(cors());
@@ -29,6 +32,7 @@ app.use("/api/vendor-profiles", vendorProfileRouter);
 app.use("/api/user-bios", userBioRouter);
 app.use("/api/tors", torRouter);
 app.use("/api/tor-matches", torMatchRouter);
+app.use("/api/sync", syncRouter);
 
 app.get("/", (req, res) => {
   res.json({ message: "Backend is running" });
