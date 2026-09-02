@@ -123,6 +123,8 @@ export const dictionary = {
     searchPlaceholder: "Search title, department, skills…",
     login: "Log in",
     register: "Register",
+    signUpLogin: "Sign up / Log in",
+    logOut: "Log out",
     homeEyebrow: "Government software procurement intelligence",
     homeTitle: "Find, understand, and monitor public software TORs",
     homeDescription:
@@ -434,6 +436,8 @@ export const dictionary = {
     searchPlaceholder: "ค้นหาชื่อ หน่วยงาน ทักษะ…",
     login: "เข้าสู่ระบบ",
     register: "สมัครสมาชิก",
+    signUpLogin: "สมัคร / เข้าสู่ระบบ",
+    logOut: "ออกจากระบบ",
     homeEyebrow: "ข้อมูลการจัดซื้อซอฟต์แวร์ภาครัฐ",
     homeTitle: "ค้นหา ทำความเข้าใจ และติดตาม TOR ซอฟต์แวร์ภาครัฐ",
     homeDescription:

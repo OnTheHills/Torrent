@@ -34,7 +34,12 @@ async function getUserById(request, response) {
 
 async function updateUser(request, response) {
   try {
-    const user = await User.findByIdAndUpdate(request.params.id, request.body, {
+    const updates = { ...request.body };
+    if (request.user.role !== "admin") {
+      delete updates.role;
+    }
+
+    const user = await User.findByIdAndUpdate(request.params.id, updates, {
       returnDocument: "after",
       runValidators: true,
     });
