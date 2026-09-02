@@ -15,6 +15,12 @@ const torRouter = require("./routes/torRoute");
 const torMatchRouter = require("./routes/torMatchRoute");
 
 const app = express();
+const PORT = process.env.PORT || 5175;
+const MONGO_URI = process.env.MONGO_URI;
+
+if (!MONGO_URI) {
+  throw new Error("MONGO_URI is required. Add the MongoDB Atlas URI to backend/.env.");
+}
 
 app.use(cors());
 app.use(express.json());
@@ -24,16 +30,17 @@ app.use("/api/user-bios", userBioRouter);
 app.use("/api/tors", torRouter);
 app.use("/api/tor-matches", torMatchRouter);
 
-const PORT = process.env.PORT || 5175;
-const MONGO_URI = process.env.MONGO_URI;
+app.get("/", (req, res) => {
+  res.json({ message: "Backend is running" });
+});
 
-if (!MONGO_URI) {
-  throw new Error("MONGO_URI is required. Add it to backend/.env.");
-}
+app.get("/api/hello", (req, res) => {
+  res.json({ message: "Hello from Express!" });
+});
 
 async function startServer() {
   try {
-    await mongoose.connect(MONGO_URI);
+    await mongoose.connect(MONGO_URI, { dbName: "Torrent" });
     await Promise.all([
       User.init(),
       VendorProfile.init(),
@@ -41,7 +48,7 @@ async function startServer() {
       TOR.init(),
       TORMatch.init(),
     ]);
-    console.log("Connected to MongoDB");
+    console.log("Connected to MongoDB Atlas");
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
@@ -51,17 +58,5 @@ async function startServer() {
     process.exit(1);
   }
 }
-
-app.get("/", (req, res) => {
-  res.json({
-    message: "Backend is running",
-  });
-});
-
-app.get("/api/hello", (req, res) => {
-  res.json({
-    message: "Hello from Express!",
-  });
-});
 
 startServer();
