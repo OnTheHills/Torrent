@@ -11,8 +11,17 @@ const AXIS_TICKS = 4;
 
 export function BudgetChart({ data }: { data: BudgetBenchmark[] }) {
   const { t } = useLocale();
-  const maxMedian = Math.max(...data.map((item) => item.medianThb));
   const [hovered, setHovered] = useState<string | null>(null);
+
+  if (data.length === 0) {
+    return (
+      <div className="rounded-md border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
+        {t("emptyBudgetData")}
+      </div>
+    );
+  }
+
+  const maxMedian = Math.max(...data.map((item) => item.medianThb));
 
   const ticks = Array.from({ length: AXIS_TICKS + 1 }, (_, index) =>
     Math.round((maxMedian * index) / AXIS_TICKS)
@@ -68,7 +77,7 @@ export function BudgetChart({ data }: { data: BudgetBenchmark[] }) {
                   onMouseEnter={() => setHovered(item.category)}
                   onMouseLeave={() => setHovered(null)}
                 >
-                  <p className="truncate text-sm font-medium text-foreground">
+                  <p className="break-words text-sm font-medium leading-snug text-foreground">
                     {item.category}
                   </p>
                   <div className="relative">

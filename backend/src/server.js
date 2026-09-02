@@ -13,7 +13,8 @@ const vendorProfileRouter = require("./routes/vendorProfileRoute");
 const userBioRouter = require("./routes/userBioRoute");
 const torRouter = require("./routes/torRoute");
 const torMatchRouter = require("./routes/torMatchRoute");
-const syncRouter = require("./routes/syncRoute"); // <== NEW
+const syncRouter = require("./routes/syncRoute");
+const { startCronJobs } = require("./utils/smeGp");
 
 const app = express();
 const PORT = process.env.PORT || 5175;
@@ -53,6 +54,9 @@ async function startServer() {
       TORMatch.init(),
     ]);
     console.log("Connected to MongoDB Atlas");
+
+    // Initialize cron jobs for background data sync
+    startCronJobs();
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);

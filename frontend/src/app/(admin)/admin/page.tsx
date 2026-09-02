@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { AGENCIES } from "@/config/agencies";
-import { MOCK_TORS } from "@/data/mock";
+import { fetchTors } from "@/lib/api";
 
 export const metadata: Metadata = {
   title: "Admin",
@@ -32,8 +32,9 @@ const reviewQueue = [
   },
 ];
 
-export default function AdminPage() {
-  const tracked = MOCK_TORS.length;
+export default async function AdminPage() {
+  const tors = await fetchTors();
+  const tracked = tors.length;
 
   return (
     <div className="space-y-8">

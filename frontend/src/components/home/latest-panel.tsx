@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowRight01Icon } from "@hugeicons/core-free-icons";
+import { useQuery } from "@tanstack/react-query";
+import { fetchTors } from "@/lib/api";
 
 import { useLocale } from "@/components/providers/locale-provider";
 import { AgencyBadge } from "@/components/tor/agency-badge";
@@ -20,14 +22,15 @@ import { routes } from "@/config/routes";
 import {
   formatBudgetCompact,
   formatDate,
-  MOCK_TORS,
   torAgencyLine,
   torTitle,
 } from "@/data/mock";
 
 export function LatestPanel() {
   const { locale, t } = useLocale();
-  const latest = [...MOCK_TORS]
+  const { data: tors = [], isLoading } = useQuery({ queryKey: ["tors"], queryFn: fetchTors });
+
+  const latest = [...tors]
     .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
     .slice(0, 6);
 

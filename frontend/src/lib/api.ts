@@ -1,10 +1,15 @@
 import { Tor } from "@/types/tor";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5175/api";
+const isServer = typeof window === "undefined";
+const API_BASE_URL = isServer
+  ? process.env.BACKEND_API_URL || "http://backend:5175/api"
+  : process.env.NEXT_PUBLIC_API_URL;
 
 export async function fetchTors(): Promise<Tor[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/tors`, { next: { revalidate: 60 } });
+    const res = await fetch(`${API_BASE_URL}/tors`, {
+      next: { revalidate: 60 },
+    });
     if (!res.ok) {
       console.error("Failed to fetch TORs:", res.status, res.statusText);
       return [];
@@ -19,7 +24,9 @@ export async function fetchTors(): Promise<Tor[]> {
 
 export async function fetchTorById(id: string): Promise<Tor | undefined> {
   try {
-    const res = await fetch(`${API_BASE_URL}/tors/${id}`, { next: { revalidate: 60 } });
+    const res = await fetch(`${API_BASE_URL}/tors/${id}`, {
+      next: { revalidate: 60 },
+    });
     if (!res.ok) {
       return undefined;
     }
@@ -41,10 +48,13 @@ function mapBackendTorToFrontendTor(data: any): Tor {
     department: data.department || "Unknown Department",
     departmentTh: data.departmentTh || data.department,
     category: data.category || "Uncategorized",
-    lifecycle: data.status === "published" ? "published" : (data.status || "draft"),
+    lifecycle:
+      data.status === "published" ? "published" : data.status || "draft",
     integrity: "ok", // Default for now
     budgetThb: data.budgetThb || 0,
-    publishedAt: data.publishedAt ? new Date(data.publishedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    publishedAt: data.publishedAt
+      ? new Date(data.publishedAt).toISOString().split("T")[0]
+      : new Date().toISOString().split("T")[0],
     deadline: data.deadline || "", // Fallback
     summary: data.summary || data.description || "",
     summaryTh: data.summaryTh || data.description || "",

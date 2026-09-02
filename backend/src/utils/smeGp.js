@@ -1,3 +1,4 @@
+const cron = require("node-cron");
 const torService = require("../services/torService");
 const {
   API_URL,
@@ -130,7 +131,7 @@ async function syncSmeGpData() {
       source: "SME-GP",
       egpUrl: candidate.link || "https://thaismegp.com/",
       category: category,
-      budgetThb: candidate.budget ? parseFloat(candidate.budget) : 0, // Assuming API returns budget string
+      budgetThb: candidate.budget ? parseFloat(candidate.budget.toString().replace(/,/g, "")) : 0, // Assuming API returns budget string
       status: "published", // Default since it's on the SME-GP site
       summary: `Matched keyword: ${keyword}`,
       summaryTh: `พบคำค้นหา: ${keyword}`,
@@ -148,6 +149,22 @@ async function syncSmeGpData() {
   return { fetched: candidates.length, saved: savedCount };
 }
 
+function startCronJobs() {
+  // Schedule to run at 00:00 (midnight) every day
+  cron.schedule("0 0 * * *", async () => {
+    console.log("Running scheduled BMA/SME-GP sync job...");
+    try {
+      const result = await syncSmeGpData();
+      console.log("Scheduled sync job completed successfully:", result);
+    } catch (error) {
+      console.error("Scheduled sync job failed:", error);
+    }
+  });
+
+  console.log("SME-GP sync cron job initialized.");
+}
+
 module.exports = {
   syncSmeGpData,
+  startCronJobs,
 };

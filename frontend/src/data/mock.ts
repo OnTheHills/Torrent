@@ -644,11 +644,15 @@ export function formatBudgetCompact(amount: number, locale: "en" | "th" = "en"):
 }
 
 export function formatDate(iso: string, locale: "en" | "th" = "en"): string {
+  if (!iso) return "-";
+  const date = new Date(iso);
+  if (isNaN(date.getTime())) return "-";
+  
   return new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
-  }).format(new Date(iso));
+  }).format(date);
 }
 
 export function torTitle(tor: Tor, locale: "en" | "th") {
@@ -657,11 +661,13 @@ export function torTitle(tor: Tor, locale: "en" | "th") {
 
 export function torAgency(tor: Tor, locale: "en" | "th") {
   const agency = AGENCY_BY_ID[tor.agencyId];
+  if (!agency) return tor.agencyId || "Unknown";
   return locale === "th" ? agency.nameTh : agency.nameEn;
 }
 
 export function torAgencyShort(tor: Tor, locale: "en" | "th") {
   const agency = AGENCY_BY_ID[tor.agencyId];
+  if (!agency) return tor.agencyId || "Unknown";
   return locale === "th" ? agency.shortTh : agency.shortEn;
 }
 

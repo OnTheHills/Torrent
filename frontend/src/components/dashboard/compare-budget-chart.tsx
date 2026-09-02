@@ -3,18 +3,24 @@
 import { useLocale } from "@/components/providers/locale-provider";
 import {
   formatBudgetCompact,
-  getBenchmarkForCategory,
   torTitle,
 } from "@/data/mock";
+import { getBenchmarkForCategory } from "@/lib/budget";
 import { cn } from "@/lib/utils";
-import type { Tor } from "@/types/tor";
+import type { BudgetBenchmark, Tor } from "@/types/tor";
 
-export function CompareBudgetChart({ tors }: { tors: Tor[] }) {
+export function CompareBudgetChart({
+  benchmarks,
+  tors,
+}: {
+  benchmarks: BudgetBenchmark[];
+  tors: Tor[];
+}) {
   const { locale, t } = useLocale();
 
   const rows = tors
     .map((tor) => {
-      const benchmark = getBenchmarkForCategory(tor.category);
+      const benchmark = getBenchmarkForCategory(benchmarks, tor.category);
       if (!benchmark) return null;
       return { tor, median: benchmark.medianThb };
     })
@@ -24,6 +30,14 @@ export function CompareBudgetChart({ tors }: { tors: Tor[] }) {
     ...rows.flatMap((row) => [row.tor.budgetThb, row.median]),
     1
   );
+
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-md border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
+        {t("emptyBudgetData")}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">

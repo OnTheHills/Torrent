@@ -226,6 +226,7 @@ export const dictionary = {
     chartMedian: "Median",
     chartRange: "Range",
     chartSample: "projects in sample",
+    emptyBudgetData: "No TOR budget data available yet.",
     compareChartTitle: "Live listings against category medians",
     compareChartDescription:
       "Each bar pair is a current software TOR next to the public median for that category.",
@@ -538,6 +539,7 @@ export const dictionary = {
     chartMedian: "ค่ากลาง",
     chartRange: "ช่วง",
     chartSample: "โครงการในกลุ่มตัวอย่าง",
+    emptyBudgetData: "ยังไม่มีข้อมูลงบประมาณ TOR",
     compareChartTitle: "รายการปัจจุบันเทียบค่ากลางหมวด",
     compareChartDescription:
       "แต่ละคู่แท่งคือ TOR ซอฟต์แวร์ปัจจุบันเทียบค่ากลางสาธารณะของหมวดนั้น",

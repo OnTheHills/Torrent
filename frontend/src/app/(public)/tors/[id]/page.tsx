@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function TorDetailPage({ params }: Props) {
   const { id } = await params;
-  const tor = await fetchTorById(id);
+  const [tor, tors] = await Promise.all([fetchTorById(id), fetchTors()]);
   if (!tor) notFound();
-  return <TorDetail tor={tor} />;
+  return <TorDetail benchmarkTors={tors} tor={tor} />;
 }

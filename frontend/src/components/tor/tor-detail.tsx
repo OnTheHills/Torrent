@@ -18,19 +18,26 @@ import { listingHref, routes } from "@/config/routes";
 import {
   formatBudgetCompact,
   formatDate,
-  getBenchmarkForCategory,
   getPriceAnalysisStatus,
   torAgencyLine,
   torTitle,
 } from "@/data/mock";
+import { buildBudgetBenchmarks, getBenchmarkForCategory } from "@/lib/budget";
 import type { Tor } from "@/types/tor";
 
-export function TorDetail({ tor }: { tor: Tor }) {
+export function TorDetail({
+  benchmarkTors,
+  tor,
+}: {
+  benchmarkTors?: Tor[];
+  tor: Tor;
+}) {
   const { locale, t } = useLocale();
   const audience = useAudience();
   const vendor = audience === "vendor";
   const catalog = vendor ? routes.app.tors : routes.tors;
-  const benchmark = getBenchmarkForCategory(tor.category);
+  const benchmarks = buildBudgetBenchmarks(benchmarkTors?.length ? benchmarkTors : [tor]);
+  const benchmark = getBenchmarkForCategory(benchmarks, tor.category);
   const vsMedian = benchmark
     ? getPriceAnalysisStatus(tor.budgetThb, benchmark.medianThb)
     : null;

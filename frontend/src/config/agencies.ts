@@ -134,13 +134,15 @@ export function egpRssUrl(deptId: string, announceType: string) {
   return `${EGP_RSS_BASE}?deptId=${encodeURIComponent(deptId)}&anounceType=${encodeURIComponent(announceType)}`;
 }
 
-export function agencyName(id: AgencyId, locale: "en" | "th") {
-  const agency = AGENCY_BY_ID[id];
+export function agencyName(id: AgencyId | string, locale: "en" | "th") {
+  const agency = AGENCY_BY_ID[id as AgencyId];
+  if (!agency) return id;
   return locale === "th" ? agency.nameTh : agency.nameEn;
 }
 
-export function agencyShort(id: AgencyId, locale: "en" | "th") {
-  const agency = AGENCY_BY_ID[id];
+export function agencyShort(id: AgencyId | string, locale: "en" | "th") {
+  const agency = AGENCY_BY_ID[id as AgencyId];
+  if (!agency) return id;
   return locale === "th" ? agency.shortTh : agency.shortEn;
 }
 
