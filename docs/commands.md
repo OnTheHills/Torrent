@@ -1,5 +1,7 @@
 # Commands
 
+End-to-end Google login (Atlas, schema, Cloud Console, Express, Next.js): [google-oauth.md](./google-oauth.md).
+
 ## Setup & auth
 
 ### Log in to Vercel CLI
