@@ -18,12 +18,13 @@ services:
         condition: service_healthy
 
   mongo:
-    image: mongo:8.0
+    image: mongo:8.0.0
 
     ports:
       - "27017:27017"
 
     environment:
+      # CAUTIOUS
       # Docker Desktop’s Linux VM is kernel 6.19+; Mongo 8.0 refuses to boot without this.
       # https://jira.mongodb.org/browse/SERVER-121912
       GLIBC_TUNABLES: glibc.pthread.rseq=1
@@ -32,14 +33,7 @@ services:
       - mongo_data:/data/db
 
     healthcheck:
-      test:
-        [
-          "CMD",
-          "mongosh",
-          "--quiet",
-          "--eval",
-          "db.adminCommand('ping')"
-        ]
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
 
       interval: 5s
       timeout: 5s
@@ -47,8 +41,7 @@ services:
 
   frontend:
     build: ./frontend
-    image: csp_frontend:1.0.0
-    container_name: csp_frontend
+    image: torrent_frontend
     restart: always
     ports:
       - "3000:3000"
@@ -57,3 +50,6 @@ services:
       - /app/node_modules
     depends_on:
       - backend
+
+volumes:
+  mongo_data:
