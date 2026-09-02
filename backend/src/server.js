@@ -3,6 +3,8 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const cron = require("node-cron");
+const smegpSyncService = require("./services/smegpSyncService");
 const User = require("./models/User");
 const VendorProfile = require("./models/VendorProfile");
 const UserBio = require("./models/UserBio");
@@ -38,6 +40,17 @@ app.get("/api/hello", (req, res) => {
   res.json({ message: "Hello from Express!" });
 });
 
+// Endpoint to manually trigger the SME-GP API synchronization
+app.post("/api/tors/sync", async (req, res) => {
+  try {
+    const result = await smegpSyncService.runSync();
+    res.json({ message: "Sync completed successfully", data: result });
+  } catch (error) {
+    console.error("Manual sync failed:", error);
+    res.status(500).json({ message: "Sync failed", error: error.message });
+  }
+});
+
 async function startServer() {
   try {
     await mongoose.connect(MONGO_URI, { dbName: "Torrent" });
@@ -49,6 +62,17 @@ async function startServer() {
       TORMatch.init(),
     ]);
     console.log("Connected to MongoDB Atlas");
+
+    // Schedule the auto-updater to run at 12:00 AM (midnight) every day.
+    // The cron string "0 0 * * *" corresponds to Minute: 0, Hour: 0, Day of Month: *, Month: *, Day of Week: *.
+    cron.schedule("0 0 * * *", async () => {
+      console.log("Running scheduled SME-GP API sync at midnight");
+      try {
+        await smegpSyncService.runSync();
+      } catch (error) {
+        console.error("Scheduled sync failed:", error);
+      }
+    });
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);

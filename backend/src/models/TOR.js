@@ -19,6 +19,23 @@ const torSchema = new mongoose.Schema(
       type: [String],
       default: undefined,
     },
+    externalId: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+    link: {
+      type: String,
+      trim: true,
+    },
+    deptName: {
+      type: String,
+      trim: true,
+    },
+    province: {
+      type: String,
+      trim: true,
+    },
     status: {
       type: String,
       trim: true,
