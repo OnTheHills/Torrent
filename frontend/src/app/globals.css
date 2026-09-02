@@ -52,4 +52,20 @@
   .story-paper {
     background: var(--palette-gray-850);
   }
+
+  /* Wallpaper behind frosted AppBar / Sidebar so the blur has chroma. */
+  .shell-atmosphere {
+    background:
+      radial-gradient(
+        ellipse 70% 50% at 8% 0%,
+        color-mix(in srgb, var(--palette-orange-400) 20%, transparent),
+        transparent 55%
+      ),
+      radial-gradient(
+        ellipse 55% 40% at 90% 110%,
+        color-mix(in srgb, var(--palette-teal-400) 18%, transparent),
+        transparent 50%
+      ),
+      var(--background-body);
+  }
 }

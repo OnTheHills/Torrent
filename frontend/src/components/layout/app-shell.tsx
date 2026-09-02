@@ -27,8 +27,9 @@ import { routes } from "@/config/routes";
 import type { DictionaryKey } from "@/lib/i18n/dictionary";
 
 /**
- * Mint-style shell: 72px App Bar over a 288px Sidebar and an 8px-gutter
- * content canvas. The canvas is the only page scroll container.
+ * Mint-style shell: frosted 72px App Bar over a Sidebar and a flush
+ * content canvas. Chrome overlays the canvas so backdrop-filter can sample it.
+ * The canvas is the only page scroll container.
  */
 export function AppShell({
   nav,
@@ -45,13 +46,13 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   return (
-    <SidebarProvider className="flex h-dvh flex-col overflow-hidden bg-background-body">
+    <SidebarProvider className="relative flex h-dvh flex-col overflow-hidden shell-atmosphere">
       <ShellAppBar workspace={workspace} />
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
         <ShellSidebar nav={nav} showBackToSite={showBackToSite} />
         <MainContent>
           {inset ? (
-            <div className="mx-auto max-w-6xl px-5 py-8 md:p-12">
+            <div className="mx-auto max-w-6xl px-5 py-8 md:px-12 md:py-12">
               {children}
             </div>
           ) : (

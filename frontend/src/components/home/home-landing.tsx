@@ -32,9 +32,9 @@ export function HomeLanding() {
 
   return (
     <div>
-      <section className="relative overflow-hidden hero-atmosphere text-hero-foreground">
+      <section className="relative -mt-[72px] overflow-hidden hero-atmosphere text-hero-foreground">
         <div className="pointer-events-none absolute inset-0 hero-rays opacity-60" />
-        <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-24">
+        <div className="relative mx-auto max-w-6xl px-4 pb-16 pt-[calc(72px+4rem)] sm:px-6 md:pb-24 md:pt-[calc(72px+6rem)]">
           <BrandLockup size="lg" priority />
 
           <p className="mt-10 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-[var(--palette-teal-200)]">

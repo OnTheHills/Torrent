@@ -196,7 +196,7 @@
 
   --background-body: var(--palette-teal-900);
 
-  --appbar: var(--palette-teal-900);
+  --appbar: color-mix(in srgb, var(--palette-teal-900) 58%, transparent);
   --appbar-foreground: var(--palette-teal-50);
   --appbar-muted-foreground: var(--palette-teal-300);
   --appbar-hover: var(--palette-teal-800);
@@ -205,7 +205,7 @@
   --appbar-border: var(--palette-teal-700);
   --appbar-input: color-mix(in srgb, var(--palette-white) 10%, transparent);
 
-  --sidebar: var(--palette-teal-900);
+  --sidebar: color-mix(in srgb, var(--palette-teal-900) 58%, transparent);
   --sidebar-foreground: var(--palette-teal-100);
   --sidebar-muted-foreground: var(--palette-teal-300);
   --sidebar-primary: var(--palette-teal-400);
@@ -245,4 +245,11 @@
   --hero-muted: color-mix(in srgb, var(--palette-teal-100) 72%, transparent);
   --surface-elevated: color-mix(in srgb, var(--palette-teal-900) 82%, transparent);
   --pattern-line: color-mix(in srgb, var(--palette-white) 8%, transparent);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --appbar: var(--palette-teal-900);
+    --sidebar: var(--palette-teal-900);
+  }
 }

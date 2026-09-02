@@ -169,7 +169,7 @@ function Sidebar({
       <div
         data-slot="sidebar"
         className={cn(
-          "flex h-full w-(--sidebar-width) flex-col overflow-hidden bg-sidebar text-sidebar-foreground",
+          "flex h-full w-(--sidebar-width) flex-col overflow-hidden bg-sidebar pt-[72px] text-sidebar-foreground backdrop-blur-xl backdrop-saturate-150",
           className
         )}
         {...props}
@@ -187,7 +187,7 @@ function Sidebar({
           data-mobile="true"
           side={side}
           showCloseButton={false}
-          className="w-(--sidebar-width) gap-0 border-sidebar-border bg-sidebar p-0 text-sidebar-foreground"
+          className="w-(--sidebar-width) gap-0 border-sidebar-border bg-sidebar p-0 text-sidebar-foreground backdrop-blur-xl backdrop-saturate-150"
           style={
             { "--sidebar-width": SIDEBAR_WIDTH_MOBILE } as React.CSSProperties
           }
@@ -230,7 +230,7 @@ function Sidebar({
         )}
         {...props}
       >
-        <div className="flex h-full w-full flex-col overflow-hidden bg-sidebar">
+        <div className="flex h-full w-full flex-col overflow-hidden border-r border-sidebar-border bg-sidebar pt-[72px] backdrop-blur-xl backdrop-saturate-150">
           {children}
         </div>
       </div>
@@ -309,7 +309,7 @@ function SidebarFooter({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="sidebar-footer"
       className={cn(
-        "flex w-full shrink-0 flex-col gap-2 border-t border-sidebar-divider bg-sidebar p-4",
+        "flex w-full shrink-0 flex-col gap-2 border-t border-sidebar-divider p-4",
         "group-data-[collapsible=icon]:p-2",
         className
       )}
@@ -410,7 +410,7 @@ function SidebarMenuButton({
   );
 }
 
-/** Gutter + rounded scroll canvas that carries page content. */
+/** Scroll canvas that carries page content, flush with the sidebar. */
 function MainContent({
   className,
   contentClassName,
@@ -421,7 +421,7 @@ function MainContent({
     <div
       data-slot="main-content-gutter"
       className={cn(
-        "flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background-body pl-2",
+        "flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-transparent",
         className
       )}
       {...props}
@@ -429,7 +429,7 @@ function MainContent({
       <main
         data-slot="main-content-canvas"
         className={cn(
-          "h-full min-h-0 flex-1 overflow-x-hidden overflow-y-auto rounded-tl-xl bg-background",
+          "h-full min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-background pt-[72px]",
           contentClassName
         )}
       >

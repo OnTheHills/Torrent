@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
  */
 
 export const appBarRootStyles =
-  "flex h-[72px] w-full shrink-0 items-center bg-appbar text-appbar-foreground";
+  "absolute inset-x-0 top-0 z-30 flex h-[72px] w-full items-center border-b border-appbar-border/40 bg-appbar text-appbar-foreground backdrop-blur-xl backdrop-saturate-150";
 
 export const appBarPrimaryStyles =
   "flex h-full w-full items-center justify-between gap-3 px-4 md:gap-4";
@@ -18,13 +18,13 @@ export const appBarClusterStyles = "flex items-center gap-3";
 export const appBarCenterStyles =
   "hidden min-w-0 flex-1 items-center justify-center md:flex";
 
-export const appBarBrandLockupStyles = "flex items-center";
+export const appBarBrandLockupStyles = "flex items-center gap-2";
 
 export const appBarLogoStyles =
   "inline-flex h-[18px] shrink-0 items-center rounded-sm bg-sidebar-primary px-1.5 font-heading text-[9px] font-semibold tracking-[0.1em] text-sidebar-primary-foreground md:h-5 md:px-2 md:text-[11px] md:tracking-[0.12em]";
 
 export const appBarWorkspaceNameStyles =
-  "mt-0.5 flex h-12 items-center font-heading text-lg uppercase leading-none tracking-wide text-appbar-accent-foreground md:h-16 md:text-[26px]";
+  "mt-0.5 flex h-12 items-center font-heading text-lg uppercase leading-none tracking-wide text-appbar-accent-foreground md:h-16 md:text-3xl";
 
 export const appBarMobileDividerStyles =
   "h-8 w-px shrink-0 bg-appbar-border md:hidden";
