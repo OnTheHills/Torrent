@@ -41,7 +41,6 @@ services:
 
   frontend:
     build: ./frontend
-    image: torrent_frontend
     restart: always
     ports:
       - "3000:3000"
