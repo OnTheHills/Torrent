@@ -26,11 +26,29 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
+      enum: ["public", "vendor", "admin"],
+      default: "public",
     },
+    provider: {
+      type: String,
+      enum: ["google", "password"],
+      default: "google",
+    },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+    },
+    picture: { type: String, trim: true },
+    emailVerified: { type: Boolean, default: false },
   },
   {
     timestamps: true,
   },
 );
+
+userSchema.index({ email: 1 }, { unique: true });
+userSchema.index({ googleId: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model("User", userSchema);

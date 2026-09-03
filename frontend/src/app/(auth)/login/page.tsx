@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { routes } from "@/config/routes";
 
+import { GoogleButton } from "@/components/auth/google-button";
+
 export const metadata: Metadata = {
   title: "Log in",
 };
@@ -15,9 +17,11 @@ export default function LoginPage() {
       <div className="space-y-1">
         <h1 className="text-xl font-semibold">Log in</h1>
         <p className="text-sm text-muted-foreground">
-          Prototype auth — no backend yet. Continue into the vendor app.
+            Continue with the Google account you added as a test user.
         </p>
       </div>
+      <GoogleButton />
+      <p className="text-center text-xs text-muted-foreground">or email (not wired yet):</p>
       <form className="space-y-3" action={routes.app.home}>
         <div className="space-y-1.5">
           <label htmlFor="email" className="text-xs font-medium">
