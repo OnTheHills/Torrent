@@ -4,12 +4,14 @@ import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Menu01Icon } from "@hugeicons/core-free-icons";
 
+import { AccountControl } from "@/components/layout/account-control";
 import { BrandLockup } from "@/components/layout/brand-lockup";
 import { LocaleToggle } from "@/components/layout/locale-toggle";
 import { ViewToggle } from "@/components/layout/view-toggle";
 import { AlertsPopover } from "@/components/notifications/alerts-popover";
 import { useAudience } from "@/components/providers/audience-provider";
 import { useLocale } from "@/components/providers/locale-provider";
+import { useSession } from "@/components/providers/session-provider";
 import { AppBar } from "@/components/ui/appbar";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";
@@ -28,6 +30,7 @@ export function ShellAppBar({
 }) {
   const { t } = useLocale();
   const audience = useAudience();
+  const { user } = useSession();
   const { toggleSidebar } = useSidebar();
   const showAlerts = audience === "vendor";
 
@@ -64,8 +67,9 @@ export function ShellAppBar({
 
         <AppBar.Right className="shrink-0 gap-2 md:gap-3">
           {showAlerts ? <AlertsPopover tone="chrome" /> : null}
-          <ViewToggle tone="chrome" className="hidden sm:inline-flex" />
+          {!user ? <ViewToggle tone="chrome" className="hidden sm:inline-flex" /> : null}
           <LocaleToggle tone="chrome" />
+          <AccountControl />
         </AppBar.Right>
       </AppBar.Primary>
     </AppBar>

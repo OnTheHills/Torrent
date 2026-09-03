@@ -62,8 +62,12 @@ export function NotificationPrefsProvider({
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setPrefsState(readPrefs());
-    setReady(true);
+    const timer = window.setTimeout(() => {
+      setPrefsState(readPrefs());
+      setReady(true);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {

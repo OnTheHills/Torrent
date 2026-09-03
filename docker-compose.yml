@@ -41,10 +41,11 @@ services:
 
   frontend:
     build: ./frontend
-    image: torrent_frontend
     restart: always
     ports:
       - "3000:3000"
+    environment:
+      BACKEND_API_URL: http://backend:5175/api
     volumes:
       - ./frontend:/app
       - /app/node_modules

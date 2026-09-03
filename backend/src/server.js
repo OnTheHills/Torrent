@@ -3,6 +3,8 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
+const authRouter = require("./routes/authRoute");
 const User = require("./models/User");
 const VendorProfile = require("./models/VendorProfile");
 const UserBio = require("./models/UserBio");
@@ -26,8 +28,17 @@ if (!MONGO_URI) {
   );
 }
 
-app.use(cors());
+const corsOrigins = process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim());
+
+app.use(
+  cors({
+    origin: corsOrigins,
+    credentials: true,
+  }),
+);
+app.use(cookieParser());
 app.use(express.json());
+app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/vendor-profiles", vendorProfileRouter);
 app.use("/api/user-bios", userBioRouter);

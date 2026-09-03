@@ -36,7 +36,13 @@ export function NotificationSettingsView() {
   const [savedFlash, setSavedFlash] = useState(false);
 
   useEffect(() => {
-    if (ready) setDraft(prefs);
+    if (!ready) return;
+
+    const timer = window.setTimeout(() => {
+      setDraft(prefs);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [ready, prefs]);
 
   const update = (patch: Partial<NotificationPrefs>) => {
