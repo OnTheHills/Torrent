@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Alert02Icon } from "@hugeicons/core-free-icons";
+import { useQuery } from "@tanstack/react-query";
+import { fetchTors } from "@/lib/api";
 
 import { useLocale } from "@/components/providers/locale-provider";
 import { AgencyBadge } from "@/components/tor/agency-badge";
@@ -21,7 +23,6 @@ import { routes } from "@/config/routes";
 import {
   MOCK_STATS,
   MOCK_SUSPICIOUS_MONTHS,
-  MOCK_TORS,
   torAgencyLine,
   torTitle,
 } from "@/data/mock";
@@ -29,8 +30,10 @@ import { cn } from "@/lib/utils";
 
 export function SuspiciousPanel() {
   const { locale, t } = useLocale();
+  const { data: tors = [] } = useQuery({ queryKey: ["tors"], queryFn: fetchTors });
+
   const max = Math.max(...MOCK_SUSPICIOUS_MONTHS.map((item) => item.count));
-  const flagged = MOCK_TORS.filter((tor) => tor.integrity === "suspicious");
+  const flagged = tors.filter((tor) => tor.integrity === "suspicious");
 
   return (
     <Card className="h-full">

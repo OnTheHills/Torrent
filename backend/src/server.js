@@ -15,13 +15,17 @@ const vendorProfileRouter = require("./routes/vendorProfileRoute");
 const userBioRouter = require("./routes/userBioRoute");
 const torRouter = require("./routes/torRoute");
 const torMatchRouter = require("./routes/torMatchRoute");
+const syncRouter = require("./routes/syncRoute");
+const { startCronJobs } = require("./utils/smeGp");
 
 const app = express();
 const PORT = process.env.PORT || 5175;
 const MONGO_URI = process.env.MONGO_URI;
 
 if (!MONGO_URI) {
-  throw new Error("MONGO_URI is required. Add the MongoDB Atlas URI to backend/.env.");
+  throw new Error(
+    "MONGO_URI is required. Add the MongoDB Atlas URI to backend/.env.",
+  );
 }
 
 const corsOrigins = process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim());
@@ -40,6 +44,7 @@ app.use("/api/vendor-profiles", vendorProfileRouter);
 app.use("/api/user-bios", userBioRouter);
 app.use("/api/tors", torRouter);
 app.use("/api/tor-matches", torMatchRouter);
+app.use("/api/sync", syncRouter);
 
 app.get("/", (req, res) => {
   res.json({ message: "Backend is running" });
@@ -60,6 +65,9 @@ async function startServer() {
       TORMatch.init(),
     ]);
     console.log("Connected to MongoDB Atlas");
+
+    // Initialize cron jobs for background data sync
+    startCronJobs();
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);

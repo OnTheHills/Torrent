@@ -1,6 +1,6 @@
 export type AgencyId = "bma" | "mdes" | "dga" | "depa" | "mol";
 
-export type DataSourceKind = "bma-ocds" | "egp-rss" | "html";
+export type DataSourceKind = "bma-ocds" | "bma-egp2" | "egp-rss" | "html";
 
 export type SourceVerdict = "green" | "yellow" | "red";
 
@@ -45,6 +45,13 @@ export const AGENCIES: Agency[] = [
         labelTh: "สัญญาเปิด กทม. (OCDS JSON)",
         url: "https://opencontract.bangkok.go.th/assets/data/output/yearly/ocds_releases_2569.json",
         pageUrl: "https://opencontract.bangkok.go.th/ocds.html",
+      },
+      {
+        kind: "bma-egp2",
+        labelEn: "BMA e-GP2 procurement plan API",
+        labelTh: "แผนจัดซื้อจัดจ้าง กทม. e-GP2",
+        url: "https://egp2.bangkok.go.th/appapi/api/PlanProjects/GetPlanProjectFromFilter?budgetYear=2569",
+        pageUrl: "https://egp2.bangkok.go.th/plan?budgetYear=2569",
       },
     ],
   },
@@ -134,13 +141,15 @@ export function egpRssUrl(deptId: string, announceType: string) {
   return `${EGP_RSS_BASE}?deptId=${encodeURIComponent(deptId)}&anounceType=${encodeURIComponent(announceType)}`;
 }
 
-export function agencyName(id: AgencyId, locale: "en" | "th") {
-  const agency = AGENCY_BY_ID[id];
+export function agencyName(id: AgencyId | string, locale: "en" | "th") {
+  const agency = AGENCY_BY_ID[id as AgencyId];
+  if (!agency) return id;
   return locale === "th" ? agency.nameTh : agency.nameEn;
 }
 
-export function agencyShort(id: AgencyId, locale: "en" | "th") {
-  const agency = AGENCY_BY_ID[id];
+export function agencyShort(id: AgencyId | string, locale: "en" | "th") {
+  const agency = AGENCY_BY_ID[id as AgencyId];
+  if (!agency) return id;
   return locale === "th" ? agency.shortTh : agency.shortEn;
 }
 

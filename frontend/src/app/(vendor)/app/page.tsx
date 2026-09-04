@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { routes } from "@/config/routes";
-import { AGENCY_BY_ID } from "@/config/agencies";
+import { agencyShort } from "@/config/agencies";
 import {
   formatBudgetCompact,
   formatDate,
@@ -60,7 +60,7 @@ export default function VendorHomePage() {
                   </Link>
                 </CardTitle>
                 <CardDescription>
-                  {AGENCY_BY_ID[tor.agencyId].shortEn} · {tor.department} ·{" "}
+                  {agencyShort(tor.agencyId, "en")} · {tor.department} ·{" "}
                   {formatBudgetCompact(tor.budgetThb)}
                 </CardDescription>
               </CardHeader>

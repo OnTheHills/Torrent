@@ -39,8 +39,12 @@ export function SavedProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setSavedIds(readSaved());
-    setReady(true);
+    const timer = window.setTimeout(() => {
+      setSavedIds(readSaved());
+      setReady(true);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {

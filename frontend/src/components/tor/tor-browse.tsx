@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { useAudience } from "@/components/providers/audience-provider";
@@ -16,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { torAgency, torDepartment, torTitle } from "@/data/mock";
 import type { AgencyId, Tor } from "@/types/tor";
+import { fetchTors } from "@/lib/api";
 
 function inBudgetBand(amount: number, band: TorFilterState["budget"]) {
   if (band === "all") return true;
@@ -25,7 +27,7 @@ function inBudgetBand(amount: number, band: TorFilterState["budget"]) {
 }
 
 export function TorBrowse({
-  tors,
+  tors: initialTors,
   initialQuery = "",
   initialAgency = "all",
   showHeader = true,
@@ -45,6 +47,12 @@ export function TorBrowse({
     agency: initialAgency,
   });
   const vendor = audience === "vendor";
+
+  const { data: tors = [] } = useQuery({
+    queryKey: ["tors"],
+    queryFn: fetchTors,
+    initialData: initialTors,
+  });
 
   function applyFilters(next: TorFilterState, nextQuery = query) {
     setFilters(next);

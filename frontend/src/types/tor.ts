@@ -6,13 +6,7 @@ export type TorLifecycle = "draft" | "published" | "awarded";
 
 export type IntegrityStatus = "ok" | "suspicious";
 
-export type TorCategory =
-  | "Web Application"
-  | "Mobile Application"
-  | "System Integration"
-  | "Data Platform"
-  | "Cybersecurity"
-  | "AI / Analytics";
+export type TorCategory = string;
 
 export type NotificationKind = "match" | "risk" | "deadline";
 

@@ -12,25 +12,31 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { AGENCIES } from "@/config/agencies";
-import { MOCK_BENCHMARKS, MOCK_TORS } from "@/data/mock";
+import { buildBudgetBenchmarks } from "@/lib/budget";
+import { Tor } from "@/types/tor";
 
-export function DashboardView() {
+export function DashboardView({ tors }: { tors: Tor[] }) {
   const { t } = useLocale();
+  const benchmarks = buildBudgetBenchmarks(tors);
+  const agencyCount = new Set(
+    tors
+      .map((tor) => tor.agencyId || tor.department || tor.departmentTh)
+      .filter(Boolean)
+  ).size;
 
-  const draftCount = MOCK_TORS.filter((tor) => tor.lifecycle === "draft").length;
-  const publishedCount = MOCK_TORS.filter(
+  const draftCount = tors.filter((tor) => tor.lifecycle === "draft").length;
+  const publishedCount = tors.filter(
     (tor) => tor.lifecycle === "published"
   ).length;
 
   const stats = [
-    { key: "kpiAgencies" as const, value: String(AGENCIES.length) },
-    { key: "statCategories" as const, value: String(MOCK_BENCHMARKS.length) },
+    { key: "kpiAgencies" as const, value: String(agencyCount) },
+    { key: "statCategories" as const, value: String(benchmarks.length) },
     { key: "statDraftLive" as const, value: String(draftCount) },
     { key: "statPublished" as const, value: String(publishedCount) },
   ];
 
-  const compareRows = MOCK_TORS.filter((tor) => tor.lifecycle !== "awarded").slice(
+  const compareRows = tors.filter((tor) => tor.lifecycle !== "awarded").slice(
     0,
     8
   );
@@ -66,7 +72,7 @@ export function DashboardView() {
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
-          <BudgetChart data={MOCK_BENCHMARKS} />
+          <BudgetChart data={benchmarks} />
         </CardContent>
       </Card>
 
@@ -80,7 +86,7 @@ export function DashboardView() {
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
-          <CompareBudgetChart tors={compareRows} />
+          <CompareBudgetChart benchmarks={benchmarks} tors={compareRows} />
         </CardContent>
       </Card>
 
@@ -92,7 +98,7 @@ export function DashboardView() {
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-4">
-          <HistoricalPriceTable tors={MOCK_TORS} />
+          <HistoricalPriceTable benchmarks={benchmarks} tors={tors} />
         </CardContent>
       </Card>
     </div>

@@ -40,13 +40,10 @@ export function GoogleButton({
   const { refresh } = useSession();
   const ref = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
   useEffect(() => {
-    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-    if (!clientId) {
-      setError("Missing NEXT_PUBLIC_GOOGLE_CLIENT_ID.");
-      return;
-    }
+    if (!clientId) return;
 
     let cancelled = false;
     let tries = 0;
@@ -91,12 +88,16 @@ export function GoogleButton({
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [role, afterVendor, router, refresh]);
+  }, [role, afterVendor, router, refresh, clientId]);
+
+  const visibleError = clientId ? error : "Missing NEXT_PUBLIC_GOOGLE_CLIENT_ID.";
 
   return (
     <div className="space-y-2">
       <div ref={ref} className="flex justify-center" />
-      {error ? <p className="text-center text-sm text-destructive">{error}</p> : null}
+      {visibleError ? (
+        <p className="text-center text-sm text-destructive">{visibleError}</p>
+      ) : null}
     </div>
   );
 }

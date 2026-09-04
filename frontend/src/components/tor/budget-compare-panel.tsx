@@ -15,14 +15,21 @@ import {
 import { routes } from "@/config/routes";
 import {
   formatBudgetCompact,
-  getBenchmarkForCategory,
   getPriceAnalysisStatus,
 } from "@/data/mock";
+import { buildBudgetBenchmarks, getBenchmarkForCategory } from "@/lib/budget";
 import type { Tor } from "@/types/tor";
 
-export function BudgetComparePanel({ tor }: { tor: Tor }) {
+export function BudgetComparePanel({
+  benchmarkTors,
+  tor,
+}: {
+  benchmarkTors?: Tor[];
+  tor: Tor;
+}) {
   const { locale, t } = useLocale();
-  const benchmark = getBenchmarkForCategory(tor.category);
+  const benchmarks = buildBudgetBenchmarks(benchmarkTors?.length ? benchmarkTors : [tor]);
+  const benchmark = getBenchmarkForCategory(benchmarks, tor.category);
 
   if (!benchmark) return null;
 
@@ -45,8 +52,10 @@ export function BudgetComparePanel({ tor }: { tor: Tor }) {
         <CardDescription>{t("budgetCompareHint")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-5 pt-5">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-sm text-muted-foreground">{tor.category}</p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <p className="min-w-0 flex-1 break-words text-sm text-muted-foreground">
+            {tor.category}
+          </p>
           <Badge
             variant="outline"
             className={

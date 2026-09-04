@@ -75,7 +75,7 @@ export async function probeSources(): Promise<SourceProbeResult[]> {
       url: "https://www.mol.go.th/procurement_categories/draft-tor-and-tender-documents",
       needle: "TOR",
     }),
-    probeBmaHtml(),
+    probeBmaEgp2PlanApi(),
   ]);
 }
 
@@ -207,28 +207,37 @@ async function probeHtmlListing(input: {
   }
 }
 
-async function probeBmaHtml(): Promise<SourceProbeResult> {
-  const url = "https://egp2.bangkok.go.th/";
+async function probeBmaEgp2PlanApi(): Promise<SourceProbeResult> {
+  const url =
+    "https://egp2.bangkok.go.th/appapi/api/PlanProjects/GetPlanProjectFromFilter?pageNo=1&pageSize=5&sortBy=announcedatedesc&masterBudgetYearId=2569";
   const meta = {
-    id: "bma-egp2-html",
-    label: "BMA e-GP 2 public site (scrape check)",
-    kind: "spa-check" as const,
+    id: "bma-egp2-plan-api",
+    label: "BMA e-GP 2 procurement plan API",
+    kind: "html" as const,
     url,
   };
   const started = Date.now();
   try {
-    const res = await timedFetch(url, { method: "GET" }, 8000);
+    const res = await timedFetch(
+      url,
+      {
+        method: "GET",
+        headers: {
+          accept: "application/json, text/plain, */*",
+          referer: "https://egp2.bangkok.go.th/plan?budgetYear=2569",
+        },
+      },
+      8000
+    );
     const ms = Date.now() - started;
-    const html = await res.text();
-    const spa = html.includes("/_next/") || html.includes("__NEXT_DATA__");
-    if (spa) {
+    const data = await res.json();
+    if (res.ok && Array.isArray(data.data)) {
       return {
         ...meta,
-        verdict: "red",
+        verdict: "green",
         status: res.status,
         ms,
-        detail:
-          "Next.js SPA — listing HTML has no TOR payload. Do not scrape. Use OCDS JSON instead.",
+        detail: `Public API responded with ${data.totalCount ?? data.data.length} plans for budget year 2569.`,
       };
     }
     return {
@@ -236,7 +245,7 @@ async function probeBmaHtml(): Promise<SourceProbeResult> {
       verdict: "yellow",
       status: res.status,
       ms,
-      detail: "HTML returned; structure not classified. Prefer OCDS.",
+      detail: "API returned but response shape was unexpected.",
     };
   } catch (error) {
     return fail(meta, Date.now() - started, abortMessage(error));

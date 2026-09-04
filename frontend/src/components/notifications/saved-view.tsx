@@ -4,17 +4,19 @@ import Link from "next/link";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { useLocale } from "@/components/providers/locale-provider";
-import { useSaved } from "@/components/providers/saved-provider";
 import { TorCard } from "@/components/tor/tor-card";
 import { Button } from "@/components/ui/button";
 import { routes } from "@/config/routes";
-import { MOCK_TORS } from "@/data/mock";
+import { useSaved } from "@/components/providers/saved-provider";
+import { useQuery } from "@tanstack/react-query";
+import { fetchTors } from "@/lib/api";
 
 export function SavedView() {
   const { t } = useLocale();
-  const { savedIds, ready } = useSaved();
+  const { savedIds } = useSaved();
+  const { data: tors = [], isLoading } = useQuery({ queryKey: ["tors"], queryFn: fetchTors });
 
-  const savedTors = MOCK_TORS.filter((tor) => savedIds.includes(tor.id));
+  const savedTors = tors.filter((tor) => savedIds.includes(tor.id));
 
   return (
     <div className="space-y-8">
@@ -24,7 +26,7 @@ export function SavedView() {
         description={t("savedDescription")}
       />
 
-      {!ready ? (
+      {isLoading ? (
         <div className="rounded-xl border border-dashed border-border px-6 py-16 text-center text-sm text-muted-foreground">
           …
         </div>

@@ -23,8 +23,12 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>("th");
 
   useEffect(() => {
-    const stored = window.localStorage.getItem("torrent-locale");
-    if (stored === "en" || stored === "th") setLocaleState(stored);
+    const timer = window.setTimeout(() => {
+      const stored = window.localStorage.getItem("torrent-locale");
+      if (stored === "en" || stored === "th") setLocaleState(stored);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   const setLocale = useCallback((next: Locale) => {
