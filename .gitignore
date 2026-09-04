@@ -3,7 +3,6 @@ GEMINI.md
 .AGENTS
 .codex
 .GEMINI
-.github
 graphify-out
 /docs/project_details/*
 .cursor/skills/*
