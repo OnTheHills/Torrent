@@ -1,9 +1,12 @@
+// Public sources return budgets as both numbers and locale-formatted strings.
+// Convert either representation into one safe numeric value for charts and MongoDB.
 function parseBudget(value) {
   if (typeof value === "number") return value;
   if (!value) return 0;
   return parseFloat(value.toString().replace(/,/g, "")) || 0;
 }
 
+// Category labels are intentionally broad: they make cross-source budgets comparable.
 function classifyCategory(keywordOrTerms) {
   const text = Array.isArray(keywordOrTerms)
     ? keywordOrTerms.join(" ")
@@ -40,6 +43,7 @@ function classifyCategory(keywordOrTerms) {
   return "Software Development";
 }
 
+// Shared retry pause keeps source adapters from retrying a transient failure immediately.
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }

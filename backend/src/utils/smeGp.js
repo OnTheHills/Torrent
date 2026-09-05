@@ -8,6 +8,7 @@ const {
   fetchBmaPlanProjects,
 } = require("./sources/bmaEgp2PlanSource");
 
+// Persist one normalized batch. Upserting by external refId makes repeat syncs idempotent.
 async function saveTorBatch(tors) {
   let saved = 0;
 
@@ -23,6 +24,7 @@ async function saveTorBatch(tors) {
   return saved;
 }
 
+// Adapt a source's common result into the summary returned by sync endpoints.
 async function syncSource(sourceResultPromise) {
   const result = await sourceResultPromise;
   const saved = await saveTorBatch(result.tors);
@@ -57,6 +59,7 @@ async function syncBmaEgp2Only() {
 
 async function syncProcurementData() {
   console.log("Starting procurement data sync...");
+  // Each source owns its fetch/mapping details; this layer only coordinates saving.
   const [smeGpResult, bmaEgp2Result] = await Promise.all([
     syncSmeGpOnly(),
     syncBmaEgp2Only(),
@@ -80,19 +83,28 @@ async function syncProcurementData() {
   };
 }
 
-function startCronJobs() {
-  // Schedule to run at 00:00 (midnight) every day
-  cron.schedule("0 0 * * *", async () => {
-      console.log("Running scheduled BMA/SME-GP sync job...");
+async function startCronJobs() {
+  async function runSync(trigger) {
+    console.log(`Running ${trigger} BMA/SME-GP sync job...`);
     try {
       const result = await syncProcurementData();
-      console.log("Scheduled sync job completed successfully:", result);
+      console.log(`${trigger} sync job completed successfully:`, result);
     } catch (error) {
-      console.error("Scheduled sync job failed:", error);
+      console.error(`${trigger} sync job failed:`, error);
     }
+  }
+
+  // Finish the optional initial fetch before the server begins serving pages.
+  if (process.env.FETCH_ON_STARTUP?.trim().toLowerCase() === "true") {
+    await runSync("Startup");
+  }
+
+  cron.schedule("0 2 * * *", () => runSync("Scheduled"), {
+    timezone: "Asia/Bangkok",
+    noOverlap: true,
   });
 
-  console.log("SME-GP sync cron job initialized.");
+  console.log("BMA/SME-GP sync scheduled for 02:00 Asia/Bangkok daily.");
 }
 
 module.exports = {

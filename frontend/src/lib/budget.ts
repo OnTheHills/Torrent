@@ -1,5 +1,7 @@
 import type { BudgetBenchmark, Tor } from "@/types/tor";
 
+// Median is more stable than an arithmetic mean when one procurement has an
+// unusually large budget, so it is used as the category "กลาง" benchmark.
 function median(values: number[]) {
   const sorted = [...values].sort((a, b) => a - b);
   const midpoint = Math.floor(sorted.length / 2);
@@ -12,6 +14,7 @@ function median(values: number[]) {
 }
 
 export function buildBudgetBenchmarks(tors: Tor[]): BudgetBenchmark[] {
+  // Group raw TORs first; every chart/table consumes the same derived benchmark.
   const budgetsByCategory = new Map<string, number[]>();
 
   tors.forEach((tor) => {

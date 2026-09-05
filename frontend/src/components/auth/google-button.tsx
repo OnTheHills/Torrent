@@ -42,6 +42,8 @@ export function GoogleButton({
   const [error, setError] = useState<string | null>(null);
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
+  // The Google script is loaded by the root layout. Poll briefly because this
+  // client component may mount before Google's global object is available.
   useEffect(() => {
     if (!clientId) return;
 

@@ -1,5 +1,7 @@
 import type { Tor } from "@/types/tor";
 
+// Server-rendered Next.js code cannot reach the host's localhost inside Docker,
+// while browser code can. Keep the choice in one place for every API call.
 const isServer = typeof window === "undefined";
 const API_URL = isServer
   ? process.env.BACKEND_API_URL ||
@@ -7,6 +9,7 @@ const API_URL = isServer
     "http://localhost:5175/api"
   : process.env.NEXT_PUBLIC_API_URL || "http://localhost:5175/api";
 
+// Accept both "/auth/me" and "/api/auth/me" callers without producing "/api/api".
 function apiUrl(path: string) {
   const base = API_URL.replace(/\/+$/, "");
   let normalizedPath = path.startsWith("/") ? path : `/${path}`;
@@ -22,6 +25,8 @@ export async function api<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
+  // Use this generic client for session-protected JSON endpoints. It includes
+  // browser cookies and turns API error bodies into normal JavaScript errors.
   const response = await fetch(apiUrl(path), {
     ...options,
     credentials: "include",
@@ -46,6 +51,7 @@ export async function api<T>(
 
 export async function fetchTors(): Promise<Tor[]> {
   try {
+    // TOR data can change immediately after manual sync, so do not reuse stale SSR data.
     const response = await fetch(apiUrl("/tors"), { cache: "no-store" });
 
     if (!response.ok) {
@@ -75,6 +81,8 @@ export async function fetchTorById(id: string): Promise<Tor | undefined> {
   }
 }
 
+// MongoDB/source field names are not UI field names. This is the sole mapping
+// boundary, including defaults for incomplete public-source records.
 function mapBackendTorToFrontendTor(data: any): Tor {
   return {
     id: data._id,

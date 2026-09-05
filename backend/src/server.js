@@ -18,6 +18,8 @@ const torMatchRouter = require("./routes/torMatchRoute");
 const syncRouter = require("./routes/syncRoute");
 const { startCronJobs } = require("./utils/smeGp");
 
+// This file is the composition root: it connects infrastructure, middleware,
+// and routers. Feature logic should live in controllers/services instead.
 const app = express();
 const PORT = process.env.PORT || 5175;
 const MONGO_URI = process.env.MONGO_URI;
@@ -30,6 +32,7 @@ if (!MONGO_URI) {
 
 const corsOrigins = process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim());
 
+// Credentials allow the browser's HTTP-only session cookie to accompany API calls.
 app.use(
   cors({
     origin: corsOrigins,
@@ -66,8 +69,8 @@ async function startServer() {
     ]);
     console.log("Connected to MongoDB Atlas");
 
-    // Initialize cron jobs for background data sync
-    startCronJobs();
+    // Start schedules only after MongoDB is ready, so an early sync can be saved.
+    await startCronJobs();
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);

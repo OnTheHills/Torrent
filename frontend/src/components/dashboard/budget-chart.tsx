@@ -7,6 +7,7 @@ import { formatBudget } from "@/data/mock";
 import { cn } from "@/lib/utils";
 import type { BudgetBenchmark } from "@/types/tor";
 
+// A fixed tick count keeps each category chart aligned and avoids visual jitter.
 const AXIS_TICKS = 4;
 
 export function BudgetChart({ data }: { data: BudgetBenchmark[] }) {
@@ -21,6 +22,7 @@ export function BudgetChart({ data }: { data: BudgetBenchmark[] }) {
     );
   }
 
+  // Every bar uses one shared maximum so categories can be compared honestly.
   const maxMedian = Math.max(...data.map((item) => item.medianThb));
 
   const ticks = Array.from({ length: AXIS_TICKS + 1 }, (_, index) =>

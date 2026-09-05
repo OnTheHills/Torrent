@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 
+// Normalized storage contract shared by every procurement source. Source adapters
+// translate their API-specific payloads into this schema before an upsert.
 const torSchema = new mongoose.Schema(
   {
     refId: {

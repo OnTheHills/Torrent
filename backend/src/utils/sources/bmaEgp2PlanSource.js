@@ -14,6 +14,8 @@ const {
   wait,
 } = require("../procurementSourceUtils");
 
+// This adapter is separate from SME-GP because e-GP2 exposes a different GET API
+// and response shape even though both sources become the same TOR document later.
 const SOURCE = "BMA-EGP2";
 const METHOD = "GET";
 
@@ -40,6 +42,7 @@ function matchingBmaSoftwareTerms(title) {
   const name = (title || "").toString().toLowerCase();
   if (!name || containsAny(name, BMA_EXCLUDE_TERMS)) return [];
 
+  // BMA plans are broad, so require a procurement verb before applying IT keywords.
   const hasProcurementVerb =
     /จ้าง|บำรุง|บํารุง|พัฒนา|ปรับปรุง|จัดหา|ดูแล|เช่า|ลิขสิทธิ์/.test(name);
   if (!hasProcurementVerb) return [];
@@ -54,6 +57,8 @@ function matchingBmaSoftwareTerms(title) {
   return [];
 }
 
+// Map BMA's plan field names once at the system boundary; UI and database code
+// then work only with the project's common TOR field names.
 function mapBmaPlanProject(row, matchedTerms) {
   const planId = row.planProjectId || row.planProjectPlanProjectsCode;
   const title = row.planProjectPlanProjectName || "Untitled procurement plan";
@@ -93,6 +98,7 @@ async function fetchBmaPlanProjects({
   let pageCount = 1;
 
   while (pageNo <= pageCount) {
+    // The BMA e-GP2 API exposes pages behind the SPA, with pageCount in each response.
     const url = new URL(`${BMA_EGP2_API_BASE_URL}/PlanProjects/GetPlanProjectFromFilter`);
     url.searchParams.set("pageNo", pageNo.toString());
     url.searchParams.set("pageSize", pageSize.toString());

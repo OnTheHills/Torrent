@@ -10,6 +10,8 @@ export type SessionUser = {
   picture?: string;
 };
 
+// Google returns a short-lived identity credential. The backend verifies it and
+// responds by setting an HTTP-only session cookie, not by exposing a JWT here.
 export function googleLogin(credential: string, role?: "public" | "vendor") {
   return api<SessionUser>("/api/auth/google", {
     method: "POST",

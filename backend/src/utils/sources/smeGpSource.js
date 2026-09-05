@@ -11,6 +11,7 @@ const {
   wait,
 } = require("../procurementSourceUtils");
 
+// This adapter owns the SME-GP POST payload and its DataTables-style paging format.
 const SOURCE = "SME-GP";
 const METHOD = "POST";
 
@@ -18,6 +19,7 @@ function compactText(value) {
   return (value || "").toString().replace(/\s+/g, "").toLowerCase();
 }
 
+// Reject false positives before accepting the first supported software-development term.
 function matchingKeyword(title) {
   const normalizedTitle = compactText(title);
   if (!normalizedTitle) return null;
@@ -41,6 +43,7 @@ async function fetchSearch(searchStr, pageSize = PAGE_SIZE, retries = 3) {
     search: searchStr,
   };
 
+  // The first request provides the total; later requests fetch the remaining offsets.
   let firstResponse;
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
@@ -125,6 +128,7 @@ async function fetchSmeGpSoftwareTors() {
     allRows.push(...rows);
   });
 
+  // Several broad searches can return the same project. Deduplicate before mapping/upserting.
   const uniqueCandidates = new Map();
   allRows.forEach((row) => {
     const id = row._id || row.link || JSON.stringify(row);

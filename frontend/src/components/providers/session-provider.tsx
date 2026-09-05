@@ -24,6 +24,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Session state is derived from the cookie-backed backend endpoint, never from
+  // a token kept in localStorage.
   const refresh = useCallback(async () => {
     try {
       setUser(await getMe());
@@ -34,6 +36,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Defer the initial update so React's effect rule and Strict Mode stay happy.
   useEffect(() => {
     const timer = window.setTimeout(() => {
       void refresh();

@@ -18,6 +18,7 @@ export function CompareBudgetChart({
 }) {
   const { locale, t } = useLocale();
 
+  // A TOR can only be compared when its category has a benchmark.
   const rows = tors
     .map((tor) => {
       const benchmark = getBenchmarkForCategory(benchmarks, tor.category);
@@ -26,6 +27,7 @@ export function CompareBudgetChart({
     })
     .filter((row): row is { tor: Tor; median: number } => row !== null);
 
+  // Project and median bars share one scale within this chart.
   const max = Math.max(
     ...rows.flatMap((row) => [row.tor.budgetThb, row.median]),
     1

@@ -17,7 +17,10 @@ import { Tor } from "@/types/tor";
 
 export function DashboardView({ tors }: { tors: Tor[] }) {
   const { t } = useLocale();
+  // All dashboard sections share these category benchmarks, so calculate once
+  // in the parent instead of allowing chart/table definitions to drift apart.
   const benchmarks = buildBudgetBenchmarks(tors);
+  // A missing agencyId falls back to its department, which is common in imports.
   const agencyCount = new Set(
     tors
       .map((tor) => tor.agencyId || tor.department || tor.departmentTh)
@@ -36,6 +39,7 @@ export function DashboardView({ tors }: { tors: Tor[] }) {
     { key: "statPublished" as const, value: String(publishedCount) },
   ];
 
+  // Keep the comparison chart scannable while the table below remains complete.
   const compareRows = tors.filter((tor) => tor.lifecycle !== "awarded").slice(
     0,
     8

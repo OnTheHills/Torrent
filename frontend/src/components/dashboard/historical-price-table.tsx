@@ -48,6 +48,7 @@ export function HistoricalPriceTable({
   const { locale, t } = useLocale();
   const [page, setPage] = useState(1);
   const [analysisSort, setAnalysisSort] = useState<AnalysisSort>("none");
+  // Precompute median comparison once, then reuse it for sorting and row badges.
   const rows = useMemo(
     () =>
       tors.map((tor, index) => {
@@ -66,6 +67,7 @@ export function HistoricalPriceTable({
       }),
     [benchmarks, tors]
   );
+  // Sort the numeric ratio, never the localized label/budget text shown on screen.
   const sortedRows = useMemo(() => {
     if (analysisSort === "none") return rows;
 
@@ -80,6 +82,7 @@ export function HistoricalPriceTable({
   const currentPage = Math.min(page, totalPages);
   const startIndex = (currentPage - 1) * PAGE_SIZE;
   const endIndex = Math.min(startIndex + PAGE_SIZE, totalRows);
+  // Keep page buttons readable by showing one 5-page window at a time.
   const pageWindowStart =
     Math.floor((currentPage - 1) / PAGE_WINDOW_SIZE) * PAGE_WINDOW_SIZE + 1;
   const pageWindowEnd = Math.min(
@@ -102,6 +105,7 @@ export function HistoricalPriceTable({
         : Sorting01Icon;
 
   function toggleAnalysisSort() {
+    // Return to page one whenever ordering changes so the result is predictable.
     setPage(1);
     setAnalysisSort((value) =>
       value === "none" ? "desc" : value === "desc" ? "asc" : "none"

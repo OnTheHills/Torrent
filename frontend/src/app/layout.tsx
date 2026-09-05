@@ -31,6 +31,7 @@ export default function RootLayout({
         <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
       </head>
       <body>
+        {/* React Query powers live TOR lists; SessionProvider keeps OAuth state global. */}
         <QueryProvider>
           <LocaleProvider>
             <SessionProvider>
