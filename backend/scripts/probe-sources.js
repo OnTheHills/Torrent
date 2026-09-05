@@ -1,10 +1,11 @@
 const UA =
   "TORRENT-CSP/0.1 (university research probe; official feeds and public listings)";
+const bmaConfig = require("../src/constants/bmaConstants");
 
 const OCDS_JSON =
   "https://opencontract.bangkok.go.th/assets/data/output/yearly/ocds_releases_2569.json";
 const EGP2_PLAN_API =
-  "https://egp2.bangkok.go.th/appapi/api/PlanProjects/GetPlanProjectFromFilter?pageNo=1&pageSize=5&sortBy=announcedatedesc&masterBudgetYearId=2569";
+  `${bmaConfig.API_URL}?pageNo=1&pageSize=5&sortBy=announcedatedesc&masterBudgetYearId=${bmaConfig.BUDGET_YEAR}`;
 const RSS =
   "https://process3.gprocurement.go.th/EPROCRssFeedWeb/egpannouncerss.xml?deptId=1700&anounceType=B0";
 const DGA = "https://www.dga.or.th/procurements/";
@@ -120,7 +121,7 @@ async function run() {
             method: "GET",
             headers: {
               accept: "application/json, text/plain, */*",
-              referer: "https://egp2.bangkok.go.th/plan?budgetYear=2569",
+              referer: `${bmaConfig.PLAN_URL}?budgetYear=${bmaConfig.BUDGET_YEAR}`,
             },
           },
           8000,

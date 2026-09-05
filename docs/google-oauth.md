@@ -56,7 +56,8 @@ Read these files before changing anything.
 | --- | --- | --- |
 | User schema | `backend/src/models/User.js` | `email` unique, optional `passwordHash`, `role`, names. **No Google fields.** |
 | User API | `backend/src/routes/userRoute.js` | Open CRUD. Anyone can `GET /api/users`. |
-| Server | `backend/src/server.js` | Connects with `MONGO_URI`, mounts routers, no auth middleware. |
+| Server | `backend/src/server.js` | Starts the database and jobs, then listens for requests. |
+| HTTP app | `backend/src/app.js` | Configures middleware and mounts routers. |
 | Env sample | `backend/.env.example` | `PORT`, `MONGO_URI` only. |
 | Login UI | `frontend/src/app/(auth)/login/page.tsx` | Form `action={/app}` — **no backend.** |
 | Register UI | `frontend/src/app/(auth)/register/page.tsx` | Form `action={/app/profile}` — **no backend.** |
@@ -303,8 +304,8 @@ npm install google-auth-library jsonwebtoken cookie-parser
 
 | File | Responsibility |
 | --- | --- |
-| `backend/src/lib/google.js` | `verifyGoogleIdToken(credential)` → `{ googleId, email, firstname, lastname, picture, emailVerified }` |
-| `backend/src/lib/session.js` | `signUserToken(user)`, cookie name `torrent_session`, cookie options |
+| `backend/src/utils/googleAuth.js` | `verifyGoogleIdToken(credential)` → `{ googleId, email, firstname, lastname, picture, emailVerified }` |
+| `backend/src/utils/session.js` | `signUserToken(user)`, cookie name `torrent_session`, cookie options |
 | `backend/src/middleware/requireAuth.js` | Read cookie → verify JWT → `request.user` or `401` |
 | `backend/src/middleware/requireRole.js` | `requireRole("admin")` → `403` if `request.user.role` does not match |
 | `backend/src/controllers/authController.js` | `googleLogin`, `me`, `logout` |
@@ -343,7 +344,7 @@ Order matters. Use this exact sequence:
 6. `response.cookie("torrent_session", token, cookieOptions)`.
 7. `200` JSON user **without** `passwordHash`.
 
-### 5.4 Routes to mount in `server.js`
+### 5.4 Routes to mount in `app.js`
 
 ```js
 const cookieParser = require("cookie-parser");

@@ -1,4 +1,4 @@
-const { COOKIE_NAME, verifyUserToken } = require("../lib/session");
+const { COOKIE_NAME, verifyUserToken } = require("../utils/session");
 
 function requireAuth(request, response, next) {
   const token = request.cookies?.[COOKIE_NAME];

@@ -30,8 +30,8 @@ Google Identity script -> GoogleButton -> POST /api/auth/google
 
 1. `docker-compose.yml` shows the three runtime services: Next.js frontend,
    Express backend, and MongoDB.
-2. `backend/src/server.js` wires Express middleware and every API router.
-3. `backend/src/utils/smeGp.js` coordinates the two procurement imports.
+2. `backend/src/server.js` starts the database and sync job; `backend/src/app.js` wires Express middleware and every API router.
+3. `backend/src/services/syncService.js` coordinates the two procurement imports.
 4. `frontend/src/lib/api.ts` maps database-shaped TORs into the frontend `Tor`
    type.
 5. `frontend/src/app/(public)/dashboard/page.tsx` loads those TORs and passes
@@ -43,7 +43,9 @@ Google Identity script -> GoogleButton -> POST /api/auth/google
 
 | File / folder | Role |
 | --- | --- |
-| `src/server.js` | Creates Express, connects to MongoDB, mounts `/api/*` routers, and starts the nightly sync schedule. |
+| `src/server.js` | Loads environment settings, connects the database, starts the sync job, then listens for requests. |
+| `src/app.js` | Creates Express, configures middleware, and mounts `/api/*` routers. |
+| `src/utils/connectDatabase.js` | Connects to MongoDB and waits for model indexes before startup continues. |
 | `src/routes/*.js` | Declares HTTP method and URL only. Routes hand work to a controller. |
 | `src/controllers/*.js` | Converts an HTTP request into a service call and selects the success/error response. |
 | `src/services/torService.js` | TOR business boundary. Controllers use it instead of reaching Mongoose directly. |
@@ -51,8 +53,8 @@ Google Identity script -> GoogleButton -> POST /api/auth/google
 | `src/models/*.js` | Mongoose schemas: the persistent shape and validation of each collection. |
 | `src/middleware/requireAuth.js` | Requires a valid session cookie and attaches decoded user claims to `request.user`. |
 | `src/middleware/requireRole.js` | Builds a middleware check for allowed user roles. |
-| `src/lib/google.js` | Verifies a Google ID token with Google. |
-| `src/lib/session.js` | Signs/verifies JWTs and defines the secure cookie attributes. |
+| `src/utils/googleAuth.js` | Verifies a Google ID token with Google. |
+| `src/utils/session.js` | Signs/verifies JWTs and defines the secure cookie attributes. |
 
 ### API routers and controllers
 
@@ -84,11 +86,13 @@ Each CRUD controller follows the same shape: read `request.body` or
 
 | File | Role |
 | --- | --- |
-| `constants/smeGpConstants.js` | URLs, page size, budget year, and the inclusion/exclusion keyword policy. |
-| `utils/procurementSourceUtils.js` | Shared helpers for money parsing, category assignment, and retry waits. |
-| `utils/sources/smeGpSource.js` | Calls the SME-GP API with `POST`; requests every search page, removes duplicate candidates, and maps software-related rows to the common TOR shape. |
-| `utils/sources/bmaEgp2PlanSource.js` | Calls BMA e-GP2 with `GET`; walks API pages, applies stricter software filters, and maps rows to the same TOR shape. |
-| `utils/smeGp.js` | Saves normalized records using `refId` upserts, runs sources together, and registers the midnight cron task. |
+| `constants/smeGpConstants.js` | SME-GP URL, page size, retries, search terms, and inclusion/exclusion keywords. |
+| `constants/bmaConstants.js` | BMA e-GP2 URL, budget year, page size, retries, and software filtering keywords. |
+| `utils/torUtils.js` | Shared helpers for money parsing, category assignment, and retry waits. |
+| `services/smeGpApi.js` | Calls the SME-GP API with `POST`; requests every search page, removes duplicate candidates, and maps software-related rows to the common TOR shape. |
+| `services/bmaApi.js` | Calls BMA e-GP2 with `GET`; walks API pages, applies stricter software filters, and maps rows to the same TOR shape. |
+| `services/syncService.js` | Saves normalized records using `refId` upserts, runs sources together, and returns sync summaries. |
+| `services/syncScheduler.js` | Runs the optional startup sync and schedules daily sync at 02:00 Asia/Bangkok. |
 | `controllers/syncController.js` | The manual-sync HTTP entry point. |
 | `scripts/probe-sources.js` | Standalone diagnostic script for testing source availability. |
 
@@ -104,7 +108,7 @@ JSON structures and use different HTTP methods, but both return this result:
 }
 ```
 
-`utils/smeGp.js` is the only layer that knows how to persist that result.  It
+`services/syncService.js` is the only layer that knows how to persist that result.  It
 uses `findOneAndUpdate(..., { upsert: true })`, so re-running a sync updates an
 existing record instead of creating another record with the same `refId`.
 
@@ -194,9 +198,10 @@ analysis column sorts by `TOR budget / category median`, not by formatted text.
 ### Add a new procurement source
 
 1. Put the request, pagination, filtering, and mapping in
-   `backend/src/utils/sources/<sourceName>Source.js`.
-2. Return the common source result documented above.
-3. Call it from `backend/src/utils/smeGp.js` and expose a sync route if manual
+   `backend/src/services/<sourceName>Api.js`.
+2. Put its configuration in `backend/src/constants/<sourceName>Constants.js`
+   and return the common source result documented above.
+3. Call it from `backend/src/services/syncService.js` and expose a sync route if manual
    operation is needed.
 4. Add the public source metadata and `DataSourceKind` in
    `frontend/src/config/agencies.ts`.
@@ -212,7 +217,7 @@ analysis column sorts by `TOR budget / category median`, not by formatted text.
 
 1. Browser action: `components/auth/google-button.tsx` and `lib/auth.ts`.
 2. API validation and account creation: `backend/src/controllers/authController.js`.
-3. Cookie/JWT rules: `backend/src/lib/session.js`.
+3. Cookie/JWT rules: `backend/src/utils/session.js`.
 4. Global UI state: `frontend/src/components/providers/session-provider.tsx`.
 
 ## Important conventions

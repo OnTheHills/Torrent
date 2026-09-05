@@ -1,12 +1,9 @@
-const smeGp = require("../utils/smeGp");
+const syncService = require("../services/syncService");
 
-/**
- * Controller to manually trigger the synchronization of TOR data from SME-GP.
- * It calls the utility function and returns the results of the sync operation.
- */
+// Manual synchronization for both procurement APIs or one selected source.
 async function triggerSyncAll(request, response) {
   try {
-    const result = await smeGp.syncProcurementData();
+    const result = await syncService.syncAllSources();
     return response.status(200).json({ message: "Sync successful", data: result });
   } catch (error) {
     console.error("Sync error:", error);
@@ -16,7 +13,7 @@ async function triggerSyncAll(request, response) {
 
 async function triggerSmeGpSync(request, response) {
   try {
-    const result = await smeGp.syncSmeGpOnly();
+    const result = await syncService.syncSmeGp();
     return response.status(200).json({ message: "SME-GP sync successful", data: result });
   } catch (error) {
     console.error("SME-GP sync error:", error);
@@ -26,7 +23,7 @@ async function triggerSmeGpSync(request, response) {
 
 async function triggerBmaEgp2Sync(request, response) {
   try {
-    const result = await smeGp.syncBmaEgp2Only();
+    const result = await syncService.syncBma();
     return response.status(200).json({ message: "BMA e-GP2 sync successful", data: result });
   } catch (error) {
     console.error("BMA e-GP2 sync error:", error);

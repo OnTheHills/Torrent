@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "probe": "node scripts/probe-sources.js"
+    "probe": "node scripts/probe-sources.js",
+    "test": "node --test"
   },
   "keywords": [],
   "author": "",

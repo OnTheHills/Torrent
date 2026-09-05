@@ -1,10 +1,10 @@
 const User = require("../models/User");
-const { verifyGoogleIdToken } = require("../lib/google");
+const { verifyGoogleIdToken } = require("../utils/googleAuth");
 const {
   COOKIE_NAME,
   signUserToken,
   cookieOptions,
-} = require("../lib/session");
+} = require("../utils/session");
 
 function toPublicUser(user) {
   const json = user.toObject();
