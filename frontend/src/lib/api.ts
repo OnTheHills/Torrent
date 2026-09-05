@@ -49,22 +49,31 @@ export async function api<T>(
   return data as T;
 }
 
+async function requestTors(): Promise<Tor[]> {
+  // TOR data can change immediately after manual sync, so do not reuse stale data.
+  const response = await fetch(apiUrl("/tors"), { cache: "no-store" });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch TORs (${response.status} ${response.statusText})`);
+  }
+
+  const data = await response.json();
+  return data.map(mapBackendTorToFrontendTor);
+}
+
 export async function fetchTors(): Promise<Tor[]> {
   try {
-    // TOR data can change immediately after manual sync, so do not reuse stale SSR data.
-    const response = await fetch(apiUrl("/tors"), { cache: "no-store" });
-
-    if (!response.ok) {
-      console.error("Failed to fetch TORs:", response.status, response.statusText);
-      return [];
-    }
-
-    const data = await response.json();
-    return data.map(mapBackendTorToFrontendTor);
+    return await requestTors();
   } catch (error) {
     console.error("Error fetching TORs:", error);
     return [];
   }
+}
+
+// Client queries need rejected requests so React Query can keep retrying while
+// the backend container is still completing its optional startup synchronization.
+export function fetchTorsForQuery(): Promise<Tor[]> {
+  return requestTors();
 }
 
 export async function fetchTorById(id: string): Promise<Tor | undefined> {

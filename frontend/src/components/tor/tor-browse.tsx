@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { useAudience } from "@/components/providers/audience-provider";
 import { useLocale } from "@/components/providers/locale-provider";
 import { TorTable } from "@/components/tor/tor-table";
+import { TorFetchStatus } from "@/components/tor/tor-loading";
 import {
   DEFAULT_FILTERS,
   TorFilters,
@@ -17,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { torAgency, torDepartment, torTitle } from "@/data/mock";
 import type { AgencyId, Tor } from "@/types/tor";
-import { fetchTors } from "@/lib/api";
+import { fetchTorsForQuery } from "@/lib/api";
 
 function inBudgetBand(amount: number, band: TorFilterState["budget"]) {
   if (band === "all") return true;
@@ -48,10 +49,12 @@ export function TorBrowse({
   });
   const vendor = audience === "vendor";
 
-  const { data: tors = [] } = useQuery({
+  const { data: tors = [], isFetching, isPending } = useQuery({
     queryKey: ["tors"],
-    queryFn: fetchTors,
-    initialData: initialTors,
+    queryFn: fetchTorsForQuery,
+    initialData: initialTors.length > 0 ? initialTors : undefined,
+    retry: 30,
+    retryDelay: (attempt) => Math.min(1_000 * 2 ** attempt, 5_000),
   });
 
   function applyFilters(next: TorFilterState, nextQuery = query) {
@@ -132,7 +135,9 @@ export function TorBrowse({
         />
       </div>
 
-      {filtered.length === 0 ? (
+      {isPending || isFetching ? <TorFetchStatus /> : null}
+
+      {(isPending || isFetching) && tors.length === 0 ? null : filtered.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border px-6 py-16 text-center">
           <p className="font-heading text-lg font-medium">{t("emptyFilters")}</p>
           <Button

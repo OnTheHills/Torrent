@@ -1,7 +1,13 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
+
 import { BudgetChart } from "@/components/dashboard/budget-chart";
 import { CompareBudgetChart } from "@/components/dashboard/compare-budget-chart";
+import {
+  DashboardFetchStatus,
+  DashboardLoading,
+} from "@/components/dashboard/dashboard-loading";
 import { HistoricalPriceTable } from "@/components/dashboard/historical-price-table";
 import { PageHeader } from "@/components/layout/page-header";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -13,10 +19,21 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { buildBudgetBenchmarks } from "@/lib/budget";
-import { Tor } from "@/types/tor";
+import { fetchTorsForQuery } from "@/lib/api";
 
-export function DashboardView({ tors }: { tors: Tor[] }) {
+export function DashboardView() {
   const { t } = useLocale();
+  const { data: tors = [], isFetching, isPending } = useQuery({
+    queryKey: ["tors"],
+    queryFn: fetchTorsForQuery,
+    retry: 30,
+    retryDelay: (attempt) => Math.min(1_000 * 2 ** attempt, 5_000),
+  });
+
+  if (isPending || (isFetching && tors.length === 0)) {
+    return <DashboardLoading />;
+  }
+
   // All dashboard sections share these category benchmarks, so calculate once
   // in the parent instead of allowing chart/table definitions to drift apart.
   const benchmarks = buildBudgetBenchmarks(tors);
@@ -52,6 +69,8 @@ export function DashboardView({ tors }: { tors: Tor[] }) {
         title={t("dashboardTitle")}
         description={t("dashboardDescription")}
       />
+
+      {isFetching ? <DashboardFetchStatus /> : null}
 
       <div className="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4">
         {stats.map((stat) => (
