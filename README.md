@@ -103,9 +103,9 @@ Open http://localhost:3000.
 
 ## Option 2: run the complete stack with Docker Compose
 
-Set `FETCH_ON_STARTUP` in `docker-compose.yml` to `"true"` to fetch live
+Set `FETCH_ON_STARTUP` in `backend/.env` to `true` to fetch live
 SME-GP and BMA data once whenever the backend starts, before it serves requests.
-Set it to `"false"` (the default) to skip that initial fetch. Both settings keep
+Set it to `false` (the default) to skip that initial fetch. Both settings keep
 the daily sync at **02:00 Asia/Bangkok**, regardless of the container timezone.
 Apply a changed setting with `docker compose up -d --force-recreate backend`.
 An initial fetch failure is logged and the backend still starts with the nightly
