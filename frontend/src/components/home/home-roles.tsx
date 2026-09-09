@@ -12,7 +12,9 @@ import { HomeSection } from "@/components/home/home-section";
 import { useLocale } from "@/components/providers/locale-provider";
 import { Button } from "@/components/ui/button";
 import { FrostCard } from "@/components/ui/frost-card";
+import { FrostPillMark } from "@/components/ui/frost-pill";
 import { Surface } from "@/components/ui/surface";
+import { cn } from "@/lib/utils";
 import { routes } from "@/config/routes";
 import type { DictionaryKey } from "@/lib/i18n/dictionary";
 
@@ -24,6 +26,7 @@ const ROLES: {
   icon: IconSvgElement;
   iconBg: string;
   iconFg: string;
+  iconRing: string;
 }[] = [
   {
     title: "rolePublicTitle",
@@ -33,6 +36,8 @@ const ROLES: {
     icon: GlobeIcon,
     iconBg: "bg-[var(--palette-teal-75)]",
     iconFg: "text-[var(--palette-teal-700)]",
+    iconRing:
+      "ring-[color-mix(in_srgb,var(--palette-teal-400)_48%,transparent)]",
   },
   {
     title: "roleVendorTitle",
@@ -42,6 +47,8 @@ const ROLES: {
     icon: Briefcase01Icon,
     iconBg: "bg-[var(--palette-orange-75)]",
     iconFg: "text-[var(--palette-orange-700)]",
+    iconRing:
+      "ring-[color-mix(in_srgb,var(--palette-orange-400)_48%,transparent)]",
   },
 ];
 
@@ -63,15 +70,20 @@ export function HomeRoles() {
               className="flex h-full flex-col gap-4 rounded-lg p-6 md:p-5"
             >
               <div className="flex items-center gap-3">
-                <span
-                  className={`flex size-10 shrink-0 items-center justify-center rounded-[8px] ${role.iconBg}`}
+                <FrostPillMark
+                  className={cn(
+                    "size-10",
+                    role.iconBg,
+                    role.iconRing,
+                    "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.28)]",
+                  )}
                 >
                   <HugeiconsIcon
                     icon={role.icon}
                     strokeWidth={2}
                     className={`size-5 ${role.iconFg}`}
                   />
-                </span>
+                </FrostPillMark>
                 <h3 className="text-xl font-semibold tracking-tight">
                   {t(role.title)}
                 </h3>

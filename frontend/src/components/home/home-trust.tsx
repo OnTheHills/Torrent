@@ -1,11 +1,11 @@
 "use client";
 
 import { HugeiconsIcon } from "@hugeicons/react";
-import { CheckmarkCircle02Icon } from "@hugeicons/core-free-icons";
+import { Tick02Icon } from "@hugeicons/core-free-icons";
 
 import { HomeSection } from "@/components/home/home-section";
 import { useLocale } from "@/components/providers/locale-provider";
-import { FrostCard } from "@/components/ui/frost-card";
+import { FrostPill, FrostPillMark } from "@/components/ui/frost-pill";
 import { Surface } from "@/components/ui/surface";
 import type { DictionaryKey } from "@/lib/i18n/dictionary";
 
@@ -27,22 +27,20 @@ export function HomeTrust() {
       description={t("trustSubtitle")}
     >
       <Surface className="space-y-4 bg-surface p-5 ring-transparent md:p-6">
-        <ul className="grid gap-5 md:grid-cols-2">
+        <ul className="grid gap-3 md:grid-cols-2">
           {COMMITMENTS.map((commitment) => (
-            <FrostCard
-              as="li"
-              key={commitment}
-              className="flex items-start gap-3 rounded-lg p-6 md:p-5"
+            <FrostPill as="li" 
+                       key={commitment} 
             >
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-[8px] bg-[var(--palette-teal-75)]">
+              <FrostPillMark className="bg-foreground/8 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.28)] ring-foreground/18">
                 <HugeiconsIcon
-                  icon={CheckmarkCircle02Icon}
-                  strokeWidth={2}
-                  className="size-5 text-[var(--palette-teal-700)]"
+                    icon={Tick02Icon}
+                    strokeWidth={2}
+                    className="size-4 text-[var(--palette-teal-700)]"
                 />
-              </span>
-              <p className="pt-2 text-sm leading-[1.7]">{t(commitment)}</p>
-            </FrostCard>
+              </FrostPillMark>
+              <p className="min-w-0 text-sm leading-[1.5]">{t(commitment)}</p>
+            </FrostPill>
           ))}
         </ul>
       </Surface>
