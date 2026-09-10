@@ -11,14 +11,8 @@ import { AgencyBadge } from "@/components/tor/agency-badge";
 import { IntegrityBadge } from "@/components/tor/integrity-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { FrostCard } from "@/components/ui/frost-card";
+import { FrostPillMark } from "@/components/ui/frost-pill";
 import { routes } from "@/config/routes";
 import {
   MOCK_STATS,
@@ -36,28 +30,34 @@ export function SuspiciousPanel() {
   const flagged = tors.filter((tor) => tor.integrity === "suspicious");
 
   return (
-    <Card className="h-full">
-      <CardHeader className="gap-2 border-b border-border pb-5">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex size-8 items-center justify-center rounded-md bg-warning text-warning-foreground">
-            <HugeiconsIcon icon={Alert02Icon} strokeWidth={1.75} className="size-4" />
-          </span>
-          <Badge className="border-transparent bg-warning text-warning-foreground">
-            {MOCK_STATS.suspiciousTors} {t("flaggedSuffix")}
-          </Badge>
+    <FrostCard className="flex h-full flex-col gap-5 rounded-lg p-5 md:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <FrostPillMark className="bg-[var(--palette-red-75)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.28)] ring-[color-mix(in_srgb,var(--palette-red-400)_48%,transparent)]">
+              <HugeiconsIcon
+                icon={Alert02Icon}
+                strokeWidth={1.75}
+                className="size-4 text-[var(--palette-red-700)]"
+              />
+            </FrostPillMark>
+            <Badge className="border-transparent bg-warning text-warning-foreground">
+              {MOCK_STATS.suspiciousTors} {t("flaggedSuffix")}
+            </Badge>
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-lg font-semibold tracking-tight md:text-xl">
+              {t("suspiciousTitle")}
+            </h2>
+            <p className="text-sm text-muted-foreground">{t("suspiciousSubtitle")}</p>
+          </div>
         </div>
-        <CardTitle className="text-lg md:text-xl">{t("suspiciousTitle")}</CardTitle>
-        <CardDescription className="text-sm">
-          {t("suspiciousSubtitle")}
-        </CardDescription>
-        <CardAction>
-          <Button size="sm" variant="outline">
-            {t("reportAgency")}
-          </Button>
-        </CardAction>
-      </CardHeader>
+        <Button size="sm" variant="outline">
+          {t("reportAgency")}
+        </Button>
+      </div>
 
-      <CardContent className="space-y-3 pt-4">
+      <div className="space-y-3">
         <p className="text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
           {t("monthlyFlags")}
         </p>
@@ -85,31 +85,29 @@ export function SuspiciousPanel() {
             );
           })}
         </div>
-      </CardContent>
+      </div>
 
-      <CardContent className="pt-0">
-        <ul className="divide-y divide-border border-t border-border">
-          {flagged.map((tor) => (
-            <li key={tor.id}>
-              <Link
-                href={routes.tor(tor.id)}
-                className="flex flex-col gap-2 py-3.5 transition-colors hover:text-primary"
-              >
-                <span className="text-sm font-medium leading-snug">
-                  {torTitle(tor, locale)}
+      <ul className="divide-y divide-border border-t border-border">
+        {flagged.map((tor) => (
+          <li key={tor.id}>
+            <Link
+              href={routes.tor(tor.id)}
+              className="flex flex-col gap-2 py-3.5 transition-colors hover:text-primary"
+            >
+              <span className="text-sm font-medium leading-snug">
+                {torTitle(tor, locale)}
+              </span>
+              <span className="flex flex-wrap items-center gap-2">
+                <AgencyBadge agencyId={tor.agencyId} />
+                <IntegrityBadge status="suspicious" />
+                <span className="text-xs text-muted-foreground">
+                  {torAgencyLine(tor, locale)} · {tor.refId}
                 </span>
-                <span className="flex flex-wrap items-center gap-2">
-                  <AgencyBadge agencyId={tor.agencyId} />
-                  <IntegrityBadge status="suspicious" />
-                  <span className="text-xs text-muted-foreground">
-                    {torAgencyLine(tor, locale)} · {tor.refId}
-                  </span>
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-    </Card>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </FrostCard>
   );
 }

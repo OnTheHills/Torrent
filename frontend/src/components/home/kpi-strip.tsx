@@ -3,100 +3,92 @@
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
   Alert02Icon,
-  File01Icon,
   FlashIcon,
   SourceCodeIcon,
 } from "@hugeicons/core-free-icons";
 
 import { useLocale } from "@/components/providers/locale-provider";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { FrostCard } from "@/components/ui/frost-card";
+import { FrostPillMark } from "@/components/ui/frost-pill";
 import { MOCK_STATS } from "@/data/mock";
 import { cn } from "@/lib/utils";
 
 const CARDS: {
-  key: "kpiTotal" | "kpiSoftware" | "kpiSuspicious" | "kpiNew";
+  key: "kpiSoftware" | "kpiSuspicious" | "kpiNew";
   value: number;
   delta: string;
   icon: IconSvgElement;
-  tone: "default" | "accent" | "warning" | "fresh";
+  iconBg: string;
+  iconFg: string;
+  iconRing: string;
 }[] = [
-  {
-    key: "kpiTotal",
-    value: MOCK_STATS.totalTors,
-    delta: MOCK_STATS.totalDelta,
-    icon: File01Icon,
-    tone: "default",
-  },
   {
     key: "kpiSoftware",
     value: MOCK_STATS.softwareTors,
     delta: MOCK_STATS.softwareDelta,
     icon: SourceCodeIcon,
-    tone: "accent",
+    iconBg: "bg-[var(--palette-teal-75)]",
+    iconFg: "text-[var(--palette-teal-700)]",
+    iconRing:
+      "ring-[color-mix(in_srgb,var(--palette-teal-400)_48%,transparent)]",
   },
   {
     key: "kpiSuspicious",
     value: MOCK_STATS.suspiciousTors,
     delta: MOCK_STATS.suspiciousDelta,
     icon: Alert02Icon,
-    tone: "warning",
+    iconBg: "bg-[var(--palette-red-75)]",
+    iconFg: "text-[var(--palette-red-700)]",
+    iconRing:
+      "ring-[color-mix(in_srgb,var(--palette-red-400)_48%,transparent)]",
   },
   {
     key: "kpiNew",
     value: MOCK_STATS.newThisWeek,
     delta: MOCK_STATS.newDelta,
     icon: FlashIcon,
-    tone: "fresh",
+    iconBg: "bg-[var(--palette-orange-75)]",
+    iconFg: "text-[var(--palette-orange-700)]",
+    iconRing:
+      "ring-[color-mix(in_srgb,var(--palette-orange-400)_48%,transparent)]",
   },
 ];
-
-const TONE = {
-  default: "bg-secondary text-secondary-foreground",
-  accent: "bg-accent/15 text-accent-foreground",
-  warning: "bg-warning text-warning-foreground",
-  fresh: "bg-primary/12 text-primary",
-} as const;
 
 export function KpiStrip({ className }: { className?: string }) {
   const { t } = useLocale();
 
   return (
-    <div className={cn("grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4", className)}>
+    <ul className={cn("grid gap-4 sm:grid-cols-3 sm:gap-5", className)}>
       {CARDS.map((card) => (
-        <Card
+        <FrostCard
+          as="li"
           key={card.key}
-          size="sm"
-          className="bg-card/95 shadow-sm backdrop-blur-md"
+          className="flex flex-col gap-3 rounded-lg p-5 md:p-5"
         >
-          <CardHeader className="gap-3">
-            <div className="flex items-center justify-between gap-3">
-              <CardDescription className="text-[0.65rem] font-medium uppercase tracking-[0.14em]">
-                {t(card.key)}
-              </CardDescription>
-              <span
-                className={cn(
-                  "inline-flex size-8 items-center justify-center rounded-md",
-                  TONE[card.tone]
-                )}
-              >
-                <HugeiconsIcon icon={card.icon} strokeWidth={1.75} className="size-4" />
-              </span>
-            </div>
-            <CardTitle className="text-3xl font-semibold tracking-tight tabular-nums">
-              {card.value}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">{card.delta}</p>
-          </CardContent>
-        </Card>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[0.65rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              {t(card.key)}
+            </p>
+            <FrostPillMark
+              className={cn(
+                card.iconBg,
+                card.iconRing,
+                "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.28)]",
+              )}
+            >
+              <HugeiconsIcon
+                icon={card.icon}
+                strokeWidth={1.75}
+                className={cn("size-4", card.iconFg)}
+              />
+            </FrostPillMark>
+          </div>
+          <p className="text-3xl font-semibold tracking-tight tabular-nums">
+            {card.value}
+          </p>
+          <p className="text-xs text-muted-foreground">{card.delta}</p>
+        </FrostCard>
       ))}
-    </div>
+    </ul>
   );
 }
