@@ -1,17 +1,19 @@
-const express = require("express");
-const cors = require("cors");
-const cookieParser = require("cookie-parser");
-const authRouter = require("@/routes/authRoute");
-const userRouter = require("@/routes/userRoute");
-const vendorProfileRouter = require("@/routes/vendorProfileRoute");
-const userBioRouter = require("@/routes/userBioRoute");
-const torRouter = require("@/routes/torRoute");
-const torMatchRouter = require("@/routes/torMatchRoute");
-const syncRouter = require("@/routes/syncRoute");
+import express, { json } from "express";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import authRouter from "@/routes/authRoute";
+import userRouter from "@/routes/userRoute";
+import vendorProfileRouter from "@/routes/vendorProfileRoute";
+import userBioRouter from "@/routes/userBioRoute";
+import torRouter from "@/routes/torRoute";
+import torMatchRouter from "@/routes/torMatchRoute";
+import syncRouter from "@/routes/syncRoute";
 
 // Configure the HTTP application. Database connection and jobs start in server.js.
 const app = express();
-const corsOrigins = process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim());
+const corsOrigins = process.env.CORS_ORIGIN.split(",").map((origin) =>
+  origin.trim(),
+);
 
 // Credentials allow the browser's HTTP-only session cookie to accompany API calls.
 app.use(
@@ -21,7 +23,7 @@ app.use(
   }),
 );
 app.use(cookieParser());
-app.use(express.json());
+app.use(json());
 app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/vendor-profiles", vendorProfileRouter);
@@ -38,4 +40,4 @@ app.get("/api/hello", (req, res) => {
   res.json({ message: "Hello from Express!" });
 });
 
-module.exports = app;
+export default app;

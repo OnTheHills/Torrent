@@ -1,9 +1,8 @@
 require("dotenv").config();
-require("module-alias/register");
 
-const app = require("@/app");
-const { connectDatabase } = require("@/utils/connectDatabase");
-const { startSyncScheduler } = require("@/scheduler/syncScheduler");
+import { listen } from "./app";
+import { connectDatabase } from "./utils/connectDatabase";
+import { startSyncScheduler } from "./scheduler/syncScheduler";
 const PORT = process.env.PORT;
 
 async function startServer() {
@@ -12,7 +11,7 @@ async function startServer() {
 
     // Serve database reads while the optional startup sync runs. An external
     // source can be slow even after another source has already saved its TORs.
-    app.listen(PORT, () => {
+    listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
 
