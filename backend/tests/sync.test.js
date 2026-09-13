@@ -140,7 +140,7 @@ for (const flag of [undefined, "false", "true"]) {
   test(`sync job honors FETCH_ON_STARTUP=${flag} and schedules midnight Bangkok`, async () => {
     let syncs = 0;
     let scheduled;
-    const job = loadModule("../src/utils/syncScheduler.js", {
+    const job = loadModule("../src/scheduler/syncScheduler.js", {
       "node-cron": { schedule: (...args) => { scheduled = args; } },
       "../jobs/syncAPI": { syncAPI: async () => { syncs++; } },
     }, { FETCH_ON_STARTUP: flag });
@@ -156,7 +156,7 @@ for (const flag of [undefined, "false", "true"]) {
 
 test("startup sync failure still enables the nightly job", async () => {
   let scheduled = false;
-  const job = loadModule("../src/utils/syncScheduler.js", {
+  const job = loadModule("../src/scheduler/syncScheduler.js", {
     "node-cron": { schedule: () => { scheduled = true; } },
     "../jobs/syncAPI": { syncAPI: async () => { throw new Error("API unavailable"); } },
   }, { FETCH_ON_STARTUP: "true" });
