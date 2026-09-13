@@ -3,7 +3,7 @@ const {
   triggerBmaEgp2Sync,
   triggerSmeGpSync,
   triggerSyncAll,
-} = require("../controllers/syncController");
+} = require("@/controllers/syncController");
 
 const syncRouter = express.Router();
 

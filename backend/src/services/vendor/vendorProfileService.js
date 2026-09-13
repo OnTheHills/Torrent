@@ -1,4 +1,4 @@
-const vendorProfileRepository = require("../../repositories/vendorProfileRepository");
+const vendorProfileRepository = require("@/repositories/vendorProfileRepository");
 
 async function createVendorProfile(data) {
   return vendorProfileRepository.create(data);

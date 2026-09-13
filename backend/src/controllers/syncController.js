@@ -1,4 +1,4 @@
-const { syncAPI, syncSource } = require("../jobs/syncAPI");
+const { syncAPI, syncSource } = require("@/jobs/syncAPI");
 
 // Manual synchronization for both procurement APIs or one selected source.
 async function triggerSyncAll(request, response) {

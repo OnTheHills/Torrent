@@ -5,7 +5,7 @@ const {
   getVendorProfileById,
   updateVendorProfile,
   deleteVendorProfile,
-} = require("../controllers/vendorProfileController");
+} = require("@/controllers/vendorProfileController");
 
 const vendorProfileRouter = express.Router();
 

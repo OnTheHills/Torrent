@@ -1,5 +1,5 @@
-const userRepository = require("../../repositories/userRepository");
-const { verifyGoogleIdToken } = require("../../utils/googleAuth");
+const userRepository = require("@/repositories/userRepository");
+const { verifyGoogleIdToken } = require("@/utils/googleAuth");
 
 function signupRole(role) {
   return role === "vendor" || role === "public" ? role : "public";

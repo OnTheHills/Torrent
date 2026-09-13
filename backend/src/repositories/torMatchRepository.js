@@ -1,4 +1,4 @@
-const TORMatch = require("../models/TORMatch");
+const TORMatch = require("@/models/TORMatch");
 
 async function create(data) {
   return TORMatch.create(data);

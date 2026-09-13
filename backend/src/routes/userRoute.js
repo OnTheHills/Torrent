@@ -5,9 +5,9 @@ const {
   getUserById,
   updateUser,
   deleteUser,
-} = require("../controllers/userController");
-const { requireAuth } = require("../middleware/requireAuth");
-const { requireRole, requireSelfOrAdmin } = require("../middleware/requireRole");
+} = require("@/controllers/userController");
+const { requireAuth } = require("@/middleware/requireAuth");
+const { requireRole, requireSelfOrAdmin } = require("@/middleware/requireRole");
 
 const userRouter = express.Router();
 

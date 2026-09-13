@@ -1,4 +1,4 @@
-const User = require("../models/User");
+const User = require("@/models/User");
 
 async function create(data) {
   return User.create(data);

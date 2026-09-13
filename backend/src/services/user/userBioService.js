@@ -1,4 +1,4 @@
-const userBioRepository = require("../../repositories/userBioRepository");
+const userBioRepository = require("@/repositories/userBioRepository");
 
 async function createUserBio(data) {
   return userBioRepository.create(data);

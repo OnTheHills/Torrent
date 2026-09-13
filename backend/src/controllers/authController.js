@@ -1,9 +1,9 @@
-const authService = require("../services/auth/authService");
+const authService = require("@/services/auth/authService");
 const {
   COOKIE_NAME,
   signUserToken,
   cookieOptions,
-} = require("../utils/session");
+} = require("@/utils/session");
 
 function setSession(response, user) {
   response.cookie(COOKIE_NAME, signUserToken(user), cookieOptions());

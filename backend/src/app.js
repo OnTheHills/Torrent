@@ -1,13 +1,13 @@
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-const authRouter = require("./routes/authRoute");
-const userRouter = require("./routes/userRoute");
-const vendorProfileRouter = require("./routes/vendorProfileRoute");
-const userBioRouter = require("./routes/userBioRoute");
-const torRouter = require("./routes/torRoute");
-const torMatchRouter = require("./routes/torMatchRoute");
-const syncRouter = require("./routes/syncRoute");
+const authRouter = require("@/routes/authRoute");
+const userRouter = require("@/routes/userRoute");
+const vendorProfileRouter = require("@/routes/vendorProfileRoute");
+const userBioRouter = require("@/routes/userBioRoute");
+const torRouter = require("@/routes/torRoute");
+const torMatchRouter = require("@/routes/torMatchRoute");
+const syncRouter = require("@/routes/syncRoute");
 
 // Configure the HTTP application. Database connection and jobs start in server.js.
 const app = express();

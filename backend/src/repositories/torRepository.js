@@ -1,4 +1,4 @@
-const TOR = require("../models/TOR");
+const TOR = require("@/models/TOR");
 const { isDeepStrictEqual } = require("node:util");
 
 async function create(data) {

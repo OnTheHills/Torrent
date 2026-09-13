@@ -1,4 +1,4 @@
-const userBioService = require("../services/user/userBioService");
+const userBioService = require("@/services/user/userBioService");
 
 async function createUserBio(request, response) {
   try {

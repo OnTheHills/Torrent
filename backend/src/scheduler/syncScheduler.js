@@ -1,5 +1,5 @@
 const cron = require("node-cron");
-const { syncAPI } = require("../jobs/syncAPI");
+const { syncAPI } = require("@/jobs/syncAPI");
 
 // Schedule the TOR synchronization workflow without exposing cron concerns to controllers.
 

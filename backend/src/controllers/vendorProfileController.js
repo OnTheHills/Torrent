@@ -1,4 +1,4 @@
-const vendorProfileService = require("../services/vendor/vendorProfileService");
+const vendorProfileService = require("@/services/vendor/vendorProfileService");
 
 async function createVendorProfile(request, response) {
   try {

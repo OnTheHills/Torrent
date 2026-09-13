@@ -5,8 +5,8 @@ const {
   PLAN_URL,
   SOURCE,
   STRONG_TERMS,
-} = require("../../../../constants/bmaConstants");
-const { classifyCategory, parseBudget } = require("../../../../utils/torUtils");
+} = require("@/constants/bmaConstants");
+const { classifyCategory, parseBudget } = require("@/utils/torUtils");
 
 function containsAny(text, terms) {
   const normalized = String(text || "").toLowerCase();

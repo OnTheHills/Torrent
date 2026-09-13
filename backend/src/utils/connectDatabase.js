@@ -1,9 +1,9 @@
 const mongoose = require("mongoose");
-const User = require("../models/User");
-const VendorProfile = require("../models/VendorProfile");
-const UserBio = require("../models/UserBio");
-const TOR = require("../models/TOR");
-const TORMatch = require("../models/TORMatch");
+const User = require("@/models/User");
+const VendorProfile = require("@/models/VendorProfile");
+const UserBio = require("@/models/UserBio");
+const TOR = require("@/models/TOR");
+const TORMatch = require("@/models/TORMatch");
 
 async function connectDatabase() {
   const uri = process.env.MONGO_URI;

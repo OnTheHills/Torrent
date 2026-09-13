@@ -1,4 +1,4 @@
-const userRepository = require("../../repositories/userRepository");
+const userRepository = require("@/repositories/userRepository");
 
 async function createUser(data) {
   return userRepository.create(data);

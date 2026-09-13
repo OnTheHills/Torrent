@@ -3,12 +3,12 @@ const { readFileSync } = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const { test } = require("node:test");
-const smeConfig = require("../src/constants/smeGpConstants");
-const bmaConfig = require("../src/constants/bmaConstants");
-const smeFetch = require("../src/services/tor/api/smeGp/fetch");
-const smeAdapter = require("../src/services/tor/api/smeGp/adapter");
-const bmaFetch = require("../src/services/tor/api/bmaEgp2/fetch");
-const bmaAdapter = require("../src/services/tor/api/bmaEgp2/adapter");
+const smeConfig = require("@/constants/smeGpConstants");
+const bmaConfig = require("@/constants/bmaConstants");
+const smeFetch = require("@/services/tor/api/smeGp/fetch");
+const smeAdapter = require("@/services/tor/api/smeGp/adapter");
+const bmaFetch = require("@/services/tor/api/bmaEgp2/fetch");
+const bmaAdapter = require("@/services/tor/api/bmaEgp2/adapter");
 
 // Load jobs with fake infrastructure, without starting MongoDB or real cron jobs.
 function loadModule(file, dependencies, env = {}) {
@@ -98,7 +98,7 @@ test("sync job adapts and persists each fetched API source", async () => {
       const file = parts.at(-1);
       return file === "fetch" || file === "adapter" ? `${file}:${name}` : "api";
     } },
-    "../repositories/torRepository": { saveChanged: async (tors) => { saved.push(...tors.map(({ refId }) => refId)); return { created: tors.length, updated: 0, unchanged: 0 }; } },
+    "@/repositories/torRepository": { saveChanged: async (tors) => { saved.push(...tors.map(({ refId }) => refId)); return { created: tors.length, updated: 0, unchanged: 0 }; } },
     "fetch:smeGp": { fetch: async () => ({ rows: [{ refId: "sme-1" }] }), method: "POST", source: "SME-GP" },
     "adapter:smeGp": { adapt: (rows) => rows },
     "fetch:bmaEgp2": { fetch: async () => ({ metadata: { budgetYear: "2569" }, rows: [{ refId: "bma-1" }] }), method: "GET", source: "BMA-EGP2" },
@@ -117,7 +117,7 @@ test("TOR persistence bulk-writes new and changed records but skips identical re
   const writes = [];
   const repository = loadModule("../src/repositories/torRepository.js", {
     "node:util": require("node:util"),
-    "../models/TOR": {
+    "@/models/TOR": {
       find: () => ({ lean: async () => existing }),
       bulkWrite: async (operations) => writes.push(...operations),
     },
@@ -142,7 +142,7 @@ for (const flag of [undefined, "false", "true"]) {
     let scheduled;
     const job = loadModule("../src/scheduler/syncScheduler.js", {
       "node-cron": { schedule: (...args) => { scheduled = args; } },
-      "../jobs/syncAPI": { syncAPI: async () => { syncs++; } },
+      "@/jobs/syncAPI": { syncAPI: async () => { syncs++; } },
     }, { FETCH_ON_STARTUP: flag });
     await job.startSyncScheduler();
     assert.equal(syncs, flag === "true" ? 1 : 0);
@@ -158,7 +158,7 @@ test("startup sync failure still enables the nightly job", async () => {
   let scheduled = false;
   const job = loadModule("../src/scheduler/syncScheduler.js", {
     "node-cron": { schedule: () => { scheduled = true; } },
-    "../jobs/syncAPI": { syncAPI: async () => { throw new Error("API unavailable"); } },
+    "@/jobs/syncAPI": { syncAPI: async () => { throw new Error("API unavailable"); } },
   }, { FETCH_ON_STARTUP: "true" });
   await job.startSyncScheduler();
   assert.equal(scheduled, true);

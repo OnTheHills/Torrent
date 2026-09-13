@@ -1,8 +1,9 @@
 require("dotenv").config();
+require("module-alias/register");
 
-const app = require("./app");
-const { connectDatabase } = require("./utils/connectDatabase");
-const { startSyncScheduler } = require("./scheduler/syncScheduler");
+const app = require("@/app");
+const { connectDatabase } = require("@/utils/connectDatabase");
+const { startSyncScheduler } = require("@/scheduler/syncScheduler");
 const PORT = process.env.PORT;
 
 async function startServer() {
