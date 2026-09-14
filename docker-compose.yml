@@ -18,7 +18,7 @@ services:
       # 127.0.0.1 (npm run dev) or a stale URI; inside Compose, Mongo is `mongo`.
       MONGO_URI: mongodb://mongo:27017/Torrent
       # Fetch once on startup; otherwise data can remain absent until the nightly job.
-      FETCH_ON_STARTUP: "true"
+
 
     depends_on:
       mongo:
