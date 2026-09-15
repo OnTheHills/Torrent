@@ -1,4 +1,4 @@
-const torMatchRepository = require("../../repositories/torMatchRepository");
+const torMatchRepository = require("@/repositories/torMatchRepository");
 
 async function createTorMatch(data) {
   return torMatchRepository.create(data);

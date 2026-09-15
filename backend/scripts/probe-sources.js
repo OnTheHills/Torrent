@@ -1,6 +1,7 @@
 const UA =
   "TORRENT-CSP/0.1 (university research probe; official feeds and public listings)";
-const bmaConfig = require("../src/constants/bmaConstants");
+require("module-alias/register");
+const bmaConfig = require("@/constants/bmaConstants");
 
 const OCDS_JSON =
   "https://opencontract.bangkok.go.th/assets/data/output/yearly/ocds_releases_2569.json";

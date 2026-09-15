@@ -1,4 +1,4 @@
-const torCrudService = require("../services/tor/torCrudService");
+const torCrudService = require("@/services/tor/torCrudService");
 
 async function createTor(request, response) {
   try {

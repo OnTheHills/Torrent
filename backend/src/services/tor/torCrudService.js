@@ -1,4 +1,4 @@
-const torRepository = require("../../repositories/torRepository");
+const torRepository = require("@/repositories/torRepository");
 
 async function createTor(data) {
   return torRepository.create(data);

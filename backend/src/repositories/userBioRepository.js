@@ -1,4 +1,4 @@
-const UserBio = require("../models/UserBio");
+const UserBio = require("@/models/UserBio");
 
 async function create(data) {
   return UserBio.create(data);

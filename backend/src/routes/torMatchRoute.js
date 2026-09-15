@@ -5,7 +5,7 @@ const {
   getTorMatchById,
   updateTorMatch,
   deleteTorMatch,
-} = require("../controllers/torMatchController");
+} = require("@/controllers/torMatchController");
 
 const torMatchRouter = express.Router();
 

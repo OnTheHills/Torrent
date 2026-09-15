@@ -5,8 +5,8 @@ const {
   RETRY_COUNT,
   SEARCH_TERMS,
   SOURCE,
-} = require("../../../../constants/smeGpConstants");
-const { wait } = require("../../../../utils/torUtils");
+} = require("@/constants/smeGpConstants");
+const { wait } = require("@/utils/torUtils");
 
 // Keep retries at the HTTP boundary; adapters only receive successful raw JSON rows.
 async function fetchPage(payload, retries = RETRY_COUNT) {

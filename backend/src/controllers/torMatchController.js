@@ -1,4 +1,4 @@
-const torMatchService = require("../services/tor/torMatchService");
+const torMatchService = require("@/services/tor/torMatchService");
 
 async function createTorMatch(request, response) {
   try {

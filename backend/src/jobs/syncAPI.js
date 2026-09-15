@@ -1,6 +1,6 @@
 const { readdirSync } = require("node:fs");
 const { join } = require("node:path");
-const torRepository = require("../repositories/torRepository");
+const torRepository = require("@/repositories/torRepository");
 
 const apiDirectory = join(__dirname, "../services/tor/api");
 

@@ -7,8 +7,8 @@ const {
   RETRY_COUNT,
   SOURCE,
   USER_AGENT,
-} = require("../../../../constants/bmaConstants");
-const { wait } = require("../../../../utils/torUtils");
+} = require("@/constants/bmaConstants");
+const { wait } = require("@/utils/torUtils");
 
 // BMA e-GP2 exposes its pagination total in each response rather than headers.
 async function fetchBmaProjects({ budgetYear = BUDGET_YEAR, pageSize = PAGE_SIZE } = {}) {

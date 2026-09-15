@@ -3,8 +3,8 @@ const {
   INCLUDE_KEYWORDS,
   SOURCE,
   WEBSITE_URL,
-} = require("../../../../constants/smeGpConstants");
-const { classifyCategory, parseBudget } = require("../../../../utils/torUtils");
+} = require("@/constants/smeGpConstants");
+const { classifyCategory, parseBudget } = require("@/utils/torUtils");
 
 function compactText(value) {
   return String(value || "").replace(/\s+/g, "").toLowerCase();
