@@ -52,6 +52,7 @@ Google Identity script -> GoogleButton -> POST /api/auth/google
 | `src/services/tor/*.js` | Owns TOR CRUD, matching, procurement fetching, and synchronization workflows. |
 | `src/services/user/*.js` | Owns user and user-bio workflows. |
 | `src/services/vendor/*.js` | Owns vendor-profile workflows. |
+| `src/services/ai/vertexClient.js` | Vertex Gemini client for the worker. Returns `{ ok, text }` or `{ ok: false, code, message }`. Sync does not call it yet (KAN-82). Classification is KAN-57. |
 | `src/repositories/*.js` | Contains all Mongoose queries and other database access. |
 | `src/models/*.js` | Mongoose schemas: the persistent shape and validation of each collection. |
 | `src/middleware/requireAuth.js` | Requires a valid session cookie and attaches decoded user claims to `request.user`. |
@@ -92,10 +93,10 @@ Each CRUD controller follows the same shape: read `request.body` or
 | `constants/smeGpConstants.js` | SME-GP URL, page size, retries, search terms, and inclusion/exclusion keywords. |
 | `constants/bmaConstants.js` | BMA e-GP2 URL, budget year, page size, retries, and software filtering keywords. |
 | `utils/torUtils.js` | Shared helpers for money parsing, category assignment, and retry waits. |
-| `services/tor/api/smeGpApi.js` | Calls the SME-GP API with `POST`; requests every search page, removes duplicate candidates, and maps software-related rows to the common TOR shape. |
-| `services/tor/api/bmaApi.js` | Calls BMA e-GP2 with `GET`; walks API pages, applies stricter software filters, and maps rows to the same TOR shape. |
+| `services/tor/api/smeGp/fetch.js` + `adapter.js` | Calls the SME-GP API with `POST`; requests every search page, removes duplicate candidates, and maps software-related rows to the common TOR shape. |
+| `services/tor/api/bmaEgp2/fetch.js` + `adapter.js` | Calls BMA e-GP2 with `GET`; walks API pages, applies stricter software filters, and maps rows to the same TOR shape. |
 | `jobs/syncAPI.js` | Fetches every source, runs its adapter, saves normalized records using `refId` upserts, and returns sync summaries. |
-| `utils/syncScheduler.js` | Runs the optional startup sync and schedules daily sync at 02:00 Asia/Bangkok. |
+| `scheduler/syncScheduler.js` | Runs the optional startup sync and schedules daily sync at 00:00 Asia/Bangkok. |
 | `controllers/syncController.js` | The manual-sync HTTP entry point. |
 | `scripts/probe-sources.js` | Standalone diagnostic script for testing source availability. |
 
