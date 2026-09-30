@@ -47,6 +47,25 @@ export default function ProfilePage() {
 
     try {
       const currentUser = await getMe();
+      let existingProfile: { _id: string } | null = null;
+
+      try {
+        existingProfile = await api<{ _id: string } | null>(
+          `/vendor-profiles/get/${currentUser._id}`,
+        );
+      } catch (error) {
+        const status =
+          error instanceof Error &&
+          "status" in error &&
+          typeof error.status === "number"
+            ? error.status
+            : undefined;
+
+        if (status !== 404) {
+          throw error;
+        }
+      }
+
       const submittedProfile = {
         userId: currentUser._id,
         companyName: profile.companyName,
@@ -67,10 +86,17 @@ export default function ProfilePage() {
         location: profile.location,
       };
 
-      await api("/vendor-profiles", {
-        method: "POST",
-        body: JSON.stringify(submittedProfile),
-      });
+      const hasExistingProfile = Boolean(existingProfile?._id);
+
+      await api(
+        hasExistingProfile
+          ? `/vendor-profiles/${existingProfile?._id}`
+          : "/vendor-profiles",
+        {
+          method: hasExistingProfile ? "PATCH" : "POST",
+          body: JSON.stringify(submittedProfile),
+        },
+      );
 
       console.log(
         "Vendor profile submitted to backend:\n",

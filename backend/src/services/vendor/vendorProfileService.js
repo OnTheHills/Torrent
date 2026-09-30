@@ -12,6 +12,10 @@ async function getVendorProfileById(id) {
   return vendorProfileRepository.findById(id);
 }
 
+async function getVendorProfileByUserId(userId) {
+  return vendorProfileRepository.findByUserId(userId);
+}
+
 async function updateVendorProfile(id, data) {
   return vendorProfileRepository.update(id, data);
 }
@@ -25,5 +29,6 @@ module.exports = {
   deleteVendorProfile,
   getAllVendorProfiles,
   getVendorProfileById,
+  getVendorProfileByUserId,
   updateVendorProfile,
 };

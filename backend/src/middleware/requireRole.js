@@ -27,4 +27,23 @@ function requireSelfOrAdmin(request, response, next) {
   return next();
 }
 
-module.exports = { requireRole, requireSelfOrAdmin };
+function requireSelfOrAdminByUserId(request, response, next) {
+  if (!request.user) {
+    return response.status(401).json({ message: "Not signed in." });
+  }
+
+  const isSelf = request.user.sub === request.params.userId;
+  const isAdmin = request.user.role === "admin";
+
+  if (!isSelf && !isAdmin) {
+    return response.status(403).json({ message: "Forbidden." });
+  }
+
+  return next();
+}
+
+module.exports = {
+  requireRole,
+  requireSelfOrAdmin,
+  requireSelfOrAdminByUserId,
+};
