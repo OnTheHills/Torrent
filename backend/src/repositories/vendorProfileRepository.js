@@ -12,6 +12,10 @@ async function findById(id) {
   return VendorProfile.findById(id);
 }
 
+async function findByUserId(userId) {
+  return VendorProfile.findOne({ userId });
+}
+
 async function update(id, data) {
   return VendorProfile.findByIdAndUpdate(id, data, {
     returnDocument: "after",
@@ -23,4 +27,4 @@ async function remove(id) {
   return VendorProfile.findByIdAndDelete(id);
 }
 
-module.exports = { create, findAll, findById, remove, update };
+module.exports = { create, findAll, findById, findByUserId, remove, update };

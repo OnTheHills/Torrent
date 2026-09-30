@@ -34,6 +34,22 @@ async function getVendorProfileById(request, response) {
   }
 }
 
+async function getVendorProfileByUserId(request, response) {
+  try {
+    const vendorProfile = await vendorProfileService.getVendorProfileByUserId(
+      request.params.userId,
+    );
+
+    if (!vendorProfile) {
+      return response.status(404).json({ message: "Vendor profile not found." });
+    }
+
+    return response.status(200).json(vendorProfile);
+  } catch (error) {
+    return response.status(500).json({ message: error.message });
+  }
+}
+
 async function updateVendorProfile(request, response) {
   try {
     const vendorProfile = await vendorProfileService.updateVendorProfile(
@@ -71,6 +87,7 @@ module.exports = {
   createVendorProfile,
   getAllVendorProfiles,
   getVendorProfileById,
+  getVendorProfileByUserId,
   updateVendorProfile,
   deleteVendorProfile,
 };
