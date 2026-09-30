@@ -1,33 +1,36 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { HugeiconsIcon } from "@hugeicons/react";
 import {
   ArrowLeft01Icon,
   ArrowRight01Icon,
   ChevronFirstIcon,
   ChevronLastIcon,
+  Search01Icon,
 } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
+import { MonitorSection } from "@/components/monitor/monitor-section";
 import { PageHeader } from "@/components/layout/page-header";
 import { useAudience } from "@/components/providers/audience-provider";
 import { useLocale } from "@/components/providers/locale-provider";
-import { TorTable } from "@/components/tor/tor-table";
-import { TorFetchStatus } from "@/components/tor/tor-loading";
+import { ListingFrostCard } from "@/components/tor/listing-frost-card";
 import {
   DEFAULT_FILTERS,
   TorFilters,
   type TorFilterState,
 } from "@/components/tor/tor-filters";
+import { TorFetchStatus } from "@/components/tor/tor-loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Surface } from "@/components/ui/surface";
 import { torAgency, torDepartment, torTitle } from "@/data/mock";
-import type { AgencyId, Tor } from "@/types/tor";
 import { fetchTorsForQuery } from "@/lib/api";
+import type { AgencyId, Tor } from "@/types/tor";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 const PAGE_WINDOW_SIZE = 5;
 
 function inBudgetBand(amount: number, band: TorFilterState["budget"]) {
@@ -54,7 +57,7 @@ export function TorBrowse({
   const pathname = usePathname();
   const [query, setQuery] = useState(initialQuery);
   const [page, setPage] = useState(1);
-  const tableTopRef = useRef<HTMLDivElement>(null);
+  const listTopRef = useRef<HTMLDivElement>(null);
   const [filters, setFilters] = useState<TorFilterState>({
     ...DEFAULT_FILTERS,
     agency: initialAgency,
@@ -93,15 +96,11 @@ export function TorBrowse({
         !vendor ||
         !filters.teamOnly ||
         (typeof tor.matchScore === "number" && tor.matchScore >= 80);
-      const matchesSkills =
-        filters.skills.length === 0 ||
-        filters.skills.every((skill) => tor.skills.includes(skill));
       const matchesQuery =
         !q ||
         title.toLowerCase().includes(q) ||
         agency.toLowerCase().includes(q) ||
         dept.toLowerCase().includes(q) ||
-        tor.skills.some((skill) => skill.toLowerCase().includes(q)) ||
         tor.refId.toLowerCase().includes(q);
 
       return (
@@ -109,7 +108,6 @@ export function TorBrowse({
         matchesBudget &&
         matchesIntegrity &&
         matchesTeam &&
-        matchesSkills &&
         matchesQuery
       );
     });
@@ -135,15 +133,20 @@ export function TorBrowse({
     [endIndex, filtered, startIndex]
   );
 
+  function resetAll() {
+    setQuery("");
+    applyFilters(DEFAULT_FILTERS, "");
+  }
+
   function goToPage(nextPage: number) {
     setPage(nextPage);
     window.requestAnimationFrame(() => {
-      tableTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      listTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }
 
   return (
-    <div className="space-y-8">
+    <div className="flex flex-col gap-10">
       {showHeader ? (
         <PageHeader
           eyebrow={t("opportunitiesEyebrow")}
@@ -154,121 +157,140 @@ export function TorBrowse({
         />
       ) : null}
 
-      <div className="space-y-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <Input
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setPage(1);
-            }}
-            placeholder={t("searchPlaceholder")}
-            className="h-9 sm:max-w-sm"
+      <Surface className="bg-surface p-5 ring-transparent md:p-6">
+        <div className="flex flex-col gap-6">
+          <label className="relative block">
+            <span className="sr-only">{t("searchPlaceholder")}</span>
+            <HugeiconsIcon
+              icon={Search01Icon}
+              className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setPage(1);
+              }}
+              placeholder={t("searchPlaceholder")}
+              className="h-11 rounded-full border-border/70 bg-background/80 pl-10"
+            />
+          </label>
+          <TorFilters
+            value={filters}
+            onChange={applyFilters}
+            onClear={resetAll}
+            showMatchFilter={vendor}
           />
+        </div>
+      </Surface>
+
+      <MonitorSection
+        title={t("listingsResultsTitle")}
+        action={
           <p className="text-sm text-muted-foreground">
-            <span className="font-semibold text-foreground">{filtered.length}</span>{" "}
+            <span className="font-semibold tabular-nums text-foreground">
+              {filtered.length}
+            </span>{" "}
             {t("of")} {tors.length} {t("results")}
           </p>
-        </div>
-        <TorFilters
-          value={filters}
-          onChange={applyFilters}
-          onClear={() => applyFilters(DEFAULT_FILTERS)}
-          showMatchFilter={vendor}
-        />
-      </div>
+        }
+      >
+        <div className="flex flex-col gap-4">
+        {isPending || isFetching ? <TorFetchStatus /> : null}
+        <div ref={listTopRef} className="scroll-mt-6" />
 
-      {isPending || isFetching ? <TorFetchStatus /> : null}
-
-      <div ref={tableTopRef} className="scroll-mt-6" />
-
-      {(isPending || isFetching) && tors.length === 0 ? null : filtered.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border px-6 py-16 text-center">
-          <p className="font-heading text-lg font-medium">{t("emptyFilters")}</p>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="mt-5"
-            onClick={() => {
-              setQuery("");
-              applyFilters(DEFAULT_FILTERS, "");
-            }}
-          >
-            {t("resetFilters")}
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <TorTable tors={paginated} />
-
-          {totalRows > PAGE_SIZE ? (
-            <nav
-              aria-label={t("pageLabel")}
-              className="flex flex-col gap-3 border-t border-border pt-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between"
-            >
-              <p>
-                {startIndex + 1}-{endIndex} {t("of")} {totalRows}
-              </p>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  aria-label={t("firstPage")}
-                  disabled={currentPage === 1}
-                  onClick={() => goToPage(1)}
-                >
-                  <HugeiconsIcon icon={ChevronFirstIcon} strokeWidth={1.75} />
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  aria-label={t("previousPage")}
-                  disabled={currentPage === 1}
-                  onClick={() => goToPage(Math.max(1, currentPage - 1))}
-                >
-                  <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={1.75} />
-                </Button>
-                {pageNumbers.map((pageNumber) => (
+        {(isPending || isFetching) && tors.length === 0 ? (
+          <div className="grid gap-3">
+            {Array.from({ length: 4 }, (_, index) => (
+              <div
+                key={index}
+                className="h-36 animate-pulse rounded-lg bg-background/60"
+              />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
+            <p className="text-sm font-medium">{t("emptyFilters")}</p>
+            <Button type="button" variant="orange" onClick={resetAll}>
+              {t("resetFilters")}
+            </Button>
+          </div>
+        ) : (
+          <>
+            <div className="grid gap-3">
+              {paginated.map((tor) => (
+                <ListingFrostCard key={tor.id} tor={tor} />
+              ))}
+            </div>
+            {totalRows > PAGE_SIZE ? (
+              <nav
+                aria-label={t("pageLabel")}
+                className="flex flex-col gap-3 border-t border-border/60 pt-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between"
+              >
+                <p>
+                  {startIndex + 1}-{endIndex} {t("of")} {totalRows}
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
                   <Button
-                    key={pageNumber}
                     type="button"
-                    variant={pageNumber === currentPage ? "default" : "outline"}
+                    variant="outline"
                     size="icon"
-                    aria-label={`${t("pageLabel")} ${pageNumber}`}
-                    aria-current={pageNumber === currentPage ? "page" : undefined}
-                    onClick={() => goToPage(pageNumber)}
+                    aria-label={t("firstPage")}
+                    disabled={currentPage === 1}
+                    onClick={() => goToPage(1)}
                   >
-                    {pageNumber}
+                    <HugeiconsIcon icon={ChevronFirstIcon} strokeWidth={1.75} />
                   </Button>
-                ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  aria-label={t("nextPage")}
-                  disabled={currentPage === totalPages}
-                  onClick={() => goToPage(Math.min(totalPages, currentPage + 1))}
-                >
-                  <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={1.75} />
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  aria-label={t("lastPage")}
-                  disabled={currentPage === totalPages}
-                  onClick={() => goToPage(totalPages)}
-                >
-                  <HugeiconsIcon icon={ChevronLastIcon} strokeWidth={1.75} />
-                </Button>
-              </div>
-            </nav>
-          ) : null}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    aria-label={t("previousPage")}
+                    disabled={currentPage === 1}
+                    onClick={() => goToPage(Math.max(1, currentPage - 1))}
+                  >
+                    <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={1.75} />
+                  </Button>
+                  {pageNumbers.map((pageNumber) => (
+                    <Button
+                      key={pageNumber}
+                      type="button"
+                      variant={pageNumber === currentPage ? "orange" : "outline"}
+                      size="icon"
+                      aria-label={`${t("pageLabel")} ${pageNumber}`}
+                      aria-current={pageNumber === currentPage ? "page" : undefined}
+                      onClick={() => goToPage(pageNumber)}
+                    >
+                      {pageNumber}
+                    </Button>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    aria-label={t("nextPage")}
+                    disabled={currentPage === totalPages}
+                    onClick={() => goToPage(Math.min(totalPages, currentPage + 1))}
+                  >
+                    <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={1.75} />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    aria-label={t("lastPage")}
+                    disabled={currentPage === totalPages}
+                    onClick={() => goToPage(totalPages)}
+                  >
+                    <HugeiconsIcon icon={ChevronLastIcon} strokeWidth={1.75} />
+                  </Button>
+                </div>
+              </nav>
+            ) : null}
+          </>
+        )}
         </div>
-      )}
+      </MonitorSection>
     </div>
   );
 }

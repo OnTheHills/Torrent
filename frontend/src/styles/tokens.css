@@ -8,7 +8,7 @@
   --palette-white: #ffffff;
 
   --palette-gray-25: #f9fafc;
-  --palette-gray-50: #f5f7fa;
+  --palette-gray-50: #f1f3f5;
   --palette-gray-75: #eef0f3;
   --palette-gray-100: #ebeef2;
   --palette-gray-200: #dadfe5;
@@ -21,9 +21,11 @@
   --palette-gray-850: #121723;
   --palette-gray-900: #0a0f1a;
 
+  --palette-orange-25: #fffbf9;
   --palette-orange-50: #fdf4ee;
   --palette-orange-75: #fcebe0;
   --palette-orange-100: #fbe6d8;
+  --palette-orange-150: #f9d7c0;
   --palette-orange-200: #f6c7a8;
   --palette-orange-300: #f0a06e;
   --palette-orange-400: #ea8348;
@@ -184,9 +186,12 @@
   --hero-via2: var(--palette-orange-200);
   --hero-to: var(--palette-teal-150);
   --hero-glow: color-mix(in srgb, var(--palette-teal-300) 46%, transparent);
+  --hero-stripe-a: var(--palette-orange-300);
+  --hero-stripe-b: var(--palette-orange-150);
+  --hero-stripe-c: var(--palette-orange-25);
   --hero-foreground: var(--palette-teal-900);
   --hero-muted: var(--palette-teal-800);
-  --surface: var(--palette-gray-75);
+  --surface: var(--palette-gray-50);
   --surface-elevated: color-mix(in srgb, var(--palette-white) 78%, transparent);
   --surface-frost: color-mix(in srgb, var(--palette-white) 48%, transparent);
   --surface-frost-ring: color-mix(in srgb, var(--palette-white) 70%, transparent);
@@ -243,6 +248,8 @@ html.dark {
   --hero-via2: var(--palette-orange-800);
   --hero-to: var(--palette-teal-700);
   --hero-glow: color-mix(in srgb, var(--palette-orange-400) 32%, transparent);
+  --hero-stripe-a: var(--palette-orange-800);
+  --hero-stripe-b: var(--palette-orange-900);
   --hero-foreground: var(--palette-white);
   --hero-muted: color-mix(in srgb, var(--palette-teal-100) 72%, transparent);
   --surface: var(--palette-gray-800);

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { MonitorHome } from "@/components/home/monitor-home";
+import { MonitorHome } from "@/components/monitor/monitor-home";
 
 export const metadata: Metadata = {
   title: "Monitor",

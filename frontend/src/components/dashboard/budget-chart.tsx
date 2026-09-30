@@ -10,14 +10,20 @@ import type { BudgetBenchmark } from "@/types/tor";
 // A fixed tick count keeps each category chart aligned and avoids visual jitter.
 const AXIS_TICKS = 4;
 
-export function BudgetChart({ data }: { data: BudgetBenchmark[] }) {
+export function BudgetChart({
+  data,
+  meta,
+}: {
+  data: BudgetBenchmark[];
+  meta?: string;
+}) {
   const { t } = useLocale();
   const [hovered, setHovered] = useState<string | null>(null);
 
   if (data.length === 0) {
     return (
-      <div className="rounded-md border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-        {t("emptyBudgetData")}
+      <div className="flex flex-col items-center gap-2 px-4 py-16 text-center">
+        <p className="text-sm font-medium">{t("emptyBudgetData")}</p>
       </div>
     );
   }
@@ -40,7 +46,7 @@ export function BudgetChart({ data }: { data: BudgetBenchmark[] }) {
           <span className="h-2 w-6 rounded-full bg-muted ring-1 ring-border" />
           {t("chartLegendScale")}
         </span>
-        <span>{t("chartMeta")}</span>
+        <span>{meta || t("chartMeta")}</span>
       </div>
 
       <div className="space-y-1">

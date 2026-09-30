@@ -9,10 +9,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SKILL_OPTIONS } from "@/data/mock";
-import { cn } from "@/lib/utils";
 import { AGENCIES, agencyName } from "@/config/agencies";
-import type { AgencyId, BudgetBand, IntegrityStatus, TorLifecycle } from "@/types/tor";
+import type {
+  AgencyId,
+  BudgetBand,
+  IntegrityStatus,
+  TorLifecycle,
+} from "@/types/tor";
 
 export type TorFilterState = {
   agency: AgencyId | "all";
@@ -45,21 +48,11 @@ export function TorFilters({
 }) {
   const { locale, t } = useLocale();
 
-  function toggleSkill(skill: string) {
-    const exists = value.skills.includes(skill);
-    onChange({
-      ...value,
-      skills: exists
-        ? value.skills.filter((item) => item !== skill)
-        : [...value.skills, skill],
-    });
-  }
-
   return (
-    <div className="space-y-4 rounded-xl border border-border bg-card/95 p-4 backdrop-blur-md">
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="min-w-[10rem] flex-1 space-y-1.5">
-          <span className="text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+    <div className="flex flex-col gap-6">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[repeat(3,minmax(0,1fr))_auto]">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[0.65rem] uppercase tracking-[0.14em] text-muted-foreground">
             {t("agency")}
           </span>
           <Select
@@ -68,7 +61,7 @@ export function TorFilters({
               onChange({ ...value, agency: agency as AgencyId | "all" })
             }
           >
-            <SelectTrigger className="h-9 w-full">
+            <SelectTrigger className="h-9! w-full">
               <SelectValue placeholder={t("allAgencies")} />
             </SelectTrigger>
             <SelectContent>
@@ -82,8 +75,8 @@ export function TorFilters({
           </Select>
         </label>
 
-        <label className="min-w-[8rem] space-y-1.5">
-          <span className="text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[0.65rem] uppercase tracking-[0.14em] text-muted-foreground">
             {t("budgetRange")}
           </span>
           <Select
@@ -92,7 +85,7 @@ export function TorFilters({
               onChange({ ...value, budget: budget as BudgetBand })
             }
           >
-            <SelectTrigger className="h-9 w-full">
+            <SelectTrigger className="h-9! w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -104,8 +97,8 @@ export function TorFilters({
           </Select>
         </label>
 
-        <label className="min-w-[8rem] space-y-1.5">
-          <span className="text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[0.65rem] uppercase tracking-[0.14em] text-muted-foreground">
             {t("status")}
           </span>
           <Select
@@ -117,7 +110,7 @@ export function TorFilters({
               })
             }
           >
-            <SelectTrigger className="h-9 w-full">
+            <SelectTrigger className="h-9! w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -128,48 +121,31 @@ export function TorFilters({
           </Select>
         </label>
 
-        {showMatchFilter ? (
+        <div className="flex flex-col justify-end">
           <Button
             type="button"
-            variant={value.teamOnly ? "default" : "outline"}
+            variant="destructive"
+            className="h-9! px-5 bg-[color-mix(in_srgb,var(--palette-red-400)_40%,transparent)] text-[var(--palette-red-700)] ring-[color-mix(in_srgb,var(--palette-red-500)_72%,transparent)] hover:bg-[color-mix(in_srgb,var(--palette-red-400)_52%,transparent)] dark:text-[var(--palette-red-100)]"
+            onClick={onClear}
+          >
+            {t("clearFilters")}
+          </Button>
+        </div>
+      </div>
+
+      {showMatchFilter ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
             size="sm"
-            className="h-9"
+            variant={value.teamOnly ? "orange" : "outline"}
+            aria-pressed={value.teamOnly}
             onClick={() => onChange({ ...value, teamOnly: !value.teamOnly })}
           >
             {t("teamOnly")}
           </Button>
-        ) : null}
-
-        <Button type="button" variant="ghost" size="sm" className="h-9" onClick={onClear}>
-          {t("clearFilters")}
-        </Button>
-      </div>
-
-      <div className="space-y-2 border-t border-border pt-3">
-        <p className="text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-          {t("skills")}
-        </p>
-        <div className="flex flex-wrap gap-x-3 gap-y-1">
-          {SKILL_OPTIONS.map((skill) => {
-            const active = value.skills.includes(skill);
-            return (
-              <button
-                key={skill}
-                type="button"
-                onClick={() => toggleSkill(skill)}
-                className={cn(
-                  "text-xs transition-colors",
-                  active
-                    ? "font-semibold text-primary underline underline-offset-4"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {skill}
-              </button>
-            );
-          })}
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }
