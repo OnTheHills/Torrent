@@ -21,6 +21,10 @@ const vendorProfileSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    teamSize: {
+      type:String,
+      trim:true,
+    },
     techSkills: {
       type: [String],
       default: undefined,
