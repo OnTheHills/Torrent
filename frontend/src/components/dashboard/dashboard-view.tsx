@@ -1,135 +1,142 @@
 "use client";
 
+import Link from "next/link";
+import { ArrowRight01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useQuery } from "@tanstack/react-query";
 
 import { BudgetChart } from "@/components/dashboard/budget-chart";
+import { BudgetKpiStrip } from "@/components/dashboard/budget-kpi-strip";
 import { CompareBudgetChart } from "@/components/dashboard/compare-budget-chart";
-import {
-  DashboardFetchStatus,
-  DashboardLoading,
-} from "@/components/dashboard/dashboard-loading";
+import { DashboardFetchStatus } from "@/components/dashboard/dashboard-loading";
 import { HistoricalPriceTable } from "@/components/dashboard/historical-price-table";
-import { PageHeader } from "@/components/layout/page-header";
+import { MonitorSection } from "@/components/monitor/monitor-section";
 import { useLocale } from "@/components/providers/locale-provider";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { buildBudgetBenchmarks } from "@/lib/budget";
+import { Button } from "@/components/ui/button";
+import { routes } from "@/config/routes";
 import { fetchTorsForQuery } from "@/lib/api";
+import { buildBudgetBenchmarks } from "@/lib/budget";
 
 export function DashboardView() {
-  const { t } = useLocale();
+  const { locale, t } = useLocale();
   const { data: tors = [], isFetching, isPending } = useQuery({
     queryKey: ["tors"],
     queryFn: fetchTorsForQuery,
     retry: 30,
     retryDelay: (attempt) => Math.min(1_000 * 2 ** attempt, 5_000),
-    // The API now serves while its optional startup sync is running. If the
-    // first read wins that race, check again until at least one TOR is saved.
     refetchInterval: (query) =>
       Array.isArray(query.state.data) && query.state.data.length === 0
         ? 2_000
         : false,
   });
 
-  if (isPending || (isFetching && tors.length === 0)) {
-    return <DashboardLoading />;
-  }
-
-  // All dashboard sections share these category benchmarks, so calculate once
-  // in the parent instead of allowing chart/table definitions to drift apart.
   const benchmarks = buildBudgetBenchmarks(tors);
-  // A missing agencyId falls back to its department, which is common in imports.
-  const agencyCount = new Set(
-    tors
-      .map((tor) => tor.agencyId || tor.department || tor.departmentTh)
-      .filter(Boolean)
-  ).size;
-
+  const sourceCount = new Set(tors.map((tor) => tor.sourceKind).filter(Boolean))
+    .size;
   const draftCount = tors.filter((tor) => tor.lifecycle === "draft").length;
   const publishedCount = tors.filter(
     (tor) => tor.lifecycle === "published"
   ).length;
-
-  const stats = [
-    { key: "kpiAgencies" as const, value: String(agencyCount) },
-    { key: "statCategories" as const, value: String(benchmarks.length) },
-    { key: "statDraftLive" as const, value: String(draftCount) },
-    { key: "statPublished" as const, value: String(publishedCount) },
-  ];
-
-  // Keep the comparison chart scannable while the table below remains complete.
-  const compareRows = tors.filter((tor) => tor.lifecycle !== "awarded").slice(
-    0,
-    8
-  );
+  const fundedTors = tors.filter((tor) => tor.budgetThb > 0);
+  const compareRows = [...fundedTors]
+    .filter((tor) => tor.lifecycle !== "awarded")
+    .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
+    .slice(0, 8);
+  const fundedYears = Array.from(
+    new Set(
+      fundedTors
+        .map((tor) => new Date(tor.publishedAt).getFullYear())
+        .filter((year) => Number.isFinite(year))
+    )
+  ).sort((a, b) => a - b);
+  const yearLabel =
+    fundedYears.length === 0
+      ? ""
+      : fundedYears
+          .map((year) => (locale === "th" ? year + 543 : year))
+          .filter((year, index, all) => index === 0 || index === all.length - 1)
+          .join("–");
+  const chartMeta = [t("chartMetaLive"), yearLabel, t("chartMetaCurrency")]
+    .filter(Boolean)
+    .join(" · ");
+  const waiting = isPending || (isFetching && tors.length === 0);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-10 px-4 py-12 sm:px-6 md:space-y-12 md:py-16">
-      <PageHeader
-        eyebrow={t("dashboardEyebrow")}
-        title={t("dashboardTitle")}
-        description={t("dashboardDescription")}
-      />
+    <div>
+      <section className="relative -mt-[144px] overflow-hidden hero-atmosphere text-hero-foreground">
+        <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-[calc(72px+4rem)] sm:px-6 md:pb-12 md:pt-[calc(72px+6rem)]">
+          <div className="mt-2 w-full max-w-2xl md:max-w-3xl lg:max-w-4xl">
+            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-hero-muted">
+              {t("dashboardEyebrow")}
+            </p>
+            <h1 className="mt-4 whitespace-pre-line text-3xl font-semibold tracking-tight md:text-5xl md:leading-[1.1]">
+              {t("dashboardTitle")}
+            </h1>
+            <p className="mt-5 text-base leading-[1.7] text-hero-muted md:text-lg">
+              {t("dashboardDescription")}
+            </p>
+          </div>
+          <div className="mt-9 flex flex-wrap gap-3 pt-2">
+            <Button asChild size="lg" variant="orange">
+              <Link href={routes.tors}>
+                {t("browseTors")}
+                <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
+              </Link>
+            </Button>
+            <Button asChild size="lg" variant="outline">
+              <Link href={routes.monitor}>{t("openMonitor")}</Link>
+            </Button>
+          </div>
+        </div>
+        <div aria-hidden className="h-px bg-border" />
+      </section>
 
-      {isFetching ? <DashboardFetchStatus /> : null}
+      <div className="mx-auto max-w-6xl space-y-10 px-4 py-12 sm:px-6 md:space-y-12 md:py-16">
+        {isFetching ? <DashboardFetchStatus /> : null}
 
-      <div className="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <Card key={stat.key} size="sm">
-            <CardHeader className="gap-2">
-              <CardDescription className="text-xs uppercase tracking-[0.14em]">
-                {t(stat.key)}
-              </CardDescription>
-              <CardTitle className="text-3xl font-semibold tracking-tight">
-                {stat.value}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-        ))}
+        <BudgetKpiStrip
+          isPending={waiting}
+          values={{
+            kpiSources: sourceCount,
+            statCategories: benchmarks.length,
+            statDraftLive: draftCount,
+            statPublished: publishedCount,
+          }}
+        />
+
+        <MonitorSection
+          title={t("chartTitle")}
+          description={t("chartDescription")}
+        >
+          {waiting ? (
+            <div className="h-64 animate-pulse rounded-lg bg-background/60" />
+          ) : (
+            <BudgetChart data={benchmarks} meta={chartMeta} />
+          )}
+        </MonitorSection>
+
+        <MonitorSection
+          title={t("compareChartTitle")}
+          description={t("compareChartDescription")}
+        >
+          {waiting ? (
+            <div className="h-64 animate-pulse rounded-lg bg-background/60" />
+          ) : (
+            <CompareBudgetChart benchmarks={benchmarks} tors={compareRows} />
+          )}
+        </MonitorSection>
+
+        <MonitorSection
+          title={t("historyTableTitle")}
+          description={t("historyTableDescription")}
+        >
+          {waiting ? (
+            <div className="h-80 animate-pulse rounded-lg bg-background/60" />
+          ) : (
+            <HistoricalPriceTable benchmarks={benchmarks} tors={fundedTors} />
+          )}
+        </MonitorSection>
       </div>
-
-      <Card>
-        <CardHeader className="gap-2 border-b border-border pb-5">
-          <CardTitle className="text-lg md:text-xl">{t("chartTitle")}</CardTitle>
-          <CardDescription className="text-sm md:text-base">
-            {t("chartDescription")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-6">
-          <BudgetChart data={benchmarks} />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="gap-2 border-b border-border pb-5">
-          <CardTitle className="text-lg md:text-xl">
-            {t("compareChartTitle")}
-          </CardTitle>
-          <CardDescription className="text-sm md:text-base">
-            {t("compareChartDescription")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-6">
-          <CompareBudgetChart benchmarks={benchmarks} tors={compareRows} />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="gap-2 border-b border-border pb-5">
-          <CardTitle className="text-lg md:text-xl">{t("historyTableTitle")}</CardTitle>
-          <CardDescription className="text-sm md:text-base">
-            {t("historyTableDescription")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-4">
-          <HistoricalPriceTable benchmarks={benchmarks} tors={tors} />
-        </CardContent>
-      </Card>
     </div>
   );
 }

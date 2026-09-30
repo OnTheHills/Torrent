@@ -29,25 +29,12 @@
 
 @layer utilities {
   .hero-atmosphere {
-    background:
-      radial-gradient(ellipse 80% 60% at 70% 20%, var(--hero-glow), transparent 55%),
-      linear-gradient(
-        135deg,
-        var(--hero-from),
-        var(--hero-via) 35%,
-        var(--hero-via2) 65%,
-        var(--hero-to)
-      );
-  }
-
-  /*
-    Stripe language: 15deg / 75deg steps, kept as a light texture over the hero.
-  */
-  .hero-rays {
-    background-image:
-      repeating-linear-gradient(75deg, var(--pattern-line) 0 1px, transparent 1px 22px),
-      repeating-linear-gradient(15deg, var(--pattern-line) 0 1px, transparent 1px 34px);
-    mask-image: linear-gradient(to bottom, black 40%, transparent 95%);
+    background-image: linear-gradient(
+      to bottom,
+      var(--hero-stripe-a),
+      var(--hero-stripe-b),
+      var(--hero-stripe-c)
+    );
   }
 
   .bma-stripes {

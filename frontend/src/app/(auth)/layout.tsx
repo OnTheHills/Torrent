@@ -11,7 +11,6 @@ export default function AuthLayout({
 }) {
   return (
     <div className="relative min-h-screen hero-atmosphere">
-      <div className="pointer-events-none absolute inset-0 hero-rays opacity-50" />
       <div className="relative mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-12">
         <Link href={routes.home} className="mb-8 inline-flex">
           <BrandLockup size="lg" priority />

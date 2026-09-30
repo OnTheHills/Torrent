@@ -15,7 +15,7 @@ export function HomeCta() {
   return (
     <Surface
       as="section"
-      className="flex flex-col gap-6 bg-surface p-5 ring-transparent md:flex-row md:items-end md:justify-between md:p-6"
+      className="flex flex-col gap-1 bg-surface p-5 ring-transparent md:p-6"
     >
       <div className="max-w-2xl space-y-3">
         <h2 className="text-2xl font-semibold tracking-tight md:text-[2rem] md:leading-[1.2]">
@@ -25,7 +25,7 @@ export function HomeCta() {
           {t("ctaBody")}
         </p>
       </div>
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap justify-end gap-3">
         <Button asChild size="lg" variant="orange">
           <Link href={routes.tors}>
             {t("browseTors")}

@@ -1,10 +1,23 @@
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 
 import { Surface } from "@/components/ui/surface";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
+/** One column for the landing hero and every HomeBand / HomeRule. */
+export const homeFrameClass = "mx-auto w-full max-w-5xl px-6";
 
+export function HomeFrame({
+  className,
+  children,
+  ...props
+}: ComponentProps<"div">) {
+  return (
+    <div className={cn(homeFrameClass, className)} {...props}>
+      {children}
+    </div>
+  );
+}
 
 export function HomeSection({
   eyebrow,
@@ -77,15 +90,15 @@ export function HomeBand({
         tone === "default" && "bg-background"
       )}
     >
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 md:py-12">{children}</div>
+      <HomeFrame className="py-8 md:py-12">{children}</HomeFrame>
     </Surface>
   );
 }
 
 export function HomeRule() {
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6" aria-hidden>
+    <HomeFrame aria-hidden>
       <hr className="border-0 border-t border-border" />
-    </div>
+    </HomeFrame>
   );
 }

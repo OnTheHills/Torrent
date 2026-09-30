@@ -190,7 +190,8 @@ analysis column sorts by `TOR budget / category median`, not by formatted text.
 | Folder | What the components do |
 | --- | --- |
 | `components/tor` | Browse/filter/list/detail TORs, show source and agency badges, calculate budget comparison, save a TOR, and present match/fit/checklist information. |
-| `components/home` | Public landing/monitor sections: KPIs, latest opportunities, matched items, agencies, capabilities, coverage, workflow, trust, and CTA. |
+| `components/home` | Public landing page sections: coverage, capabilities, roles, workflow, trust, and CTA. |
+| `components/monitor` | Public Monitor page: hero, KPIs, latest listings, integrity queue, and agency strip. |
 | `components/notifications` | Saved TOR list, alerts popover, and notification preference editor. |
 | `components/admin` | Source health status panel. |
 | `components/showcase` | Vendor showcase page content. |

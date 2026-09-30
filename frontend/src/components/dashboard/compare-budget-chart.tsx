@@ -35,8 +35,8 @@ export function CompareBudgetChart({
 
   if (rows.length === 0) {
     return (
-      <div className="rounded-md border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-        {t("emptyBudgetData")}
+      <div className="flex flex-col items-center gap-2 px-4 py-16 text-center">
+        <p className="text-sm font-medium">{t("emptyBudgetData")}</p>
       </div>
     );
   }

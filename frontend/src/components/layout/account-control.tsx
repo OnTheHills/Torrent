@@ -38,7 +38,10 @@ export function AccountControl() {
 
   if (!user) {
     return (
-      <Button asChild>
+      <Button
+        asChild
+        className="bg-[color-mix(in_srgb,var(--palette-teal-400)_32%,transparent)] text-white ring-[color-mix(in_srgb,var(--palette-teal-300)_45%,transparent)] hover:bg-[color-mix(in_srgb,var(--palette-teal-400)_44%,transparent)] dark:text-white"
+      >
         <Link href={routes.login}>{t("signUpLogin")}</Link>
       </Button>
     );

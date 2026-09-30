@@ -221,7 +221,7 @@ export function HistoricalPriceTable({
       </Table>
 
       {totalRows > PAGE_SIZE ? (
-        <div className="flex flex-col gap-3 border-t border-border pt-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 border-t border-border/60 pt-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <div>
             {startIndex + 1}-{endIndex} {t("of")} {totalRows}
           </div>
@@ -250,7 +250,7 @@ export function HistoricalPriceTable({
               <Button
                 key={pageNumber}
                 type="button"
-                variant={pageNumber === currentPage ? "default" : "outline"}
+                variant={pageNumber === currentPage ? "orange" : "outline"}
                 size="icon"
                 aria-label={`${t("pageLabel")} ${pageNumber}`}
                 aria-current={pageNumber === currentPage ? "page" : undefined}
