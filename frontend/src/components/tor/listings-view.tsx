@@ -2,16 +2,28 @@
 
 import { useLocale } from "@/components/providers/locale-provider";
 import { TorBrowse } from "@/components/tor/tor-browse";
-import type { AgencyId, Tor } from "@/types/tor";
+import type {
+  AgencyId,
+  ListingSort,
+  ListingSource,
+  Tor,
+  TorLifecycle,
+} from "@/types/tor";
 
 export function ListingsView({
   tors = [],
   initialQuery = "",
   initialAgency = "all",
+  initialSource = "all",
+  initialSort = "newest",
+  initialLifecycle = "all",
 }: {
   tors?: Tor[];
   initialQuery?: string;
   initialAgency?: AgencyId | "all";
+  initialSource?: ListingSource;
+  initialSort?: ListingSort;
+  initialLifecycle?: TorLifecycle | "all";
 }) {
   const { t } = useLocale();
 
@@ -34,11 +46,14 @@ export function ListingsView({
         <div aria-hidden className="h-px bg-border" />
       </section>
 
-      <div className="mx-auto max-w-6xl space-y-10 px-4 py-12 sm:px-6 md:space-y-12 md:py-16">
+      <div className="mx-auto max-w-7xl space-y-10 px-4 py-12 sm:px-6 md:space-y-12 md:py-16">
         <TorBrowse
           tors={tors}
           initialQuery={initialQuery}
           initialAgency={initialAgency}
+          initialSource={initialSource}
+          initialSort={initialSort}
+          initialLifecycle={initialLifecycle}
           showHeader={false}
         />
       </div>

@@ -4,7 +4,7 @@ const {
   SOURCE,
   WEBSITE_URL,
 } = require("@/constants/smeGpConstants");
-const { classifyCategory, parseBudget } = require("@/utils/torUtils");
+const { classifyCategory, firstPresent, parseBudget, parseDate } = require("@/utils/torUtils");
 
 function compactText(value) {
   return String(value || "").replace(/\s+/g, "").toLowerCase();
@@ -33,11 +33,26 @@ function adapt(rows) {
       department: candidate.deptName,
       departmentTh: candidate.deptName,
       agencyId: candidate.deptsubName || "sme-gp",
-      publishedAt: candidate.published ? new Date(candidate.published) : undefined,
+      publishedAt: parseDate(candidate.published),
+      deadline: parseDate(
+        firstPresent(
+          candidate.deadline,
+          candidate.closeDate,
+          candidate.endDate,
+          candidate.submitEnd,
+        ),
+      ),
       source: SOURCE,
       egpUrl: candidate.link || WEBSITE_URL,
       category: classifyCategory(keyword),
-      budgetThb: parseBudget(candidate.budget),
+      budgetThb: parseBudget(
+        firstPresent(
+          candidate.budget,
+          candidate.project_money,
+          candidate.price,
+          candidate.budgetThb,
+        ),
+      ) || undefined,
       status: "published",
       summary: `Matched keyword: ${keyword}`,
       summaryTh: `พบคำค้นหา: ${keyword}`,

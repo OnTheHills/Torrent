@@ -1,8 +1,18 @@
-// BMA e-GP2 API settings and software-project filters.
-const API_URL = "https://egp2.bangkok.go.th/appapi/api/PlanProjects/GetPlanProjectFromFilter";
-const PLAN_URL = "https://egp2.bangkok.go.th/plan";
-// Thai Buddhist budget year. Update here when switching the imported year.
-const BUDGET_YEAR = "2569";
+// BMA e-GP2 project-search (actual tenders / TOR drafts), not procurement plans.
+const API_URL = "https://egp2.bangkok.go.th/appapi/api/Projects/GetProjectFromFilter";
+const DETAIL_URL = "https://egp2.bangkok.go.th/appapi/api/Projects/GetProjectDetail";
+const ANNOUNCE_URL = "https://egp2.bangkok.go.th/appapi/api/ProjectAnnouncements/GetAnnouncementDetailInProject";
+const FILE_ORIGIN = "https://egp2.bangkok.go.th";
+const PROJECT_URL = "https://egp2.bangkok.go.th/project-detail";
+const SEARCH_URL = "https://egp2.bangkok.go.th/project-search";
+// Thai Buddhist budget years. Current year plus the previous so still-open notices remain.
+const BUDGET_YEAR = "2570";
+const BUDGET_YEARS = ["2570", "2569"];
+const ANNOUNCE_TYPES = [
+  { id: "24995aa2-d875-4d3d-9dec-d5e22d222aa4", code: "TOR" },
+  { id: "705f1ffb-82e2-4beb-bdd2-2746f0783bf0", code: "INVITE" },
+  { id: "417bddc2-c971-465f-b419-23847e27bcba", code: "DRAFT_BID" },
+];
 const PAGE_SIZE = 500;
 const RETRY_COUNT = 3;
 const SOURCE = "BMA-EGP2";
@@ -113,6 +123,22 @@ const EXCLUDE_TERMS = [
 ];
 
 module.exports = {
-  API_URL, PLAN_URL, BUDGET_YEAR, PAGE_SIZE, RETRY_COUNT, SOURCE, METHOD, USER_AGENT,
-  STRONG_TERMS, DEVELOPMENT_TERMS, IT_CONTEXT_TERMS, EXCLUDE_TERMS,
+  ANNOUNCE_TYPES,
+  ANNOUNCE_URL,
+  API_URL,
+  BUDGET_YEAR,
+  BUDGET_YEARS,
+  DETAIL_URL,
+  FILE_ORIGIN,
+  METHOD,
+  PAGE_SIZE,
+  PROJECT_URL,
+  RETRY_COUNT,
+  SEARCH_URL,
+  SOURCE,
+  USER_AGENT,
+  STRONG_TERMS,
+  DEVELOPMENT_TERMS,
+  IT_CONTEXT_TERMS,
+  EXCLUDE_TERMS,
 };

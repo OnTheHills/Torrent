@@ -64,4 +64,34 @@ async function saveChanged(tors) {
   return summary;
 }
 
-module.exports = { create, findAll, findById, remove, update, saveChanged };
+async function findBySource(source) {
+  return TOR.find({ source }).select("refId source ocr egpUrl").lean();
+}
+
+async function saveOcr(refId, source, ocr) {
+  return TOR.findOneAndUpdate(
+    { refId, source },
+    { $set: { ocr } },
+    { returnDocument: "after" },
+  );
+}
+
+async function deleteMissingFromSource(source, keepRefIds) {
+  const result = await TOR.deleteMany({
+    source,
+    refId: { $nin: keepRefIds },
+  });
+  return { removed: result.deletedCount || 0 };
+}
+
+module.exports = {
+  create,
+  deleteMissingFromSource,
+  findAll,
+  findById,
+  findBySource,
+  remove,
+  saveChanged,
+  saveOcr,
+  update,
+};

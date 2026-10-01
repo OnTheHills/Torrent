@@ -70,7 +70,7 @@ export function MatchedPanel() {
                     <span className="font-medium text-foreground">
                       {formatBudgetCompact(tor.budgetThb, locale)}
                     </span>
-                    <span>{formatDate(tor.deadline, locale)}</span>
+                    <span>{formatDate(tor.deadline || tor.publishedAt, locale)}</span>
                   </div>
                 </Link>
               </li>

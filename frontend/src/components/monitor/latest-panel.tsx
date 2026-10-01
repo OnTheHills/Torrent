@@ -36,7 +36,7 @@ export function LatestPanel() {
       <ul className="grid gap-4">
         {latest.map((tor) => (
           <li key={tor.id}>
-            <ListingFrostCard tor={tor} dateField="publishedAt" />
+            <ListingFrostCard tor={tor} />
           </li>
         ))}
       </ul>

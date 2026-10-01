@@ -9,27 +9,65 @@ import { IntegrityBadge } from "@/components/tor/integrity-badge";
 import { LifecycleBadge } from "@/components/tor/lifecycle-badge";
 import { MatchBadge } from "@/components/tor/match-badge";
 import { SaveTorButton } from "@/components/tor/save-tor-button";
-import { FrostCard } from "@/components/ui/frost-card";
+import { FrostCard, FrostPill } from "@/components/ui/frost-card";
 import { listingHref } from "@/config/routes";
 import {
   formatBudgetCompact,
+  formatBudgetYear,
   formatDate,
   torAgencyLine,
   torTitle,
 } from "@/data/mock";
+import { cn } from "@/lib/utils";
 import type { Tor } from "@/types/tor";
 
-export function ListingFrostCard({
-  tor,
-  dateField = "deadline",
+function CardStat({
+  label,
+  value,
+  pills,
+  align = "left",
+  strong = false,
 }: {
-  tor: Tor;
-  dateField?: "deadline" | "publishedAt";
+  label: string;
+  value: string;
+  pills?: string[];
+  align?: "left" | "right";
+  strong?: boolean;
 }) {
+  return (
+    <div className={align === "right" ? "text-right" : undefined}>
+      <p className="text-[0.65rem] uppercase tracking-[0.14em] text-muted-foreground">
+        {label}
+      </p>
+      <p
+        className={
+          strong
+            ? "text-sm font-semibold tabular-nums"
+            : "text-sm tabular-nums text-muted-foreground"
+        }
+      >
+        {value}
+      </p>
+      {pills?.length ? (
+        <div
+          className={cn(
+            "mt-1.5 flex flex-wrap gap-1.5",
+            align === "right" && "justify-end",
+          )}
+        >
+          {pills.map((pill) => (
+            <FrostPill key={pill}>{pill}</FrostPill>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function ListingFrostCard({ tor }: { tor: Tor }) {
   const { locale, t } = useLocale();
   const audience = useAudience();
   const vendor = audience === "vendor";
-  const dateIso = dateField === "publishedAt" ? tor.publishedAt : tor.deadline;
 
   return (
     <FrostCard className="flex h-full flex-col gap-3 rounded-lg p-5 hover:ring-primary/40 md:p-5">
@@ -54,21 +92,27 @@ export function ListingFrostCard({
           <IntegrityBadge status={tor.integrity} />
         </div>
         <div className="mt-auto flex flex-wrap items-end justify-between gap-3 pt-1">
-          <div>
-            <p className="text-[0.65rem] uppercase tracking-[0.14em] text-muted-foreground">
-              {t("budget")}
-            </p>
-            <p className="text-sm font-semibold tabular-nums">
-              {formatBudgetCompact(tor.budgetThb, locale)}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-[0.65rem] uppercase tracking-[0.14em] text-muted-foreground">
-              {dateField === "publishedAt" ? t("publishedAt") : t("deadline")}
-            </p>
-            <p className="text-sm tabular-nums text-muted-foreground">
-              {formatDate(dateIso, locale)}
-            </p>
+          <CardStat
+            label={t("budget")}
+            value={formatBudgetCompact(tor.budgetThb, locale)}
+            pills={
+              tor.budgetYear
+                ? [`${t("budgetYear")} ${formatBudgetYear(tor.budgetYear)}`]
+                : undefined
+            }
+            strong
+          />
+          <div className="flex flex-wrap items-end justify-end gap-6">
+            <CardStat
+              label={t("publishedAt")}
+              value={formatDate(tor.publishedAt, locale)}
+              align="right"
+            />
+            <CardStat
+              label={t("deadline")}
+              value={formatDate(tor.deadline, locale)}
+              align="right"
+            />
           </div>
         </div>
       </Link>

@@ -1,6 +1,6 @@
 export type AgencyId = "bma" | "mdes" | "dga" | "depa" | "mol";
 
-export type DataSourceKind = "bma-ocds" | "bma-egp2" | "egp-rss" | "html";
+export type DataSourceKind = "bma-ocds" | "bma-egp2" | "egp-rss" | "sme-gp" | "html";
 
 export type SourceVerdict = "green" | "yellow" | "red";
 
@@ -50,10 +50,10 @@ export const AGENCIES: Agency[] = [
       },
       {
         kind: "bma-egp2",
-        labelEn: "BMA e-GP2 procurement plan API",
-        labelTh: "แผนจัดซื้อจัดจ้าง กทม. e-GP2",
-        url: "https://egp2.bangkok.go.th/appapi/api/PlanProjects/GetPlanProjectFromFilter?budgetYear=2569",
-        pageUrl: "https://egp2.bangkok.go.th/plan?budgetYear=2569",
+        labelEn: "BMA e-GP2 project search (TOR)",
+        labelTh: "ค้นหาโครงการ กทม. e-GP2 (TOR)",
+        url: "https://egp2.bangkok.go.th/appapi/api/Projects/GetProjectFromFilter?pageNo=1&pageSize=5&sortBy=publishDateDesc&masterBudgetYearId=2570&masterAnnounceTypeId=24995aa2-d875-4d3d-9dec-d5e22d222aa4",
+        pageUrl: "https://egp2.bangkok.go.th/project-search?budgetYear=2570&sortBy=publishDateDesc&announcementType=24995aa2-d875-4d3d-9dec-d5e22d222aa4",
       },
     ],
   },

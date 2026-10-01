@@ -1,4 +1,6 @@
 const { syncAPI, syncSource } = require("@/jobs/syncAPI");
+const ocrBmaPlans = require("@/services/tor/ocr/ocrBmaPlans");
+const torRepository = require("@/repositories/torRepository");
 
 // Manual synchronization for both procurement APIs or one selected source.
 async function triggerSyncAll(request, response) {
@@ -31,8 +33,31 @@ async function triggerBmaEgp2Sync(request, response) {
   }
 }
 
+async function triggerEgpRssSync(request, response) {
+  try {
+    const result = await syncSource("egpRss");
+    return response.status(200).json({ message: "e-GP RSS sync successful", data: result });
+  } catch (error) {
+    console.error("e-GP RSS sync error:", error);
+    return response.status(500).json({ message: error.message });
+  }
+}
+
+async function triggerBmaOcr(request, response) {
+  try {
+    const tors = await torRepository.findBySource("BMA-EGP2");
+    const result = await ocrBmaPlans.enrich(tors);
+    return response.status(200).json({ message: "BMA TOR PDF extract complete", data: result });
+  } catch (error) {
+    console.error("BMA OCR error:", error);
+    return response.status(500).json({ message: error.message });
+  }
+}
+
 module.exports = {
   triggerBmaEgp2Sync,
+  triggerEgpRssSync,
+  triggerBmaOcr,
   triggerSmeGpSync,
   triggerSync: triggerSyncAll,
   triggerSyncAll,

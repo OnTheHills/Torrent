@@ -1,9 +1,43 @@
 // Public sources return budgets as both numbers and locale-formatted strings.
 // Convert either representation into one safe numeric value for charts and MongoDB.
 function parseBudget(value) {
-  if (typeof value === "number") return value;
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
   if (!value) return 0;
-  return parseFloat(value.toString().replace(/,/g, "")) || 0;
+  const normalized = value
+    .toString()
+    .replace(/[฿บาท]/g, "")
+    .replace(/,/g, "")
+    .trim();
+  return parseFloat(normalized) || 0;
+}
+
+function firstPresent(...values) {
+  return values.find((value) => value !== undefined && value !== null && value !== "");
+}
+
+function parseDate(value) {
+  if (!value) return undefined;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
+function budgetYearFromValue(value) {
+  const text = String(value || "").trim();
+  const four = text.match(/(25\d{2})/);
+  if (four) return four[1];
+  const two = text.match(/\b(\d{2})\b/);
+  if (!two) return undefined;
+  const yy = Number(two[1]);
+  if (yy < 60 || yy > 80) return undefined;
+  return String(2500 + yy);
+}
+
+function budgetYearFromRef(refId) {
+  const match = String(refId || "").match(/^(\d{2})\d{6,}$/);
+  if (!match) return undefined;
+  const yy = Number(match[1]);
+  if (yy < 60 || yy > 80) return undefined;
+  return String(2500 + yy);
 }
 
 // Category labels are intentionally broad: they make cross-source budgets comparable.
@@ -49,7 +83,11 @@ function wait(ms) {
 }
 
 module.exports = {
+  budgetYearFromRef,
+  budgetYearFromValue,
   classifyCategory,
+  firstPresent,
   parseBudget,
+  parseDate,
   wait,
 };

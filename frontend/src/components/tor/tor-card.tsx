@@ -71,13 +71,23 @@ export function TorCard({ tor }: { tor: Tor }) {
               {formatBudgetCompact(tor.budgetThb, locale)}
             </p>
           </div>
-          <div className="text-right">
-            <p className="text-[0.65rem] uppercase tracking-[0.14em] text-muted-foreground">
-              {t("deadline")}
-            </p>
-            <p className="text-sm tabular-nums text-muted-foreground">
-              {formatDate(tor.deadline, locale)}
-            </p>
+          <div className="flex flex-wrap items-end justify-end gap-6">
+            <div className="text-right">
+              <p className="text-[0.65rem] uppercase tracking-[0.14em] text-muted-foreground">
+                {t("publishedAt")}
+              </p>
+              <p className="text-sm tabular-nums text-muted-foreground">
+                {formatDate(tor.publishedAt, locale)}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-[0.65rem] uppercase tracking-[0.14em] text-muted-foreground">
+                {t("deadline")}
+              </p>
+              <p className="text-sm tabular-nums text-muted-foreground">
+                {formatDate(tor.deadline, locale)}
+              </p>
+            </div>
           </div>
         </div>
         {audience === "vendor" && typeof tor.matchScore === "number" ? (

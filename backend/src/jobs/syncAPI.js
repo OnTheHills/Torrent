@@ -1,5 +1,7 @@
 const { readdirSync } = require("node:fs");
 const { join } = require("node:path");
+const { hydrateProjects } = require("@/services/tor/api/bmaEgp2/files");
+const ocrBmaPlans = require("@/services/tor/ocr/ocrBmaPlans");
 const torRepository = require("@/repositories/torRepository");
 
 const apiDirectory = join(__dirname, "../services/tor/api");
@@ -24,13 +26,25 @@ async function syncSource(name) {
   const source = sources().find((candidate) => candidate.name === name);
   if (!source) throw new Error(`Unknown API source: ${name}`);
   const result = await source.fetcher.fetch();
-  const tors = source.adapter.adapt(result.rows);
+  const matched = source.adapter.adapt(result.rows);
+  const tors = name === "bmaEgp2" ? await hydrateProjects(matched) : matched;
+  const persisted = await save(tors);
+  const replaced =
+    name === "bmaEgp2" && result.rows.length
+      ? await torRepository.deleteMissingFromSource(
+          source.fetcher.source,
+          tors.map((tor) => tor.refId),
+        )
+      : {};
+  const ocr = name === "bmaEgp2" ? await ocrBmaPlans.enrich(tors) : {};
   return {
     ...(result.metadata || {}),
     fetched: result.rows.length,
     matched: tors.length,
     method: source.fetcher.method,
-    ...await save(tors),
+    ...persisted,
+    ...replaced,
+    ...ocr,
     source: source.fetcher.source,
   };
 }

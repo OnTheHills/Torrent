@@ -112,6 +112,27 @@ test("generateContent success returns the { ok, text } contract", async () => {
   assert.ok(calls[0].params.config.abortSignal);
 });
 
+test("generateFromParts sends inline PDF data to Vertex", async () => {
+  const calls = [];
+  function FakeGoogleGenAI() {
+    this.models = {
+      async generateContent(params) {
+        calls.push(params);
+        return { text: '{"summaryTh":"แผน"}' };
+      },
+    };
+  }
+
+  const { generateFromParts } = loadVertexClient(CONFIGURED_ENV, FakeGoogleGenAI);
+  const result = await generateFromParts({
+    parts: [{ inlineData: { mimeType: "application/pdf", data: "AAAA" } }, { text: "extract" }],
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(calls[0].contents[0].role, "user");
+  assert.equal(calls[0].contents[0].parts[0].inlineData.mimeType, "application/pdf");
+});
+
 test("SDK 403 billing maps to UNAUTHENTICATED", async () => {
   function FakeGoogleGenAI() {
     this.models = {

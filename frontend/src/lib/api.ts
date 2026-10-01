@@ -96,9 +96,70 @@ export async function fetchTorById(id: string): Promise<Tor | undefined> {
   }
 }
 
+const INGEST_SUMMARY_PREFIXES = [
+  /^Matched keyword:\s*/i,
+  /^BMA e-GP2 plan matched terms:\s*/i,
+  /^BMA e-GP2 project matched terms:\s*/i,
+  /^e-GP RSS matched terms:\s*/i,
+  /^พบคำค้นหา:\s*/,
+  /^แผนจัดซื้อจัดจ้าง กทม\. e-GP2 พบคำค้นหา:\s*/,
+  /^โครงการ กทม\. e-GP2 พบคำค้นหา:\s*/,
+  /^RSS e-GP พบคำค้นหา:\s*/,
+];
+
+function splitIngestSummary(value?: string) {
+  const text = String(value || "").trim();
+  if (!text) return { isIngest: false, listedBecause: "" };
+
+  for (const prefix of INGEST_SUMMARY_PREFIXES) {
+    if (prefix.test(text)) {
+      return {
+        isIngest: true,
+        listedBecause: text.replace(prefix, "").trim(),
+      };
+    }
+  }
+
+  return { isIngest: false, listedBecause: "" };
+}
+
 // MongoDB/source field names are not UI field names. This is the sole mapping
 // boundary, including defaults for incomplete public-source records.
+function inferBudgetYear(data: { budgetYear?: string; refId?: string; source?: string }) {
+  if (data.budgetYear) return String(data.budgetYear);
+  if (data.source !== "BMA-EGP2") return "";
+  const match = String(data.refId || "").match(/^(\d{2})\d{6,}$/);
+  if (!match) return "";
+  const yy = Number(match[1]);
+  if (yy < 60 || yy > 80) return "";
+  return String(2500 + yy);
+}
+
+// Procurement dates are Thailand calendar days. BMA publishes them as midnight
+// ICT, which is 17:00 the previous day in UTC, so a UTC date slice is a day early.
+const SOURCE_TIME_ZONE = "Asia/Bangkok";
+
+function sourceCalendarDate(value: string | Date): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: SOURCE_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
 function mapBackendTorToFrontendTor(data: any): Tor {
+  const ingestEn = splitIngestSummary(data.summary);
+  const ingestTh = splitIngestSummary(data.summaryTh);
+  const isIngest = ingestEn.isIngest || ingestTh.isIngest;
+  const ocr = data.ocr && typeof data.ocr === "object" ? data.ocr : undefined;
+  const ocrDeadline = ocr?.deadline ? sourceCalendarDate(ocr.deadline) : "";
+
   return {
     id: data._id,
     refId: data.refId || data._id,
@@ -112,21 +173,38 @@ function mapBackendTorToFrontendTor(data: any): Tor {
       data.status === "published" ? "published" : data.status || "draft",
     integrity: "ok",
     budgetThb: data.budgetThb || 0,
+    budgetYear: data.budgetYear || inferBudgetYear(data),
     publishedAt: data.publishedAt
-      ? new Date(data.publishedAt).toISOString().split("T")[0]
-      : new Date().toISOString().split("T")[0],
-    deadline: data.deadline || "",
-    summary: data.summary || data.description || "",
-    summaryTh: data.summaryTh || data.description || "",
-    skills: data.skillNeededList || [],
-    requirements: [],
+      ? sourceCalendarDate(data.publishedAt)
+      : sourceCalendarDate(new Date()),
+    deadline: data.deadline ? sourceCalendarDate(data.deadline) : ocrDeadline,
+    summary: ocr?.summary || (isIngest ? "" : data.summary || data.description || ""),
+    summaryTh:
+      ocr?.summaryTh || (isIngest ? "" : data.summaryTh || data.description || ""),
+    listedBecause: ingestEn.listedBecause || ingestTh.listedBecause || undefined,
+    skills: ocr?.skills?.length ? ocr.skills : data.skillNeededList || [],
+    requirements: Array.isArray(ocr?.requirements)
+      ? ocr.requirements
+      : Array.isArray(data.requirements)
+        ? data.requirements
+        : [],
     egpUrl: data.egpUrl || "",
+    ocr: ocr
+      ? {
+          status: ocr.status || "",
+          method: ocr.method === "text" || ocr.method === "ocr" ? ocr.method : undefined,
+          extractedAt: ocr.extractedAt,
+          fileUrl: ocr.fileUrl || "",
+        }
+      : undefined,
     sourceKind:
       data.source === "BMA-EGP2"
         ? "bma-egp2"
-        : data.source === "SME-GP"
+        : data.source === "EGP-RSS"
           ? "egp-rss"
-          : "html",
+          : data.source === "SME-GP"
+            ? "sme-gp"
+            : "html",
     matchScore: 0,
   };
 }
