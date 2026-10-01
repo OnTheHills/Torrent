@@ -96,9 +96,42 @@ export async function fetchTorById(id: string): Promise<Tor | undefined> {
   }
 }
 
+const INGEST_SUMMARY_PREFIXES = [
+  /^Matched keyword:\s*/i,
+  /^BMA e-GP2 plan matched terms:\s*/i,
+  /^BMA e-GP2 project matched terms:\s*/i,
+  /^พบคำค้นหา:\s*/,
+  /^แผนจัดซื้อจัดจ้าง กทม\. e-GP2 พบคำค้นหา:\s*/,
+  /^โครงการ กทม\. e-GP2 พบคำค้นหา:\s*/,
+];
+
+function splitIngestSummary(value?: string) {
+  const text = String(value || "").trim();
+  if (!text) return { isIngest: false, listedBecause: "" };
+
+  for (const prefix of INGEST_SUMMARY_PREFIXES) {
+    if (prefix.test(text)) {
+      return {
+        isIngest: true,
+        listedBecause: text.replace(prefix, "").trim(),
+      };
+    }
+  }
+
+  return { isIngest: false, listedBecause: "" };
+}
+
 // MongoDB/source field names are not UI field names. This is the sole mapping
 // boundary, including defaults for incomplete public-source records.
 function mapBackendTorToFrontendTor(data: any): Tor {
+  const ingestEn = splitIngestSummary(data.summary);
+  const ingestTh = splitIngestSummary(data.summaryTh);
+  const isIngest = ingestEn.isIngest || ingestTh.isIngest;
+  const ocr = data.ocr && typeof data.ocr === "object" ? data.ocr : undefined;
+  const ocrDeadline = ocr?.deadline
+    ? new Date(ocr.deadline).toISOString().split("T")[0]
+    : "";
+
   return {
     id: data._id,
     refId: data.refId || data._id,
@@ -115,12 +148,28 @@ function mapBackendTorToFrontendTor(data: any): Tor {
     publishedAt: data.publishedAt
       ? new Date(data.publishedAt).toISOString().split("T")[0]
       : new Date().toISOString().split("T")[0],
-    deadline: data.deadline || "",
-    summary: data.summary || data.description || "",
-    summaryTh: data.summaryTh || data.description || "",
-    skills: data.skillNeededList || [],
-    requirements: [],
+    deadline: data.deadline
+      ? new Date(data.deadline).toISOString().split("T")[0]
+      : ocrDeadline,
+    summary: ocr?.summary || (isIngest ? "" : data.summary || data.description || ""),
+    summaryTh:
+      ocr?.summaryTh || (isIngest ? "" : data.summaryTh || data.description || ""),
+    listedBecause: ingestEn.listedBecause || ingestTh.listedBecause || undefined,
+    skills: ocr?.skills?.length ? ocr.skills : data.skillNeededList || [],
+    requirements: Array.isArray(ocr?.requirements)
+      ? ocr.requirements
+      : Array.isArray(data.requirements)
+        ? data.requirements
+        : [],
     egpUrl: data.egpUrl || "",
+    ocr: ocr
+      ? {
+          status: ocr.status || "",
+          method: ocr.method === "text" || ocr.method === "ocr" ? ocr.method : undefined,
+          extractedAt: ocr.extractedAt,
+          fileUrl: ocr.fileUrl || "",
+        }
+      : undefined,
     sourceKind:
       data.source === "BMA-EGP2"
         ? "bma-egp2"

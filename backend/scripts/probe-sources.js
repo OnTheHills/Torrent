@@ -5,8 +5,8 @@ const bmaConfig = require("@/constants/bmaConstants");
 
 const OCDS_JSON =
   "https://opencontract.bangkok.go.th/assets/data/output/yearly/ocds_releases_2569.json";
-const EGP2_PLAN_API =
-  `${bmaConfig.API_URL}?pageNo=1&pageSize=5&sortBy=announcedatedesc&masterBudgetYearId=${bmaConfig.BUDGET_YEAR}`;
+const EGP2_PROJECT_API =
+  `${bmaConfig.API_URL}?pageNo=1&pageSize=5&sortBy=publishDateDesc&masterBudgetYearId=${bmaConfig.BUDGET_YEAR}&masterAnnounceTypeId=${bmaConfig.ANNOUNCE_TYPES[0].id}`;
 const RSS =
   "https://process3.gprocurement.go.th/EPROCRssFeedWeb/egpannouncerss.xml?deptId=1700&anounceType=B0";
 const DGA = "https://www.dga.or.th/procurements/";
@@ -117,26 +117,26 @@ async function run() {
       const started = Date.now();
       try {
         const res = await timedFetch(
-          EGP2_PLAN_API,
+          EGP2_PROJECT_API,
           {
             method: "GET",
             headers: {
               accept: "application/json, text/plain, */*",
-              referer: `${bmaConfig.PLAN_URL}?budgetYear=${bmaConfig.BUDGET_YEAR}`,
+              referer: `${bmaConfig.SEARCH_URL}?budgetYear=${bmaConfig.BUDGET_YEAR}`,
             },
           },
           8000,
         );
         const data = await res.json();
         return {
-          id: "bma-egp2-plan-api",
+          id: "bma-egp2-project-api",
           verdict: res.ok && Array.isArray(data.data) ? "green" : "yellow",
           status: res.status,
           ms: Date.now() - started,
           totalCount: data.totalCount,
         };
       } catch (error) {
-        return { id: "bma-egp2-plan-api", verdict: "red", ms: Date.now() - started, detail: abortDetail(error) };
+        return { id: "bma-egp2-project-api", verdict: "red", ms: Date.now() - started, detail: abortDetail(error) };
       }
     })(),
   ];
@@ -145,7 +145,7 @@ async function run() {
   const report = {
     probedAt: new Date().toISOString(),
     strategy:
-      "BMA e-GP2 PlanProjects API, BMA OCDS, MDES e-GP RSS, public HTML listings for DGA / depa / Labour.",
+      "BMA e-GP2 project-search API, BMA OCDS, MDES e-GP RSS, public HTML listings for DGA / depa / Labour.",
     results,
   };
   console.log(JSON.stringify(report, null, 2));

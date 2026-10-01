@@ -636,10 +636,11 @@ export function formatBudget(amount: number, locale: "en" | "th" = "en"): string
   }).format(amount);
 }
 
-/** Competitor-style compact budget: ฿12.5M / ฿12.5 ล้าน */
+/** Competitor-style compact budget: ฿12.5M / ฿12.5 ล้าน. Missing source amounts stay blank. */
 export function formatBudgetCompact(amount: number, locale: "en" | "th" = "en"): string {
+  if (!Number.isFinite(amount) || amount <= 0) return "—";
   const millions = amount / 1_000_000;
-  const value = millions >= 10 ? millions.toFixed(1) : millions.toFixed(1);
+  const value = millions.toFixed(1);
   return locale === "th" ? `฿${value} ล้าน` : `฿${value}M`;
 }
 

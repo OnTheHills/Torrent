@@ -49,6 +49,9 @@ const torSchema = new mongoose.Schema(
     publishedAt: {
       type: Date,
     },
+    deadline: {
+      type: Date,
+    },
     budgetThb: {
       type: Number,
     },
@@ -71,6 +74,58 @@ const torSchema = new mongoose.Schema(
     egpUrl: {
       type: String,
       trim: true,
+    },
+    ocr: {
+      status: {
+        type: String,
+        trim: true,
+      },
+      source: {
+        type: String,
+        trim: true,
+      },
+      method: {
+        type: String,
+        trim: true,
+      },
+      fileName: {
+        type: String,
+        trim: true,
+      },
+      fileUrl: {
+        type: String,
+        trim: true,
+      },
+      model: {
+        type: String,
+        trim: true,
+      },
+      extractedAt: {
+        type: Date,
+      },
+      error: {
+        type: String,
+        trim: true,
+      },
+      summary: {
+        type: String,
+        trim: true,
+      },
+      summaryTh: {
+        type: String,
+        trim: true,
+      },
+      requirements: {
+        type: [String],
+        default: undefined,
+      },
+      deadline: {
+        type: Date,
+      },
+      skills: {
+        type: [String],
+        default: undefined,
+      },
     },
   },
   {

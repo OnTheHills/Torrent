@@ -28,7 +28,16 @@ import { Input } from "@/components/ui/input";
 import { Surface } from "@/components/ui/surface";
 import { torAgency, torDepartment, torTitle } from "@/data/mock";
 import { fetchTorsForQuery } from "@/lib/api";
-import type { AgencyId, Tor } from "@/types/tor";
+import {
+  parseListingLifecycle,
+  parseListingSort,
+  parseListingSource,
+  type AgencyId,
+  type ListingSort,
+  type ListingSource,
+  type Tor,
+  type TorLifecycle,
+} from "@/types/tor";
 
 const PAGE_SIZE = 10;
 const PAGE_WINDOW_SIZE = 5;
@@ -40,15 +49,37 @@ function inBudgetBand(amount: number, band: TorFilterState["budget"]) {
   return amount > 15_000_000;
 }
 
+function knownBudget(amount: number) {
+  return Number.isFinite(amount) && amount > 0;
+}
+
+function compareListings(a: Tor, b: Tor, sort: ListingSort) {
+  if (sort === "newest") return b.publishedAt.localeCompare(a.publishedAt);
+  if (sort === "oldest") return a.publishedAt.localeCompare(b.publishedAt);
+
+  const aKnown = knownBudget(a.budgetThb) ? 1 : 0;
+  const bKnown = knownBudget(b.budgetThb) ? 1 : 0;
+  if (aKnown !== bKnown) return bKnown - aKnown;
+  return sort === "budgetDesc"
+    ? b.budgetThb - a.budgetThb
+    : a.budgetThb - b.budgetThb;
+}
+
 export function TorBrowse({
   tors: initialTors,
   initialQuery = "",
   initialAgency = "all",
+  initialSource = "all",
+  initialSort = "newest",
+  initialLifecycle = "all",
   showHeader = true,
 }: {
   tors: Tor[];
   initialQuery?: string;
   initialAgency?: AgencyId | "all";
+  initialSource?: ListingSource;
+  initialSort?: ListingSort;
+  initialLifecycle?: TorLifecycle | "all";
   showHeader?: boolean;
 }) {
   const { locale, t } = useLocale();
@@ -61,6 +92,9 @@ export function TorBrowse({
   const [filters, setFilters] = useState<TorFilterState>({
     ...DEFAULT_FILTERS,
     agency: initialAgency,
+    source: parseListingSource(initialSource),
+    sort: parseListingSort(initialSort),
+    lifecycle: parseListingLifecycle(initialLifecycle),
   });
   const vendor = audience === "vendor";
 
@@ -78,6 +112,9 @@ export function TorBrowse({
     const params = new URLSearchParams();
     if (nextQuery.trim()) params.set("q", nextQuery.trim());
     if (next.agency !== "all") params.set("agency", next.agency);
+    if (next.source !== "all") params.set("source", next.source);
+    if (next.sort !== "newest") params.set("sort", next.sort);
+    if (next.lifecycle !== "all") params.set("stage", next.lifecycle);
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }
@@ -89,6 +126,10 @@ export function TorBrowse({
       const agency = torAgency(tor, locale);
       const title = torTitle(tor, locale);
       const matchesAgency = filters.agency === "all" || tor.agencyId === filters.agency;
+      const matchesSource =
+        filters.source === "all" || tor.sourceKind === filters.source;
+      const matchesLifecycle =
+        filters.lifecycle === "all" || tor.lifecycle === filters.lifecycle;
       const matchesBudget = inBudgetBand(tor.budgetThb, filters.budget);
       const matchesIntegrity =
         filters.integrity === "all" || tor.integrity === filters.integrity;
@@ -105,12 +146,14 @@ export function TorBrowse({
 
       return (
         matchesAgency &&
+        matchesSource &&
+        matchesLifecycle &&
         matchesBudget &&
         matchesIntegrity &&
         matchesTeam &&
         matchesQuery
       );
-    });
+    }).sort((a, b) => compareListings(a, b, filters.sort));
   }, [filters, locale, query, tors, vendor]);
 
   const totalRows = filtered.length;
@@ -157,34 +200,38 @@ export function TorBrowse({
         />
       ) : null}
 
-      <Surface className="bg-surface p-5 ring-transparent md:p-6">
-        <div className="flex flex-col gap-6">
-          <label className="relative block">
-            <span className="sr-only">{t("searchPlaceholder")}</span>
-            <HugeiconsIcon
-              icon={Search01Icon}
-              className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+      <div className="grid items-start gap-8 lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)]">
+      <aside className="self-start lg:sticky lg:top-[calc(72px+1.5rem)] lg:max-h-[calc(100dvh-72px-3rem)] lg:overflow-y-auto">
+        <Surface className="bg-surface p-5 ring-transparent md:p-6">
+          <div className="flex flex-col gap-4">
+            <label className="relative block">
+              <span className="sr-only">{t("searchPlaceholder")}</span>
+              <HugeiconsIcon
+                icon={Search01Icon}
+                className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              />
+              <Input
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setPage(1);
+                }}
+                placeholder={t("searchPlaceholder")}
+                className="h-11 rounded-full border-0 bg-surface-frost pl-10 shadow-[inset_0_1px_0_0_var(--surface-frost-highlight)] ring-1 ring-[var(--surface-frost-ring)] backdrop-blur-md backdrop-saturate-150 focus-visible:border-transparent"
+              />
+            </label>
+            <TorFilters
+              value={filters}
+              onChange={applyFilters}
+              onClear={resetAll}
+              showMatchFilter={vendor}
             />
-            <Input
-              value={query}
-              onChange={(event) => {
-                setQuery(event.target.value);
-                setPage(1);
-              }}
-              placeholder={t("searchPlaceholder")}
-              className="h-11 rounded-full border-border/70 bg-background/80 pl-10"
-            />
-          </label>
-          <TorFilters
-            value={filters}
-            onChange={applyFilters}
-            onClear={resetAll}
-            showMatchFilter={vendor}
-          />
-        </div>
-      </Surface>
+          </div>
+        </Surface>
+      </aside>
 
       <MonitorSection
+        className="min-w-0"
         title={t("listingsResultsTitle")}
         action={
           <p className="text-sm text-muted-foreground">
@@ -291,6 +338,7 @@ export function TorBrowse({
         )}
         </div>
       </MonitorSection>
+      </div>
     </div>
   );
 }

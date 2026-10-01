@@ -55,37 +55,44 @@ test("SME-GP walks POST pages, deduplicates searches, and filters software TORs"
   assert.equal(result.source, "SME-GP");
 });
 
-test("BMA uses its own GET configuration, follows pages, and maps software plans", async (t) => {
+test("BMA uses project-search, follows pages, and maps software TORs", async (t) => {
   const calls = [];
   t.mock.method(globalThis, "fetch", async (url, options) => {
     assert.equal(url.origin + url.pathname, bmaConfig.API_URL);
     assert.equal(options.method, "GET");
-    assert.equal(url.searchParams.get("masterBudgetYearId"), bmaConfig.BUDGET_YEAR);
-    assert.equal(options.headers.Referer, `${bmaConfig.PLAN_URL}?budgetYear=${bmaConfig.BUDGET_YEAR}`);
+    assert.ok(bmaConfig.BUDGET_YEARS.includes(url.searchParams.get("masterBudgetYearId")));
+    assert.ok(options.headers.Referer.startsWith(bmaConfig.SEARCH_URL));
     const page = Number(url.searchParams.get("pageNo"));
-    calls.push(page);
+    const year = url.searchParams.get("masterBudgetYearId");
+    const type = url.searchParams.get("masterAnnounceTypeId");
+    calls.push(`${year}:${type}:${page}`);
+    const active = year === "2570" && type === bmaConfig.ANNOUNCE_TYPES[0].id;
     return {
       ok: true,
       json: async () => ({
-        pageCount: 2,
-        data: [{
-          planProjectId: page,
-          planProjectPlanProjectsCode: `bma-${page}`,
-          planProjectPlanProjectName: page === 1 ? "จ้างพัฒนาระบบสารสนเทศ" : "จ้างปรับปรุงระบบไฟฟ้า",
-          planProjectBudget: "2,500,000",
-        }],
+        pageCount: active ? 2 : 1,
+        data: active
+          ? [{
+              projectId: `proj-${page}`,
+              projectNumber: `bma-${page}`,
+              projectName: page === 1 ? "จ้างพัฒนาระบบสารสนเทศ" : "จ้างปรับปรุงระบบไฟฟ้า",
+              projectBudget: 2500000,
+              masterOrgDepartmentName: "กองเทคโนโลยี",
+              masterContractAvailableCode: "S1",
+            }]
+          : [],
       }),
     };
   });
   const raw = await bmaFetch.fetch();
   const result = { ...raw, fetched: raw.rows.length, tors: bmaAdapter.adapt(raw.rows), source: bmaFetch.source };
-  assert.deepEqual(calls, [1, 2]);
+  assert.ok(calls.some((call) => call.endsWith(":2")));
   assert.equal(result.fetched, 2);
   assert.equal(result.tors.length, 1);
   assert.equal(result.tors[0].refId, "bma-1");
   assert.equal(result.tors[0].budgetThb, 2500000);
-  assert.equal(result.tors[0].egpUrl, `${bmaConfig.PLAN_URL}/1`);
-  assert.equal(result.metadata.budgetYear, bmaConfig.BUDGET_YEAR);
+  assert.equal(result.tors[0].egpUrl, `${bmaConfig.PROJECT_URL}/proj-1`);
+  assert.deepEqual(result.metadata.budgetYears, bmaConfig.BUDGET_YEARS);
   assert.equal(result.source, "BMA-EGP2");
 });
 
@@ -98,17 +105,22 @@ test("sync job adapts and persists each fetched API source", async () => {
       const file = parts.at(-1);
       return file === "fetch" || file === "adapter" ? `${file}:${name}` : "api";
     } },
-    "@/repositories/torRepository": { saveChanged: async (tors) => { saved.push(...tors.map(({ refId }) => refId)); return { created: tors.length, updated: 0, unchanged: 0 }; } },
+    "@/repositories/torRepository": {
+      saveChanged: async (tors) => { saved.push(...tors.map(({ refId }) => refId)); return { created: tors.length, updated: 0, unchanged: 0 }; },
+      deleteMissingFromSource: async () => ({ removed: 0 }),
+    },
+    "@/services/tor/api/bmaEgp2/files": { hydrateProjects: async (tors) => tors },
+    "@/services/tor/ocr/ocrBmaPlans": { enrich: async () => ({ ocrAttempted: 1, ocrUpdated: 0, ocrSkipped: 1, ocrFailed: 0 }) },
     "fetch:smeGp": { fetch: async () => ({ rows: [{ refId: "sme-1" }] }), method: "POST", source: "SME-GP" },
     "adapter:smeGp": { adapt: (rows) => rows },
-    "fetch:bmaEgp2": { fetch: async () => ({ metadata: { budgetYear: "2569" }, rows: [{ refId: "bma-1" }] }), method: "GET", source: "BMA-EGP2" },
+    "fetch:bmaEgp2": { fetch: async () => ({ metadata: { budgetYears: ["2570", "2569"] }, rows: [{ refId: "bma-1" }] }), method: "GET", source: "BMA-EGP2" },
     "adapter:bmaEgp2": { adapt: (rows) => rows },
   });
   const result = await job.syncAPI();
   assert.deepEqual(saved.sort(), ["bma-1", "sme-1"]);
   assert.deepEqual(JSON.parse(JSON.stringify(result)), [
     { source: "SME-GP", method: "POST", fetched: 1, matched: 1, created: 1, updated: 0, unchanged: 0 },
-    { source: "BMA-EGP2", method: "GET", budgetYear: "2569", fetched: 1, matched: 1, created: 1, updated: 0, unchanged: 0 },
+    { source: "BMA-EGP2", method: "GET", budgetYears: ["2570", "2569"], fetched: 1, matched: 1, created: 1, updated: 0, unchanged: 0, removed: 0, ocrAttempted: 1, ocrUpdated: 0, ocrSkipped: 1, ocrFailed: 0 },
   ]);
 });
 

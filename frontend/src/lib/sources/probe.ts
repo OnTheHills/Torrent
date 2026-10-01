@@ -209,10 +209,10 @@ async function probeHtmlListing(input: {
 
 async function probeBmaEgp2PlanApi(): Promise<SourceProbeResult> {
   const url =
-    "https://egp2.bangkok.go.th/appapi/api/PlanProjects/GetPlanProjectFromFilter?pageNo=1&pageSize=5&sortBy=announcedatedesc&masterBudgetYearId=2569";
+    "https://egp2.bangkok.go.th/appapi/api/Projects/GetProjectFromFilter?pageNo=1&pageSize=5&sortBy=publishDateDesc&masterBudgetYearId=2570&masterAnnounceTypeId=24995aa2-d875-4d3d-9dec-d5e22d222aa4";
   const meta = {
-    id: "bma-egp2-plan-api",
-    label: "BMA e-GP 2 procurement plan API",
+    id: "bma-egp2-project-api",
+    label: "BMA e-GP 2 project search (TOR)",
     kind: "html" as const,
     url,
   };

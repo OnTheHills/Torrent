@@ -44,7 +44,7 @@ function getClient() {
   return cachedClient;
 }
 
-async function generateText({ prompt, timeoutMs } = {}) {
+async function generateContentRequest({ contents, timeoutMs } = {}) {
   const config = readConfig();
   if (!config.project || !config.location || !config.model || !config.credentials) {
     return {
@@ -73,7 +73,7 @@ async function generateText({ prompt, timeoutMs } = {}) {
   try {
     const response = await getClient().models.generateContent({
       model: config.model,
-      contents: prompt || "Reply with the single word pong.",
+      contents,
       config: { abortSignal: controller.signal },
     });
 
@@ -94,7 +94,7 @@ async function generateText({ prompt, timeoutMs } = {}) {
     };
   } catch (error) {
     const failure = toVertexFailure(error);
-    console.error("vertex.generateText", {
+    console.error("vertex.generateContent", {
       code: failure.code,
       latencyMs: Date.now() - started,
     });
@@ -104,4 +104,23 @@ async function generateText({ prompt, timeoutMs } = {}) {
   }
 }
 
-module.exports = { generateText, isConfigured, readConfig };
+async function generateText({ prompt, timeoutMs } = {}) {
+  return generateContentRequest({
+    contents: prompt || "Reply with the single word pong.",
+    timeoutMs,
+  });
+}
+
+async function generateFromParts({ parts, timeoutMs } = {}) {
+  return generateContentRequest({
+    contents: [{ role: "user", parts }],
+    timeoutMs,
+  });
+}
+
+module.exports = {
+  generateFromParts,
+  generateText,
+  isConfigured,
+  readConfig,
+};

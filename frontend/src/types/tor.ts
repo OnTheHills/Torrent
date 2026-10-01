@@ -12,6 +12,40 @@ export type NotificationKind = "match" | "risk" | "deadline";
 
 export type BudgetBand = "all" | "lt5" | "5to15" | "gt15";
 
+export type ListingSort = "newest" | "oldest" | "budgetDesc" | "budgetAsc";
+
+export function parseListingSort(value?: string): ListingSort {
+  if (
+    value === "oldest" ||
+    value === "budgetDesc" ||
+    value === "budgetAsc"
+  ) {
+    return value;
+  }
+  return "newest";
+}
+
+export function parseListingLifecycle(value?: string): TorLifecycle | "all" {
+  if (value === "draft" || value === "published" || value === "awarded") {
+    return value;
+  }
+  return "all";
+}
+
+export type ListingSource = DataSourceKind | "all";
+
+export function parseListingSource(value?: string): ListingSource {
+  if (
+    value === "egp-rss" ||
+    value === "bma-egp2" ||
+    value === "bma-ocds" ||
+    value === "html"
+  ) {
+    return value;
+  }
+  return "all";
+}
+
 export type ProcurementMethod = "e-Bidding" | "e-Selection" | "Specific";
 
 export type PriceAnalysisStatus = "above" | "near" | "below";
@@ -32,11 +66,19 @@ export interface Tor {
   deadline: string;
   summary: string;
   summaryTh: string;
+  /** Ingest search term that put this row in the catalog — not a project brief. */
+  listedBecause?: string;
   skills: string[];
   requirements: string[];
   /** Public listing the vendor should open (e-GP, OCDS page, etc.). */
   egpUrl: string;
   sourceKind: DataSourceKind;
+  ocr?: {
+    status: string;
+    method?: "text" | "ocr";
+    extractedAt?: string;
+    fileUrl?: string;
+  };
   procurementMethod?: ProcurementMethod;
   matchScore?: number;
   matchReasons?: string[];
