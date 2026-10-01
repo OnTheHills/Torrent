@@ -37,6 +37,7 @@ export type ListingSource = DataSourceKind | "all";
 export function parseListingSource(value?: string): ListingSource {
   if (
     value === "egp-rss" ||
+    value === "sme-gp" ||
     value === "bma-egp2" ||
     value === "bma-ocds" ||
     value === "html"
@@ -62,6 +63,7 @@ export interface Tor {
   lifecycle: TorLifecycle;
   integrity: IntegrityStatus;
   budgetThb: number;
+  budgetYear?: string;
   publishedAt: string;
   deadline: string;
   summary: string;

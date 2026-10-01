@@ -1,6 +1,6 @@
 export type AgencyId = "bma" | "mdes" | "dga" | "depa" | "mol";
 
-export type DataSourceKind = "bma-ocds" | "bma-egp2" | "egp-rss" | "html";
+export type DataSourceKind = "bma-ocds" | "bma-egp2" | "egp-rss" | "sme-gp" | "html";
 
 export type SourceVerdict = "green" | "yellow" | "red";
 

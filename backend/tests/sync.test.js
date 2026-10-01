@@ -5,10 +5,13 @@ const vm = require("node:vm");
 const { test } = require("node:test");
 const smeConfig = require("@/constants/smeGpConstants");
 const bmaConfig = require("@/constants/bmaConstants");
+const egpConfig = require("@/constants/egpRssConstants");
 const smeFetch = require("@/services/tor/api/smeGp/fetch");
 const smeAdapter = require("@/services/tor/api/smeGp/adapter");
 const bmaFetch = require("@/services/tor/api/bmaEgp2/fetch");
 const bmaAdapter = require("@/services/tor/api/bmaEgp2/adapter");
+const egpFetch = require("@/services/tor/api/egpRss/fetch");
+const egpAdapter = require("@/services/tor/api/egpRss/adapter");
 
 // Load jobs with fake infrastructure, without starting MongoDB or real cron jobs.
 function loadModule(file, dependencies, env = {}) {
@@ -91,9 +94,51 @@ test("BMA uses project-search, follows pages, and maps software TORs", async (t)
   assert.equal(result.tors.length, 1);
   assert.equal(result.tors[0].refId, "bma-1");
   assert.equal(result.tors[0].budgetThb, 2500000);
+  assert.equal(result.tors[0].budgetYear, "2570");
   assert.equal(result.tors[0].egpUrl, `${bmaConfig.PROJECT_URL}/proj-1`);
   assert.deepEqual(result.metadata.budgetYears, bmaConfig.BUDGET_YEARS);
   assert.equal(result.source, "BMA-EGP2");
+});
+
+test("e-GP RSS walks official B0/D0/W0 feeds and keeps software draft TORs", async (t) => {
+  const calls = [];
+  t.mock.method(globalThis, "fetch", async (url) => {
+    const parsed = new URL(url);
+    calls.push(`${parsed.searchParams.get("deptId")}:${parsed.searchParams.get("anounceType")}`);
+    const type = parsed.searchParams.get("anounceType");
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+      <rss><channel>
+        <item>
+          <title>จ้างพัฒนาระบบสารสนเทศ ปีงบประมาณ พ.ศ. 2570</title>
+          <link>https://process.gprocurement.go.th/notice/${type}-soft</link>
+          <guid>egp-${type}-soft</guid>
+          <pubDate>Wed, 30 Sep 2026 00:00:00 GMT</pubDate>
+          <description>หน่วยงาน กระทรวงดิจิทัล งบประมาณ 1,500,000 บาท</description>
+        </item>
+        <item>
+          <title>จ้างเหมาก่อสร้างถนน</title>
+          <link>https://process.gprocurement.go.th/notice/${type}-road</link>
+          <guid>egp-${type}-road</guid>
+        </item>
+      </channel></rss>`;
+    return {
+      ok: true,
+      arrayBuffer: async () => new TextEncoder().encode(xml).buffer,
+    };
+  });
+  const raw = await egpFetch.fetch();
+  const tors = egpAdapter.adapt(raw.rows);
+  assert.equal(calls.length, egpConfig.DEPARTMENTS.length * egpConfig.ANNOUNCE_TYPES.length);
+  assert.ok(calls.includes("1700:B0"));
+  assert.ok(calls.includes("1700:D0"));
+  assert.equal(raw.rows.length, 6);
+  assert.equal(tors.length, 1);
+  assert.equal(tors[0].status, "awarded");
+  assert.equal(tors[0].budgetThb, 1500000);
+  assert.equal(tors[0].budgetYear, "2570");
+  assert.equal(tors[0].agencyId, "mdes");
+  assert.equal(tors[0].source, "EGP-RSS");
+  assert.equal(tors[0].category, "Software Development");
 });
 
 test("sync job adapts and persists each fetched API source", async () => {

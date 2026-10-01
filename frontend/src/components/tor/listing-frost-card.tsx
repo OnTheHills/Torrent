@@ -9,24 +9,28 @@ import { IntegrityBadge } from "@/components/tor/integrity-badge";
 import { LifecycleBadge } from "@/components/tor/lifecycle-badge";
 import { MatchBadge } from "@/components/tor/match-badge";
 import { SaveTorButton } from "@/components/tor/save-tor-button";
-import { FrostCard } from "@/components/ui/frost-card";
+import { FrostCard, FrostPill } from "@/components/ui/frost-card";
 import { listingHref } from "@/config/routes";
 import {
   formatBudgetCompact,
+  formatBudgetYear,
   formatDate,
   torAgencyLine,
   torTitle,
 } from "@/data/mock";
+import { cn } from "@/lib/utils";
 import type { Tor } from "@/types/tor";
 
 function CardStat({
   label,
   value,
+  pills,
   align = "left",
   strong = false,
 }: {
   label: string;
   value: string;
+  pills?: string[];
   align?: "left" | "right";
   strong?: boolean;
 }) {
@@ -44,6 +48,18 @@ function CardStat({
       >
         {value}
       </p>
+      {pills?.length ? (
+        <div
+          className={cn(
+            "mt-1.5 flex flex-wrap gap-1.5",
+            align === "right" && "justify-end",
+          )}
+        >
+          {pills.map((pill) => (
+            <FrostPill key={pill}>{pill}</FrostPill>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -79,6 +95,11 @@ export function ListingFrostCard({ tor }: { tor: Tor }) {
           <CardStat
             label={t("budget")}
             value={formatBudgetCompact(tor.budgetThb, locale)}
+            pills={
+              tor.budgetYear
+                ? [`${t("budgetYear")} ${formatBudgetYear(tor.budgetYear)}`]
+                : undefined
+            }
             strong
           />
           <div className="flex flex-wrap items-end justify-end gap-6">

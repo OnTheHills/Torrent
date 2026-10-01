@@ -6,7 +6,12 @@ const {
   SOURCE,
   STRONG_TERMS,
 } = require("@/constants/bmaConstants");
-const { classifyCategory, parseBudget } = require("@/utils/torUtils");
+const {
+  budgetYearFromRef,
+  budgetYearFromValue,
+  classifyCategory,
+  parseBudget,
+} = require("@/utils/torUtils");
 
 function containsAny(text, terms) {
   const normalized = String(text || "").toLowerCase();
@@ -62,6 +67,11 @@ function adapt(rows) {
       egpUrl: `${PROJECT_URL}/${projectId}`,
       category: classifyCategory(terms),
       budgetThb: parseBudget(row.projectBudget) || undefined,
+      budgetYear:
+        budgetYearFromValue(row.masterBudgetYearName) ||
+        budgetYearFromValue(row.masterBudgetYearId) ||
+        budgetYearFromValue(row._budgetYear) ||
+        budgetYearFromRef(refId),
       status: projectStatus(row),
       summary: `BMA e-GP2 project matched terms: ${termList}`,
       summaryTh: `โครงการ กทม. e-GP2 พบคำค้นหา: ${termList}`,

@@ -27,10 +27,11 @@ import { SourceBadge } from "@/components/tor/source-badge";
 import { SkillTags } from "@/components/tor/skill-tags";
 import { TorStage } from "@/components/tor/tor-stage";
 import { Button } from "@/components/ui/button";
-import { FrostCard } from "@/components/ui/frost-card";
+import { FrostCard, FrostPill } from "@/components/ui/frost-card";
 import { listingHref, routes } from "@/config/routes";
 import {
   formatBudgetCompact,
+  formatBudgetYear,
   formatDate,
   getPriceAnalysisStatus,
   torAgencyLine,
@@ -64,13 +65,13 @@ const TONE = {
 function FactCard({
   title,
   value,
-  hint,
+  pills,
   icon,
   tone,
 }: {
   title: string;
   value: string;
-  hint?: string | null;
+  pills?: string[];
   icon: IconSvgElement;
   tone: keyof typeof TONE;
 }) {
@@ -101,10 +102,14 @@ function FactCard({
         <p className="text-3xl font-semibold tracking-tight tabular-nums">
           {value}
         </p>
-        {hint ? (
-          <p className="text-sm leading-[1.7] text-muted-foreground">{hint}</p>
-        ) : null}
       </div>
+      {pills?.length ? (
+        <div className="mt-auto flex flex-wrap justify-end gap-1.5">
+          {pills.map((pill) => (
+            <FrostPill key={pill}>{pill}</FrostPill>
+          ))}
+        </div>
+      ) : null}
     </FrostCard>
   );
 }
@@ -144,6 +149,18 @@ export function TorDetail({
         : vsMedian === "near"
           ? t("statusNearAvg")
           : null;
+  const budgetCompareHint = [
+    hasBudget && benchmark
+      ? `${t("budgetMedian")} ${formatBudgetCompact(benchmark.medianThb, locale)}`
+      : null,
+    vsLabel,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const budgetPills = [
+    tor.budgetYear ? `${t("budgetYear")} ${formatBudgetYear(tor.budgetYear)}` : null,
+    budgetCompareHint || null,
+  ].filter((pill): pill is string => Boolean(pill));
   const provenance =
     summary && tor.ocr?.status === "ok"
       ? tor.ocr.method === "text"
@@ -207,11 +224,7 @@ export function TorDetail({
         <FactCard
           title={t("budget")}
           value={formatBudgetCompact(tor.budgetThb, locale)}
-          hint={
-            hasBudget && benchmark && vsLabel
-              ? `${t("budgetNote")}: ${formatBudgetCompact(benchmark.medianThb, locale)} · ${vsLabel}`
-              : null
-          }
+          pills={budgetPills}
           icon={Money01Icon}
           tone="default"
         />

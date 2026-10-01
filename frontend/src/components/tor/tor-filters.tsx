@@ -139,7 +139,8 @@ export function TorFilters({
           }
           items={[
             { value: "all", label: t("allSources") },
-            { value: "egp-rss", label: t("sourceSmeGp") },
+            { value: "egp-rss", label: t("sourceRss") },
+            { value: "sme-gp", label: t("sourceSmeGp") },
             { value: "bma-egp2", label: t("sourceBmaEgp2") },
           ]}
         />

@@ -8,6 +8,7 @@ const SOURCE_KEY = {
   "bma-ocds": "sourceOcds",
   "bma-egp2": "sourceBmaEgp2",
   "egp-rss": "sourceRss",
+  "sme-gp": "sourceSmeGp",
   html: "sourceHtml",
 } as const;
 

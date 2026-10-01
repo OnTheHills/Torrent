@@ -21,6 +21,25 @@ function parseDate(value) {
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
+function budgetYearFromValue(value) {
+  const text = String(value || "").trim();
+  const four = text.match(/(25\d{2})/);
+  if (four) return four[1];
+  const two = text.match(/\b(\d{2})\b/);
+  if (!two) return undefined;
+  const yy = Number(two[1]);
+  if (yy < 60 || yy > 80) return undefined;
+  return String(2500 + yy);
+}
+
+function budgetYearFromRef(refId) {
+  const match = String(refId || "").match(/^(\d{2})\d{6,}$/);
+  if (!match) return undefined;
+  const yy = Number(match[1]);
+  if (yy < 60 || yy > 80) return undefined;
+  return String(2500 + yy);
+}
+
 // Category labels are intentionally broad: they make cross-source budgets comparable.
 function classifyCategory(keywordOrTerms) {
   const text = Array.isArray(keywordOrTerms)
@@ -64,6 +83,8 @@ function wait(ms) {
 }
 
 module.exports = {
+  budgetYearFromRef,
+  budgetYearFromValue,
   classifyCategory,
   firstPresent,
   parseBudget,

@@ -644,6 +644,11 @@ export function formatBudgetCompact(amount: number, locale: "en" | "th" = "en"):
   return locale === "th" ? `฿${value} ล้าน` : `฿${value}M`;
 }
 
+export function formatBudgetYear(year?: string): string {
+  const value = String(year || "").trim();
+  return value || "—";
+}
+
 export function formatDate(iso: string, locale: "en" | "th" = "en"): string {
   if (!iso) return "-";
   const date = new Date(iso);

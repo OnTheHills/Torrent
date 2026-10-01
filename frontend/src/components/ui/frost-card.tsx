@@ -21,4 +21,20 @@ function FrostCard({
   )
 }
 
-export { FrostCard }
+function FrostPill({
+  className,
+  ...props
+}: React.ComponentProps<"span">) {
+  return (
+    <span
+      data-slot="frost-pill"
+      className={cn(
+        "inline-flex h-6 max-w-full items-center rounded-full bg-[var(--palette-white)] px-2.5 text-[0.65rem] font-medium text-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.9)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-900)_10%,transparent)]",
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
+export { FrostCard, FrostPill }
