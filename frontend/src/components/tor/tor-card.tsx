@@ -24,7 +24,7 @@ import {
   formatBudgetCompact,
   formatDate,
   torAgencyLine,
-  torTitle,
+  torCardTitle,
 } from "@/data/mock";
 import type { Tor } from "@/types/tor";
 
@@ -55,7 +55,7 @@ export function TorCard({ tor }: { tor: Tor }) {
         </div>
         <CardTitle className="text-base leading-snug">
           <Link href={listingHref(tor.id, audience)} className="hover:text-primary">
-            {torTitle(tor, locale)}
+            {torCardTitle(tor, locale)}
           </Link>
         </CardTitle>
         <CardDescription>{torAgencyLine(tor, locale)}</CardDescription>

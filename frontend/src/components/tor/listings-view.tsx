@@ -2,35 +2,40 @@
 
 import { useLocale } from "@/components/providers/locale-provider";
 import { TorBrowse } from "@/components/tor/tor-browse";
+import type { SourceFilter } from "@/components/tor/tor-filters";
+import type { ListingStage } from "@/lib/listing-stage";
 import type {
   AgencyId,
+  IntegrityStatus,
   ListingSort,
-  ListingSource,
   Tor,
-  TorLifecycle,
 } from "@/types/tor";
 
 export function ListingsView({
   tors = [],
   initialQuery = "",
-  initialAgency = "all",
-  initialSource = "all",
+  initialAgencies = [],
+  initialSources = [],
   initialSort = "newest",
-  initialLifecycle = "all",
+  initialStages = [],
+  initialBudgetYears = [],
+  initialIntegrities = [],
 }: {
   tors?: Tor[];
   initialQuery?: string;
-  initialAgency?: AgencyId | "all";
-  initialSource?: ListingSource;
+  initialAgencies?: AgencyId[];
+  initialSources?: SourceFilter[];
   initialSort?: ListingSort;
-  initialLifecycle?: TorLifecycle | "all";
+  initialStages?: ListingStage[];
+  initialBudgetYears?: string[];
+  initialIntegrities?: IntegrityStatus[];
 }) {
   const { t } = useLocale();
 
   return (
     <div>
       <section className="relative -mt-[144px] overflow-hidden hero-atmosphere text-hero-foreground">
-        <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-[calc(72px+4rem)] sm:px-6 md:pb-12 md:pt-[calc(72px+6rem)]">
+        <div className="relative mx-auto max-w-screen-2xl px-4 pb-8 pt-[calc(72px+4rem)] sm:px-6 md:pb-12 md:pt-[calc(72px+6rem)]">
           <div className="mt-2 w-full max-w-2xl md:max-w-3xl lg:max-w-4xl">
             <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-hero-muted">
               {t("opportunitiesEyebrow")}
@@ -46,14 +51,16 @@ export function ListingsView({
         <div aria-hidden className="h-px bg-border" />
       </section>
 
-      <div className="mx-auto max-w-7xl space-y-10 px-4 py-12 sm:px-6 md:space-y-12 md:py-16">
+      <div className="mx-auto max-w-screen-2xl space-y-10 px-4 py-12 sm:px-6 md:space-y-12 md:py-16">
         <TorBrowse
           tors={tors}
           initialQuery={initialQuery}
-          initialAgency={initialAgency}
-          initialSource={initialSource}
+          initialAgencies={initialAgencies}
+          initialSources={initialSources}
           initialSort={initialSort}
-          initialLifecycle={initialLifecycle}
+          initialStages={initialStages}
+          initialBudgetYears={initialBudgetYears}
+          initialIntegrities={initialIntegrities}
           showHeader={false}
         />
       </div>

@@ -155,6 +155,7 @@ test("sync job adapts and persists each fetched API source", async () => {
       deleteMissingFromSource: async () => ({ removed: 0 }),
     },
     "@/services/tor/api/bmaEgp2/files": { hydrateProjects: async (tors) => tors },
+    "@/services/tor/api/smeGp/announcement": { enrich: async () => ({}) },
     "@/services/tor/ocr/ocrBmaPlans": { enrich: async () => ({ ocrAttempted: 1, ocrUpdated: 0, ocrSkipped: 1, ocrFailed: 0 }) },
     "fetch:smeGp": { fetch: async () => ({ rows: [{ refId: "sme-1" }] }), method: "POST", source: "SME-GP" },
     "adapter:smeGp": { adapt: (rows) => rows },

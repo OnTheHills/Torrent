@@ -72,8 +72,10 @@ export interface Tor {
   listedBecause?: string;
   skills: string[];
   requirements: string[];
-  /** Public listing the vendor should open (e-GP, OCDS page, etc.). */
+  /** Public listing the vendor should open (e-GP project page, OCDS page, etc.). */
   egpUrl: string;
+  /** Announcement or TOR PDF, separate from the listing page. */
+  pdfUrl?: string;
   sourceKind: DataSourceKind;
   ocr?: {
     status: string;

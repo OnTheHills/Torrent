@@ -20,6 +20,8 @@ import { ListingFrostCard } from "@/components/tor/listing-frost-card";
 import {
   DEFAULT_FILTERS,
   TorFilters,
+  TorSort,
+  type SourceFilter,
   type TorFilterState,
 } from "@/components/tor/tor-filters";
 import { TorFetchStatus } from "@/components/tor/tor-loading";
@@ -28,26 +30,17 @@ import { Input } from "@/components/ui/input";
 import { Surface } from "@/components/ui/surface";
 import { torAgency, torDepartment, torTitle } from "@/data/mock";
 import { fetchTorsForQuery } from "@/lib/api";
+import { listingStage, type ListingStage } from "@/lib/listing-stage";
 import {
-  parseListingLifecycle,
   parseListingSort,
-  parseListingSource,
   type AgencyId,
+  type IntegrityStatus,
   type ListingSort,
-  type ListingSource,
   type Tor,
-  type TorLifecycle,
 } from "@/types/tor";
 
 const PAGE_SIZE = 10;
 const PAGE_WINDOW_SIZE = 5;
-
-function inBudgetBand(amount: number, band: TorFilterState["budget"]) {
-  if (band === "all") return true;
-  if (band === "lt5") return amount < 5_000_000;
-  if (band === "5to15") return amount >= 5_000_000 && amount <= 15_000_000;
-  return amount > 15_000_000;
-}
 
 function knownBudget(amount: number) {
   return Number.isFinite(amount) && amount > 0;
@@ -68,18 +61,22 @@ function compareListings(a: Tor, b: Tor, sort: ListingSort) {
 export function TorBrowse({
   tors: initialTors,
   initialQuery = "",
-  initialAgency = "all",
-  initialSource = "all",
+  initialAgencies = [],
+  initialSources = [],
   initialSort = "newest",
-  initialLifecycle = "all",
+  initialStages = [],
+  initialBudgetYears = [],
+  initialIntegrities = [],
   showHeader = true,
 }: {
   tors: Tor[];
   initialQuery?: string;
-  initialAgency?: AgencyId | "all";
-  initialSource?: ListingSource;
+  initialAgencies?: AgencyId[];
+  initialSources?: SourceFilter[];
   initialSort?: ListingSort;
-  initialLifecycle?: TorLifecycle | "all";
+  initialStages?: ListingStage[];
+  initialBudgetYears?: string[];
+  initialIntegrities?: IntegrityStatus[];
   showHeader?: boolean;
 }) {
   const { locale, t } = useLocale();
@@ -91,10 +88,12 @@ export function TorBrowse({
   const listTopRef = useRef<HTMLDivElement>(null);
   const [filters, setFilters] = useState<TorFilterState>({
     ...DEFAULT_FILTERS,
-    agency: initialAgency,
-    source: parseListingSource(initialSource),
+    agencies: initialAgencies,
+    sources: initialSources,
+    budgetYears: initialBudgetYears,
+    integrities: initialIntegrities,
+    stages: initialStages,
     sort: parseListingSort(initialSort),
-    lifecycle: parseListingLifecycle(initialLifecycle),
   });
   const vendor = audience === "vendor";
 
@@ -111,13 +110,24 @@ export function TorBrowse({
     setPage(1);
     const params = new URLSearchParams();
     if (nextQuery.trim()) params.set("q", nextQuery.trim());
-    if (next.agency !== "all") params.set("agency", next.agency);
-    if (next.source !== "all") params.set("source", next.source);
+    if (next.agencies.length) params.set("agency", next.agencies.join(","));
+    if (next.sources.length) params.set("source", next.sources.join(","));
+    if (next.budgetYears.length) params.set("year", next.budgetYears.join(","));
+    if (next.integrities.length) params.set("integrity", next.integrities.join(","));
     if (next.sort !== "newest") params.set("sort", next.sort);
-    if (next.lifecycle !== "all") params.set("stage", next.lifecycle);
+    if (next.stages.length) params.set("stage", next.stages.join(","));
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }
+
+  const budgetYearOptions = useMemo(() => {
+    const years = new Set<string>();
+    for (const tor of tors) {
+      const year = String(tor.budgetYear || "").trim();
+      if (/^25\d{2}$/.test(year)) years.add(year);
+    }
+    return [...years].sort((a, b) => b.localeCompare(a));
+  }, [tors]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -125,14 +135,19 @@ export function TorBrowse({
       const dept = torDepartment(tor, locale);
       const agency = torAgency(tor, locale);
       const title = torTitle(tor, locale);
-      const matchesAgency = filters.agency === "all" || tor.agencyId === filters.agency;
+      const matchesAgency =
+        filters.agencies.length === 0 || filters.agencies.includes(tor.agencyId);
       const matchesSource =
-        filters.source === "all" || tor.sourceKind === filters.source;
+        filters.sources.length === 0 ||
+        filters.sources.some((source) => source === tor.sourceKind);
+      const stage = listingStage(tor);
       const matchesLifecycle =
-        filters.lifecycle === "all" || tor.lifecycle === filters.lifecycle;
-      const matchesBudget = inBudgetBand(tor.budgetThb, filters.budget);
+        filters.stages.length === 0 || filters.stages.includes(stage);
+      const matchesBudgetYear =
+        filters.budgetYears.length === 0 ||
+        filters.budgetYears.includes(String(tor.budgetYear || ""));
       const matchesIntegrity =
-        filters.integrity === "all" || tor.integrity === filters.integrity;
+        filters.integrities.length === 0 || filters.integrities.includes(tor.integrity);
       const matchesTeam =
         !vendor ||
         !filters.teamOnly ||
@@ -148,7 +163,7 @@ export function TorBrowse({
         matchesAgency &&
         matchesSource &&
         matchesLifecycle &&
-        matchesBudget &&
+        matchesBudgetYear &&
         matchesIntegrity &&
         matchesTeam &&
         matchesQuery
@@ -201,50 +216,63 @@ export function TorBrowse({
       ) : null}
 
       <div className="grid items-start gap-8 lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)]">
-      <aside className="self-start lg:sticky lg:top-[calc(72px+1.5rem)] lg:max-h-[calc(100dvh-72px-3rem)] lg:overflow-y-auto">
+      <div className="flex items-end justify-between gap-4 lg:col-span-2">
+        <h2 className="text-2xl font-semibold tracking-tight md:text-[2rem] md:leading-[1.2]">
+          {t("listingsResultsTitle")}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          <span className="font-semibold tabular-nums text-foreground">
+            {filtered.length}
+          </span>{" "}
+          {t("of")} {tors.length} {t("results")}
+        </p>
+      </div>
+      <div className="flex items-center gap-3 lg:col-span-2">
+      <label className="relative isolate block min-w-0 flex-1 rounded-full shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] backdrop-blur-md backdrop-saturate-150 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.16)] dark:ring-[color-mix(in_srgb,var(--palette-white)_18%,transparent)]">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 rounded-full bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))] dark:bg-[linear-gradient(180deg,var(--palette-gray-700),var(--palette-gray-800))]"
+        />
+        <span className="sr-only">{t("searchPlaceholder")}</span>
+        <HugeiconsIcon
+          icon={Search01Icon}
+          className="pointer-events-none absolute left-4 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground"
+        />
+        <Input
+          value={query}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setPage(1);
+          }}
+          placeholder={t("searchPlaceholder")}
+          className="relative h-10 rounded-full border-0 bg-transparent pl-11 text-foreground shadow-none ring-0 placeholder:text-[var(--palette-gray-600)] focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-ring/30 dark:bg-transparent dark:placeholder:text-[var(--palette-gray-300)]"
+        />
+      </label>
+      <TorSort
+        value={filters.sort}
+        onChange={(sort) => applyFilters({ ...filters, sort })}
+        className="w-44 shrink-0 border-0 bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] sm:w-52 dark:bg-[linear-gradient(180deg,var(--palette-gray-700),var(--palette-gray-800))]"
+      />
+      </div>
+
+      <aside className="self-start lg:sticky lg:top-6 lg:max-h-[calc(100dvh-72px-3rem)] lg:overflow-y-auto">
         <Surface className="bg-surface p-5 ring-transparent md:p-6">
-          <div className="flex flex-col gap-4">
-            <label className="relative block">
-              <span className="sr-only">{t("searchPlaceholder")}</span>
-              <HugeiconsIcon
-                icon={Search01Icon}
-                className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-              />
-              <Input
-                value={query}
-                onChange={(event) => {
-                  setQuery(event.target.value);
-                  setPage(1);
-                }}
-                placeholder={t("searchPlaceholder")}
-                className="h-11 rounded-full border-0 bg-surface-frost pl-10 shadow-[inset_0_1px_0_0_var(--surface-frost-highlight)] ring-1 ring-[var(--surface-frost-ring)] backdrop-blur-md backdrop-saturate-150 focus-visible:border-transparent"
-              />
-            </label>
-            <TorFilters
-              value={filters}
-              onChange={applyFilters}
-              onClear={resetAll}
-              showMatchFilter={vendor}
-            />
-          </div>
+          <TorFilters
+            value={filters}
+            onChange={applyFilters}
+            onClear={resetAll}
+            budgetYears={budgetYearOptions}
+            showMatchFilter={vendor}
+          />
         </Surface>
       </aside>
 
       <MonitorSection
         className="min-w-0"
-        title={t("listingsResultsTitle")}
-        action={
-          <p className="text-sm text-muted-foreground">
-            <span className="font-semibold tabular-nums text-foreground">
-              {filtered.length}
-            </span>{" "}
-            {t("of")} {tors.length} {t("results")}
-          </p>
-        }
+        surfaceClassName="bg-transparent p-0 ring-0 shadow-none md:p-0"
       >
         <div className="flex flex-col gap-4">
         {isPending || isFetching ? <TorFetchStatus /> : null}
-        <div ref={listTopRef} className="scroll-mt-6" />
 
         {(isPending || isFetching) && tors.length === 0 ? (
           <div className="grid gap-3">
@@ -264,7 +292,10 @@ export function TorBrowse({
           </div>
         ) : (
           <>
-            <div className="grid gap-3">
+            <div
+              ref={listTopRef}
+              className="grid scroll-mt-6 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+            >
               {paginated.map((tor) => (
                 <ListingFrostCard key={tor.id} tor={tor} />
               ))}

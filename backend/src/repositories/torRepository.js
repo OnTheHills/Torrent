@@ -65,7 +65,7 @@ async function saveChanged(tors) {
 }
 
 async function findBySource(source) {
-  return TOR.find({ source }).select("refId source ocr egpUrl").lean();
+  return TOR.find({ source }).select("refId source ocr egpUrl budgetThb torPdfPath").lean();
 }
 
 async function saveOcr(refId, source, ocr) {

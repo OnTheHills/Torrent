@@ -665,6 +665,21 @@ export function torTitle(tor: Tor, locale: "en" | "th") {
   return locale === "th" ? tor.titleTh : tor.title;
 }
 
+const CARD_TITLE_PHRASES = [
+  "ประกวดราคาจ้าง",
+  /ด้วยวิธีประกวดราคาอิเล็กทรอนิกส์\s*\(e-bidding\)/gi,
+];
+
+export function torCardTitle(tor: Tor, locale: "en" | "th") {
+  const title = CARD_TITLE_PHRASES.reduce(
+    (value, phrase) => value.replaceAll(phrase, " "),
+    torTitle(tor, locale),
+  )
+    .replace(/\s+/g, " ")
+    .trim();
+  return title || torTitle(tor, locale);
+}
+
 export function torAgency(tor: Tor, locale: "en" | "th") {
   const agency = AGENCY_BY_ID[tor.agencyId];
   if (!agency) return tor.agencyId || "Unknown";

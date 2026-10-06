@@ -1,5 +1,5 @@
 import Script from "next/script";
-import { Prompt } from "next/font/google";
+import { IBM_Plex_Sans_Thai, Prompt } from "next/font/google";
 
 import type { Metadata } from "next";
 
@@ -20,6 +20,13 @@ const prompt = Prompt({
   display: "swap",
 });
 
+const ibmPlexSansThai = IBM_Plex_Sans_Thai({
+  subsets: ["thai"],
+  weight: ["100", "200", "300", "400", "500", "600", "700"],
+  variable: "--font-ibm-plex-sans-thai",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: {
     default: "TORRENT — Thai Government Software Procurement",
@@ -33,7 +40,11 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="th" suppressHydrationWarning className={prompt.variable}>
+    <html
+      lang="th"
+      suppressHydrationWarning
+      className={`${prompt.variable} ${ibmPlexSansThai.variable}`}
+    >
       <body>
         <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
         {/* React Query powers live TOR lists; SessionProvider keeps OAuth state global. */}

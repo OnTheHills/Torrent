@@ -26,6 +26,9 @@ function adapt(rows) {
     const keyword = matchingKeyword(candidate.title);
     const refId = candidate._id || candidate.project_id || candidate.link;
     if (!keyword || !refId) return [];
+    const link = candidate.link || "";
+    // SME-GP's link is the announcement PDF, not the e-GP project page.
+    const pdfUrl = /view-pdf|\.pdf(?:$|\?)/i.test(link) ? link : "";
     return [{
       refId,
       title: candidate.title,
@@ -43,7 +46,8 @@ function adapt(rows) {
         ),
       ),
       source: SOURCE,
-      egpUrl: candidate.link || WEBSITE_URL,
+      egpUrl: pdfUrl ? undefined : link || WEBSITE_URL,
+      torPdfPath: pdfUrl || undefined,
       category: classifyCategory(keyword),
       budgetThb: parseBudget(
         firstPresent(
