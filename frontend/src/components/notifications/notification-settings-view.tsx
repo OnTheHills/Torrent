@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 
-import { PageHeader } from "@/components/layout/page-header";
 import {
   useNotificationPrefs,
   type NotificationPrefs,
@@ -20,13 +19,19 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import type { TorCategory } from "@/types/tor";
 
+const FROST_PANEL =
+  "rounded-lg bg-[color-mix(in_srgb,var(--palette-gray-50)_62%,transparent)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_88%,transparent)] ring-1 ring-[color-mix(in_srgb,white_72%,transparent)] backdrop-blur-md backdrop-saturate-150";
+
 const CATEGORIES: TorCategory[] = [
+  "Software Development",
   "Web Application",
   "Mobile Application",
-  "System Integration",
   "Data Platform",
-  "Cybersecurity",
+  "Digital Platform",
   "AI / Analytics",
+  "Cybersecurity",
+  "GIS",
+  "Others",
 ];
 
 export function NotificationSettingsView() {
@@ -63,15 +68,27 @@ export function NotificationSettingsView() {
   };
 
   return (
-    <div className="space-y-8">
-      <PageHeader
-        eyebrow={t("settingsEyebrow")}
-        title={t("settingsTitle")}
-        description={t("settingsDescription")}
-      />
+    <div>
+      <section className="relative -mt-[144px] overflow-hidden hero-atmosphere text-hero-foreground">
+        <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-[calc(72px+4rem)] sm:px-6 md:pb-12 md:pt-[calc(72px+6rem)]">
+          <div className="mt-2 w-full max-w-2xl md:max-w-3xl lg:max-w-4xl">
+            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-hero-muted">
+              {t("settingsEyebrow")}
+            </p>
+            <h1 className="mt-4 text-3xl font-semibold tracking-tight md:text-5xl md:leading-[1.1]">
+              {t("settingsTitle")}
+            </h1>
+            <p className="mt-5 text-base leading-[1.7] text-hero-muted md:text-lg">
+              {t("settingsDescription")}
+            </p>
+          </div>
+        </div>
+        <div aria-hidden className="h-px bg-border" />
+      </section>
 
+      <div className="mx-auto max-w-6xl space-y-5 px-4 py-12 sm:px-6 md:py-16">
       <div className="grid gap-5 lg:grid-cols-2">
-        <Card>
+        <Card className={FROST_PANEL}>
           <CardHeader className="border-b border-border pb-5">
             <CardTitle className="text-lg">{t("emailNotifications")}</CardTitle>
           </CardHeader>
@@ -101,7 +118,7 @@ export function NotificationSettingsView() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className={FROST_PANEL}>
           <CardHeader className="border-b border-border pb-5">
             <CardTitle className="text-lg">{t("budgetInterest")}</CardTitle>
           </CardHeader>
@@ -142,7 +159,7 @@ export function NotificationSettingsView() {
         </Card>
       </div>
 
-      <Card>
+      <Card className={FROST_PANEL}>
         <CardHeader className="border-b border-border pb-5">
           <CardTitle className="text-lg">{t("categoriesInterest")}</CardTitle>
         </CardHeader>
@@ -179,6 +196,7 @@ export function NotificationSettingsView() {
             {t("settingsSaved")}
           </p>
         ) : null}
+      </div>
       </div>
     </div>
   );

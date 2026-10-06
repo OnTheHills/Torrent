@@ -29,7 +29,7 @@ export function SavedView() {
   return (
     <div>
       <section className="relative -mt-[144px] overflow-hidden hero-atmosphere text-hero-foreground">
-        <div className="relative mx-auto max-w-screen-2xl px-4 pb-8 pt-[calc(72px+4rem)] sm:px-6 md:pb-12 md:pt-[calc(72px+6rem)]">
+        <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-[calc(72px+4rem)] sm:px-6 md:pb-12 md:pt-[calc(72px+6rem)]">
           <div className="mt-2 w-full max-w-2xl md:max-w-3xl lg:max-w-4xl">
             <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-hero-muted">
               {t("savedEyebrow")}
@@ -45,7 +45,7 @@ export function SavedView() {
         <div aria-hidden className="h-px bg-border" />
       </section>
 
-      <div className="mx-auto flex max-w-screen-2xl flex-col gap-8 px-4 py-12 sm:px-6 md:py-16">
+      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-12 sm:px-6 md:py-16">
         {!loading && savedTors.length > 0 ? (
           <p className="text-sm text-muted-foreground">
             <span className="font-semibold tabular-nums text-foreground">

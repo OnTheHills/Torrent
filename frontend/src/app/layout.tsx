@@ -8,8 +8,6 @@ import { NotificationPrefsProvider } from "@/components/providers/notification-p
 import { QueryProvider } from "@/components/providers/query-provider";
 import { SavedProvider } from "@/components/providers/saved-provider";
 import { SessionProvider } from "@/components/providers/session-provider";
-import { ThemeProvider } from "@/components/providers/theme-provider";
-
 import "./globals.css";
 
 const prompt = Prompt({
@@ -49,15 +47,13 @@ export default function RootLayout({
         <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
         {/* React Query powers live TOR lists; SessionProvider keeps OAuth state global. */}
         <QueryProvider>
-          <ThemeProvider>
-            <LocaleProvider>
-              <SessionProvider>
-                <SavedProvider>
-                  <NotificationPrefsProvider>{children}</NotificationPrefsProvider>
-                </SavedProvider>
-              </SessionProvider>
-            </LocaleProvider>
-          </ThemeProvider>
+          <LocaleProvider>
+            <SessionProvider>
+              <SavedProvider>
+                <NotificationPrefsProvider>{children}</NotificationPrefsProvider>
+              </SavedProvider>
+            </SessionProvider>
+          </LocaleProvider>
         </QueryProvider>
       </body>
     </html>

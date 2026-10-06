@@ -4,7 +4,6 @@ import type {
   BudgetBenchmark,
   PlatformStats,
   PriceAnalysisStatus,
-  ShowcaseEntry,
   SuspiciousMonthStat,
   Tor,
   TorCategory,
@@ -451,49 +450,6 @@ export const MOCK_BENCHMARKS: BudgetBenchmark[] = [
     medianThb: 3_700_000,
     maxThb: 7_800_000,
     count: 8,
-  },
-];
-
-export const MOCK_SHOWCASE: ShowcaseEntry[] = [
-  {
-    id: "sc-001",
-    title: "Modular permit workflow for a district portal",
-    vendorName: "Chao Phraya Labs",
-    category: "Web Application",
-    approach:
-      "Broke the TOR into reusable workflow modules so district officers could configure forms without redeploying.",
-    outcome: "Cut average request handling time by 28% in the pilot district.",
-    year: 2025,
-  },
-  {
-    id: "sc-002",
-    title: "Complaint app with offline-first drafts",
-    vendorName: "Lotus Byte",
-    category: "Mobile Application",
-    approach:
-      "Prioritized offline draft capture and deferred sync so field officers could work in low-connectivity zones.",
-    outcome: "90% of pilot submissions completed without connection retries.",
-    year: 2024,
-  },
-  {
-    id: "sc-004",
-    title: "FHIR facade in front of a legacy HIS",
-    vendorName: "Ping River Health",
-    category: "System Integration",
-    approach:
-      "Wrapped existing hospital databases with a narrow FHIR layer instead of a full rip-and-replace, so agency sites could join incrementally.",
-    outcome: "First three hospitals exchanging referrals in 11 weeks.",
-    year: 2025,
-  },
-  {
-    id: "sc-005",
-    title: "CKAN catalog with bilingual metadata first",
-    vendorName: "Open River Studio",
-    category: "Web Application",
-    approach:
-      "Shipped search and Thai/English dataset cards before custom visualisations, matching how MDES reviewers actually evaluate portals.",
-    outcome: "Catalog usable internally two sprints before public launch.",
-    year: 2025,
   },
 ];
 

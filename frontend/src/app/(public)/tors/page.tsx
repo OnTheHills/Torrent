@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { ListingsView } from "@/components/tor/listings-view";
-import type { SourceFilter } from "@/components/tor/tor-filters";
+import { TOR_CATEGORIES, type SourceFilter } from "@/components/tor/tor-filters";
 import { parseAgencyId } from "@/config/agencies";
 import { parseListingStages } from "@/lib/listing-stage";
 import {
@@ -21,6 +21,7 @@ type Props = {
   searchParams: Promise<{
     q?: SearchValue;
     agency?: SearchValue;
+    category?: SearchValue;
     source?: SearchValue;
     sort?: SearchValue;
     stage?: SearchValue;
@@ -43,11 +44,14 @@ function firstValue(value: SearchValue) {
 }
 
 export default async function TorsPage({ searchParams }: Props) {
-  const { q, agency, source, sort, stage, year, integrity } = await searchParams;
+  const { q, agency, category, source, sort, stage, year, integrity } = await searchParams;
   const agencies = searchValues(agency).flatMap((item) => {
     const id = parseAgencyId(item);
     return id === "all" ? [] : [id];
   });
+  const categories = searchValues(category).filter((item) =>
+    (TOR_CATEGORIES as readonly string[]).includes(item),
+  );
   const sources = searchValues(source).flatMap((item) => {
     const id = parseListingSource(item);
     return id === "egp-rss" || id === "sme-gp" || id === "bma-egp2" ? [id] : [];
@@ -62,6 +66,7 @@ export default async function TorsPage({ searchParams }: Props) {
     <ListingsView
       initialQuery={firstValue(q) ?? ""}
       initialAgencies={agencies satisfies AgencyId[]}
+      initialCategories={categories}
       initialSources={sources satisfies SourceFilter[]}
       initialSort={parseListingSort(firstValue(sort))}
       initialStages={stages}

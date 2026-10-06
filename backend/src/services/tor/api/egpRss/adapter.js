@@ -39,7 +39,7 @@ function adapt(rows) {
       publishedAt: parseDate(row.publishedAt),
       source: SOURCE,
       egpUrl: row.link || row.guid,
-      category: classifyCategory(keyword),
+      category: classifyCategory(row.title),
       budgetThb: row.budgetThb || undefined,
       budgetYear: row.budgetYear,
       status,

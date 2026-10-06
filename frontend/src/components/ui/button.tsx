@@ -15,9 +15,9 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-[color-mix(in_srgb,var(--palette-teal-400)_32%,transparent)] text-[var(--palette-teal-800)] ring-[color-mix(in_srgb,var(--palette-teal-400)_48%,transparent)] hover:bg-[color-mix(in_srgb,var(--palette-teal-400)_44%,transparent)] dark:text-[var(--palette-teal-100)]",
+          "bg-[color-mix(in_srgb,var(--palette-teal-400)_32%,transparent)] text-[var(--palette-teal-800)] ring-[color-mix(in_srgb,var(--palette-teal-400)_48%,transparent)] hover:bg-[color-mix(in_srgb,var(--palette-teal-400)_44%,transparent)]",
         orange:
-          "bg-[color-mix(in_srgb,var(--palette-teal-400)_32%,transparent)] text-[var(--palette-teal-800)] ring-[color-mix(in_srgb,var(--palette-teal-400)_48%,transparent)] hover:bg-[color-mix(in_srgb,var(--palette-teal-400)_44%,transparent)] dark:text-[var(--palette-teal-100)]",
+          "bg-[color-mix(in_srgb,var(--palette-teal-400)_32%,transparent)] text-[var(--palette-teal-800)] ring-[color-mix(in_srgb,var(--palette-teal-400)_48%,transparent)] hover:bg-[color-mix(in_srgb,var(--palette-teal-400)_44%,transparent)]",
         secondary: "text-secondary-foreground",
         outline:
           "bg-foreground/8 text-foreground ring-foreground/18 hover:bg-foreground/14",
@@ -26,7 +26,7 @@ const buttonVariants = cva(
         destructive: "text-destructive",
         chrome:
           "bg-white/15 text-white ring-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.28)] hover:bg-white/25",
-        link: "bg-transparent text-[var(--palette-teal-700)] shadow-none ring-0 backdrop-blur-none hover:bg-transparent hover:underline hover:underline-offset-4 dark:text-[var(--palette-teal-200)]",
+        link: "bg-transparent text-[var(--palette-teal-700)] shadow-none ring-0 backdrop-blur-none hover:bg-transparent hover:underline hover:underline-offset-4",
       },
       size: {
         default:

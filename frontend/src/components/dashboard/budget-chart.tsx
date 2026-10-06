@@ -10,13 +10,7 @@ import type { BudgetBenchmark } from "@/types/tor";
 // A fixed tick count keeps each category chart aligned and avoids visual jitter.
 const AXIS_TICKS = 4;
 
-export function BudgetChart({
-  data,
-  meta,
-}: {
-  data: BudgetBenchmark[];
-  meta?: string;
-}) {
+export function BudgetChart({ data }: { data: BudgetBenchmark[] }) {
   const { t } = useLocale();
   const [hovered, setHovered] = useState<string | null>(null);
 
@@ -36,26 +30,7 @@ export function BudgetChart({
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-2">
-          <span className="size-2.5 rounded-sm bg-chart-1" />
-          {t("chartLegendMedian")}
-        </span>
-        <span className="inline-flex items-center gap-2">
-          <span className="h-2 w-6 rounded-full bg-muted ring-1 ring-border" />
-          {t("chartLegendScale")}
-        </span>
-        <span>{meta || t("chartMeta")}</span>
-      </div>
-
-      <div className="space-y-1">
-        <div className="flex justify-between px-[7.5rem] text-[0.65rem] tabular-nums text-muted-foreground max-sm:hidden">
-          {ticks.map((tick) => (
-            <span key={tick}>{formatBudget(tick)}</span>
-          ))}
-        </div>
-        <div className="relative">
+    <div className="relative">
           <div
             aria-hidden
             className="pointer-events-none absolute inset-y-0 left-[7.5rem] right-0 max-sm:left-0"
@@ -89,25 +64,26 @@ export function BudgetChart({
                     {item.category}
                   </p>
                   <div className="relative">
-                    <div className="h-8 overflow-hidden rounded-md bg-muted/80">
+                    <div className="h-8 rounded-md bg-muted/80">
                       <div
                         className={cn(
-                          "flex h-full items-center justify-end rounded-md px-2 transition-all duration-500",
+                          "flex h-full items-center justify-end rounded-md border-0 px-2 shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_80%,transparent)] ring-1 ring-[color-mix(in_srgb,currentColor_32%,transparent)] backdrop-blur-md backdrop-saturate-150 transition-all duration-500",
                           active && "brightness-110"
                         )}
                         style={{
                           width: `${width}%`,
-                          background: chartVar,
+                          color: chartVar,
+                          background: `color-mix(in srgb, ${chartVar} 36%, transparent)`,
                         }}
                       >
-                        <span className="text-[0.65rem] font-semibold text-primary-foreground drop-shadow-sm">
+                        <span className="text-[0.65rem] font-semibold">
                           {formatBudget(item.medianThb)}
                         </span>
                       </div>
                     </div>
                     <div
                       className={cn(
-                        "pointer-events-none absolute left-0 top-[calc(100%+0.35rem)] z-10 w-max max-w-[16rem] rounded-md border border-border bg-popover px-2.5 py-2 text-xs text-popover-foreground shadow-md transition-opacity",
+                        "pointer-events-none absolute left-0 top-[calc(100%+0.35rem)] z-10 w-max max-w-[16rem] rounded-lg border-0 bg-[color-mix(in_srgb,var(--palette-gray-50)_62%,transparent)] px-2.5 py-2 text-xs text-popover-foreground shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_88%,transparent)] ring-1 ring-[color-mix(in_srgb,white_72%,transparent)] backdrop-blur-md backdrop-saturate-150 transition-opacity",
                         active ? "opacity-100" : "opacity-0"
                       )}
                     >
@@ -127,10 +103,5 @@ export function BudgetChart({
             })}
           </ul>
         </div>
-        <p className="pt-2 text-[0.65rem] text-muted-foreground sm:pl-[7.5rem]">
-          {t("chartAxisNote")}
-        </p>
-      </div>
-    </div>
   );
 }

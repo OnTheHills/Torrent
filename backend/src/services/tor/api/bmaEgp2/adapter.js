@@ -65,7 +65,7 @@ function adapt(rows) {
       agencyId: "bma",
       source: SOURCE,
       egpUrl: `${PROJECT_URL}/${projectId}`,
-      category: classifyCategory(terms),
+      category: classifyCategory(title),
       budgetThb: parseBudget(row.projectBudget) || undefined,
       budgetYear:
         budgetYearFromValue(row.masterBudgetYearName) ||

@@ -6,26 +6,27 @@ import {
   AlarmClockIcon,
   ArrowExpandIcon,
   Award01Icon,
+  BankIcon,
+  GuestHouseIcon,
   CancelCircleIcon,
   CheckmarkCircle02Icon,
   FileEditIcon,
   SquareLock02Icon,
   ExpandIcon,
+  LiveStreaming02Icon
 } from "@hugeicons/core-free-icons";
 
 import { useAudience } from "@/components/providers/audience-provider";
 import { useLocale } from "@/components/providers/locale-provider";
 import { MatchBadge } from "@/components/tor/match-badge";
 import { SaveTorButton } from "@/components/tor/save-tor-button";
-import { Badge } from "@/components/ui/badge";
-import { FrostCard, FrostPill } from "@/components/ui/frost-card";
+import { FrostCard } from "@/components/ui/frost-card";
 import { listingHref } from "@/config/routes";
 import type { DictionaryKey } from "@/lib/i18n/dictionary";
 import { listingStage, type ListingStage } from "@/lib/listing-stage";
 import { cn } from "@/lib/utils";
 import {
   formatBudgetCompact,
-  formatBudgetYear,
   formatDate,
   torAgencyShort,
   torCardTitle,
@@ -33,13 +34,30 @@ import {
 } from "@/data/mock";
 import type { Tor } from "@/types/tor";
 
+const CATEGORY_COLOR: Record<string, string> = {
+  "Software Development":
+    "bg-[var(--palette-purple-100)] text-[var(--palette-purple-800)]",
+  "Web Application":
+    "bg-[var(--palette-blue-100)] text-[var(--palette-blue-800)]",
+  "Mobile Application": "bg-[#d4effb] text-[#0b5c7d]",
+  "Data Platform":
+    "bg-[var(--palette-teal-100)] text-[var(--palette-teal-800)]",
+  "Digital Platform":
+    "bg-[var(--palette-green-75)] text-[var(--palette-green-800)]",
+  "AI / Analytics":
+    "bg-[var(--palette-orange-100)] text-[var(--palette-orange-800)]",
+  Cybersecurity: "bg-[var(--palette-red-100)] text-[var(--palette-red-800)]",
+  GIS: "bg-[var(--palette-yellow-100)] text-[var(--palette-yellow-800)]",
+  Others: "bg-[color-mix(in_srgb,#f7b6cf_60%,white)] text-[#b02d66]",
+};
+
 const STAGE_BADGE: Record<
   ListingStage,
   { label: DictionaryKey; icon: IconSvgElement; className: string }
 > = {
   open: {
     label: "cardStageOpen",
-    icon: CheckmarkCircle02Icon,
+    icon: LiveStreaming02Icon,
     className: "text-[var(--palette-green-800)]",
   },
   closing: {
@@ -74,15 +92,15 @@ function StageBadge({ stage }: { stage: ListingStage }) {
   const badge = STAGE_BADGE[stage];
 
   return (
-    <Badge
+    <span
       className={cn(
-        "h-7 gap-1 px-2.5 py-0 text-xs shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_80%,transparent)] ring-1 ring-[color-mix(in_srgb,currentColor_32%,transparent)] [&>svg]:size-4!",
+        "inline-flex h-6 w-fit shrink-0 items-center gap-1 rounded-full bg-[color-mix(in_srgb,currentColor_16%,white)] px-2.5 text-xs font-medium",
         badge.className,
       )}
     >
-      <HugeiconsIcon icon={badge.icon} strokeWidth={2} />
+      <HugeiconsIcon icon={badge.icon} strokeWidth={2} className="size-4" />
       {t(badge.label)}
-    </Badge>
+    </span>
   );
 }
 
@@ -119,8 +137,19 @@ export function ListingFrostCard({ tor }: { tor: Tor }) {
           "transition-transform duration-200 ease-out hover:z-10 hover:-translate-y-1 hover:scale-[1.02] motion-reduce:transition-none motion-reduce:hover:transform-none",
       )}
     >
-      <div className="flex items-center gap-3 px-5 pt-5">
+      <div className="flex min-w-0 items-center gap-1.5 px-5 pt-5">
         <StageBadge stage={stage} />
+        {tor.category ? (
+          <span
+            className={cn(
+              "inline-flex h-6 min-w-0 max-w-full items-center rounded-full px-2.5 text-xs font-medium",
+              CATEGORY_COLOR[tor.category] ??
+                "bg-[var(--palette-gray-150)] text-[var(--palette-gray-700)]",
+            )}
+          >
+            <span className="truncate">{tor.category}</span>
+          </span>
+        ) : null}
         <div className="ml-auto flex shrink-0 items-center gap-2">
           {vendor ? (
             <SaveTorButton
@@ -135,30 +164,24 @@ export function ListingFrostCard({ tor }: { tor: Tor }) {
         href={listingHref(tor.id, audience)}
         className="flex min-w-0 flex-1 flex-col"
       >
-        <div className="flex flex-col gap-3 px-5 pt-3 pb-5">
+        <div className="px-5 pt-4">
           <h3
             title={title}
             className="line-clamp-3 min-h-[4.125em] text-base font-semibold leading-snug tracking-tight"
           >
             {title}
           </h3>
-          <div className="flex min-w-0 flex-nowrap items-center gap-1.5">
-            {organization ? (
-              <FrostPill className="min-w-0 shrink truncate">
-                {organization}
-              </FrostPill>
-            ) : null}
-            {tor.budgetYear ? (
-              <FrostPill className="shrink-0">
-                {t("budgetYear")} {formatBudgetYear(tor.budgetYear)}
-              </FrostPill>
-            ) : null}
-          </div>
         </div>
+        {organization ? (
+          <p className="mt-auto flex min-w-0 items-center gap-1.5 px-5 pt-3 pb-2 text-xs text-muted-foreground">
+            <HugeiconsIcon icon={GuestHouseIcon} strokeWidth={1.75} className="size-3.5 shrink-0" />
+            <span className="truncate">{organization}</span>
+          </p>
+        ) : null}
       </Link>
       <div className="mt-auto flex items-end justify-between gap-3 bg-[color-mix(in_srgb,var(--palette-gray-200)_72%,transparent)] px-5 py-4 shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_80%,transparent)] backdrop-blur-md">
-        <div className="flex min-w-0 flex-col items-start gap-2">
-          <p className="text-2xl font-medium tabular-nums leading-none tracking-tight">
+        <div className="flex min-w-0 flex-col items-start gap-4">
+          <p className="text-xl font-medium tabular-nums leading-none tracking-tight">
             {formatBudgetCompact(tor.budgetThb, locale)}
           </p>
           <p className="max-w-full truncate text-xs tabular-nums text-muted-foreground">

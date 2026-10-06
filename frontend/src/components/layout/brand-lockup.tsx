@@ -3,7 +3,6 @@
 import Image from "next/image";
 
 import { useLocale } from "@/components/providers/locale-provider";
-import { useTheme } from "@/components/providers/theme-provider";
 import { cn } from "@/lib/utils";
 
 const SIZE = {
@@ -19,7 +18,7 @@ const SIZE = {
 /**
  * Official ThaiTORRENT lockup from /public.
  * `logo_dark` is light-on-dark; `logo_light` is dark-on-light.
- * `onDark` forces the light-on-dark mark (app bar / sidebar chrome).
+ * `onDark` uses the light-on-dark mark (app bar / sidebar chrome).
  */
 export function BrandLockup({
   className,
@@ -33,13 +32,11 @@ export function BrandLockup({
   onDark?: boolean;
 }) {
   const { t } = useLocale();
-  const { theme } = useTheme();
   const dim = SIZE[size];
-  const darkLockup = onDark || theme === "dark";
 
   return (
     <Image
-      src={darkLockup ? "/logo_dark.png" : "/logo_light.png"}
+      src={onDark ? "/logo_dark.png" : "/logo_light.png"}
       alt={t("brand")}
       width={dim.width}
       height={dim.height}

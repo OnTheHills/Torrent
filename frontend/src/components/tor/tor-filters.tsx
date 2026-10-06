@@ -25,8 +25,21 @@ export type { ListingSort };
 
 export type SourceFilter = Extract<ListingSource, "egp-rss" | "sme-gp" | "bma-egp2">;
 
+export const TOR_CATEGORIES = [
+  "Software Development",
+  "Web Application",
+  "Mobile Application",
+  "Data Platform",
+  "Digital Platform",
+  "AI / Analytics",
+  "Cybersecurity",
+  "GIS",
+  "Others",
+] as const;
+
 export type TorFilterState = {
   agencies: AgencyId[];
+  categories: string[];
   sources: SourceFilter[];
   budgetYears: string[];
   integrities: IntegrityStatus[];
@@ -38,6 +51,7 @@ export type TorFilterState = {
 
 export const DEFAULT_FILTERS: TorFilterState = {
   agencies: [],
+  categories: [],
   sources: [],
   budgetYears: [],
   integrities: [],
@@ -153,7 +167,7 @@ export function TorFilters({
         <button
           type="button"
           onClick={onClear}
-          className="inline-flex h-8 shrink-0 items-center rounded-full border-0 bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))] px-3 text-sm text-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] backdrop-blur-md backdrop-saturate-150 transition-transform duration-200 ease-out hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:transform-none dark:bg-[linear-gradient(180deg,var(--palette-gray-700),var(--palette-gray-800))] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.16)] dark:ring-[color-mix(in_srgb,var(--palette-white)_18%,transparent)]"
+          className="inline-flex h-8 shrink-0 items-center rounded-full border-0 bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))] px-3 text-sm text-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] backdrop-blur-md backdrop-saturate-150 transition-transform duration-200 ease-out hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:transform-none"
         >
           {t("clearFilters")}
         </button>
@@ -202,6 +216,21 @@ export function TorFilters({
           onChange({
             ...value,
             integrities: toggleMany(value.integrities, integrity, checked),
+          })
+        }
+      />
+
+      <FilterChecks
+        label={t("category")}
+        items={TOR_CATEGORIES.map((category) => ({
+          value: category,
+          label: category,
+        }))}
+        isChecked={(category) => value.categories.includes(category)}
+        onToggle={(category, checked) =>
+          onChange({
+            ...value,
+            categories: toggleMany(value.categories, category, checked),
           })
         }
       />

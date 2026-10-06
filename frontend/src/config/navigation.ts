@@ -1,13 +1,11 @@
 import {
   Analytics01Icon,
-  Award01Icon,
   File01Icon,
   HeartIcon,
   Home01Icon,
   Notification03Icon,
   Pulse01Icon,
   Shield01Icon,
-  StarIcon,
   UserSettings01Icon,
 } from "@hugeicons/core-free-icons";
 import type { IconSvgElement } from "@hugeicons/react";
@@ -40,7 +38,6 @@ export const PUBLIC_NAV: NavGroup[] = [
       { labelKey: "navMonitor", href: routes.monitor, icon: Pulse01Icon },
       { labelKey: "navListings", href: routes.tors, icon: File01Icon },
       { labelKey: "navBudgets", href: routes.dashboard, icon: Analytics01Icon },
-      { labelKey: "navApproaches", href: routes.showcase, icon: Award01Icon },
     ],
   },
 ];
@@ -55,7 +52,6 @@ export const VENDOR_NAV: NavGroup[] = [
         icon: Home01Icon,
         exact: true,
       },
-      { labelKey: "navMatches", href: routes.app.matches, icon: StarIcon },
       { labelKey: "navWatchlist", href: routes.app.saved, icon: HeartIcon },
     ],
   },

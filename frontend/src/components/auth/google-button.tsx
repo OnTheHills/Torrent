@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useSession } from "@/components/providers/session-provider";
@@ -39,6 +39,7 @@ export function GoogleButton({
   const router = useRouter();
   const { refresh } = useSession();
   const ref = useRef<HTMLDivElement>(null);
+  const paintRef = useRef<() => void>(() => {});
   const [error, setError] = useState<string | null>(null);
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
@@ -49,6 +50,26 @@ export function GoogleButton({
 
     let cancelled = false;
     let tries = 0;
+
+    const paint = () => {
+      const host = ref.current;
+      const google = window.google;
+      if (!host || !google) return;
+      const width = Math.min(400, Math.round(host.getBoundingClientRect().width));
+      if (width < 200) return;
+      const current = host.querySelector("iframe");
+      if (current && host.dataset.buttonWidth === String(width)) return;
+      host.dataset.buttonWidth = String(width);
+      host.replaceChildren();
+      google.accounts.id.renderButton(host, {
+        theme: "outline",
+        size: "large",
+        shape: "pill",
+        width,
+        text: "continue_with",
+      });
+    };
+    paintRef.current = paint;
 
     const timer = window.setInterval(() => {
       tries += 1;
@@ -78,25 +99,33 @@ export function GoogleButton({
         },
       });
 
-      window.google.accounts.id.renderButton(ref.current, {
-        theme: "outline",
-        size: "large",
-        width: 320,
-        text: "continue_with",
-      });
+      paint();
     }, 50);
+
+    const observer = new ResizeObserver(() => paint());
+    if (ref.current) observer.observe(ref.current);
 
     return () => {
       cancelled = true;
       window.clearInterval(timer);
+      observer.disconnect();
     };
   }, [role, afterVendor, router, refresh, clientId]);
+
+  // A later React render drops the nodes Google injects. Put the button back
+  // before the browser paints.
+  useLayoutEffect(() => {
+    paintRef.current();
+  });
 
   const visibleError = clientId ? error : "Missing NEXT_PUBLIC_GOOGLE_CLIENT_ID.";
 
   return (
     <div className="space-y-2">
-      <div ref={ref} className="flex justify-center" />
+      <div
+        ref={ref}
+        className="w-full overflow-hidden rounded-full [&_iframe]:block [&_iframe]:w-full [&_iframe]:rounded-full"
+      />
       {visibleError ? (
         <p className="text-center text-sm text-destructive">{visibleError}</p>
       ) : null}

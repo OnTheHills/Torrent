@@ -2,17 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowRight01Icon, LinkSquare02Icon } from "@hugeicons/core-free-icons";
 
 import { HomeSection } from "@/components/home/home-section";
 import { useLocale } from "@/components/providers/locale-provider";
 import { SourceBadge } from "@/components/tor/source-badge";
-import { Button } from "@/components/ui/button";
 import { FrostCard } from "@/components/ui/frost-card";
 import { Surface } from "@/components/ui/surface";
 import { AGENCIES } from "@/config/agencies";
-import { listingsHref, routes } from "@/config/routes";
+import { listingsHref } from "@/config/routes";
 
 export function HomeCoverage() {
   const { locale, t } = useLocale();
@@ -61,19 +58,6 @@ export function HomeCoverage() {
             </li>
           ))}
         </ul>
-
-        <FrostCard className="flex flex-wrap items-center justify-between gap-4 rounded-lg p-5 md:p-4">
-          <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <HugeiconsIcon icon={LinkSquare02Icon} strokeWidth={1.75} className="size-4" />
-            {t("coverageTrust")}
-          </p>
-          <Button asChild variant="orange">
-            <Link href={routes.tors}>
-              {t("viewAllTors")}
-              <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
-            </Link>
-          </Button>
-        </FrostCard>
       </Surface>
     </HomeSection>
   );

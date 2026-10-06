@@ -11,7 +11,7 @@ const frostGlass =
   "border-0 bg-surface-frost shadow-[inset_0_1px_0_0_var(--surface-frost-highlight)] ring-1 ring-[var(--surface-frost-ring)] backdrop-blur-md backdrop-saturate-150"
 
 const frostSelected =
-  "focus:bg-[var(--palette-gray-100)] focus:text-foreground data-highlighted:bg-[var(--palette-gray-100)] data-highlighted:text-foreground data-[highlighted]:bg-[var(--palette-gray-100)] data-[highlighted]:text-foreground data-[state=checked]:bg-[var(--palette-gray-100)] data-[state=checked]:text-foreground dark:focus:bg-[var(--palette-gray-700)] dark:data-highlighted:bg-[var(--palette-gray-700)] dark:data-[highlighted]:bg-[var(--palette-gray-700)] dark:data-[state=checked]:bg-[var(--palette-gray-700)]"
+  "focus:bg-[var(--palette-gray-100)] focus:text-foreground data-highlighted:bg-[var(--palette-gray-100)] data-highlighted:text-foreground data-[highlighted]:bg-[var(--palette-gray-100)] data-[highlighted]:text-foreground data-[state=checked]:bg-[var(--palette-gray-100)] data-[state=checked]:text-foreground"
 
 function Select({
   ...props

@@ -16,6 +16,12 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { Button } from "@/components/ui/button";
 import { routes } from "@/config/routes";
 
+const frostButton =
+  "border-0 bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))] text-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] backdrop-blur-md backdrop-saturate-150 hover:bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))]";
+
+const frostTealButton =
+  "border-0 bg-[color-mix(in_srgb,var(--palette-teal-400)_32%,transparent)] text-[var(--palette-teal-800)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_80%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--palette-teal-400)_48%,transparent)] backdrop-blur-md backdrop-saturate-150 hover:bg-[color-mix(in_srgb,var(--palette-teal-400)_44%,transparent)]";
+
 export function HomeLanding() {
   const { t } = useLocale();
 
@@ -35,13 +41,13 @@ export function HomeLanding() {
               {t("homeDescription")}
             </p>
             <div className="flex flex-wrap gap-3 md:justify-end">
-              <Button asChild size="lg" variant="orange">
+              <Button asChild size="lg" className={frostTealButton}>
                 <Link href={routes.tors}>
                   {t("browseTors")}
                   <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="outline">
+              <Button asChild size="lg" className={frostButton}>
                 <Link href={routes.monitor}>{t("openMonitor")}</Link>
               </Button>
             </div>

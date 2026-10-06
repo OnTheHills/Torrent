@@ -11,7 +11,6 @@ export const routes = {
   },
   saved: "/app/saved",
   dashboard: "/dashboard",
-  showcase: "/showcase",
   login: "/login",
   register: "/register",
   app: {

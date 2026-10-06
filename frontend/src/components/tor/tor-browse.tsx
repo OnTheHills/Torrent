@@ -39,7 +39,7 @@ import {
   type Tor,
 } from "@/types/tor";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 12;
 const PAGE_WINDOW_SIZE = 5;
 
 function knownBudget(amount: number) {
@@ -62,6 +62,7 @@ export function TorBrowse({
   tors: initialTors,
   initialQuery = "",
   initialAgencies = [],
+  initialCategories = [],
   initialSources = [],
   initialSort = "newest",
   initialStages = [],
@@ -72,6 +73,7 @@ export function TorBrowse({
   tors: Tor[];
   initialQuery?: string;
   initialAgencies?: AgencyId[];
+  initialCategories?: string[];
   initialSources?: SourceFilter[];
   initialSort?: ListingSort;
   initialStages?: ListingStage[];
@@ -89,6 +91,7 @@ export function TorBrowse({
   const [filters, setFilters] = useState<TorFilterState>({
     ...DEFAULT_FILTERS,
     agencies: initialAgencies,
+    categories: initialCategories,
     sources: initialSources,
     budgetYears: initialBudgetYears,
     integrities: initialIntegrities,
@@ -111,6 +114,7 @@ export function TorBrowse({
     const params = new URLSearchParams();
     if (nextQuery.trim()) params.set("q", nextQuery.trim());
     if (next.agencies.length) params.set("agency", next.agencies.join(","));
+    if (next.categories.length) params.set("category", next.categories.join(","));
     if (next.sources.length) params.set("source", next.sources.join(","));
     if (next.budgetYears.length) params.set("year", next.budgetYears.join(","));
     if (next.integrities.length) params.set("integrity", next.integrities.join(","));
@@ -137,6 +141,8 @@ export function TorBrowse({
       const title = torTitle(tor, locale);
       const matchesAgency =
         filters.agencies.length === 0 || filters.agencies.includes(tor.agencyId);
+      const matchesCategory =
+        filters.categories.length === 0 || filters.categories.includes(tor.category);
       const matchesSource =
         filters.sources.length === 0 ||
         filters.sources.some((source) => source === tor.sourceKind);
@@ -161,6 +167,7 @@ export function TorBrowse({
 
       return (
         matchesAgency &&
+        matchesCategory &&
         matchesSource &&
         matchesLifecycle &&
         matchesBudgetYear &&
@@ -228,10 +235,10 @@ export function TorBrowse({
         </p>
       </div>
       <div className="flex items-center gap-3 lg:col-span-2">
-      <label className="relative isolate block min-w-0 flex-1 rounded-full shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] backdrop-blur-md backdrop-saturate-150 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.16)] dark:ring-[color-mix(in_srgb,var(--palette-white)_18%,transparent)]">
+      <label className="relative isolate block min-w-0 flex-1 rounded-full shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] backdrop-blur-md backdrop-saturate-150">
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-full bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))] dark:bg-[linear-gradient(180deg,var(--palette-gray-700),var(--palette-gray-800))]"
+          className="pointer-events-none absolute inset-0 rounded-full bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))]"
         />
         <span className="sr-only">{t("searchPlaceholder")}</span>
         <HugeiconsIcon
@@ -245,13 +252,13 @@ export function TorBrowse({
             setPage(1);
           }}
           placeholder={t("searchPlaceholder")}
-          className="relative h-10 rounded-full border-0 bg-transparent pl-11 text-foreground shadow-none ring-0 placeholder:text-[var(--palette-gray-600)] focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-ring/30 dark:bg-transparent dark:placeholder:text-[var(--palette-gray-300)]"
+          className="relative h-10 rounded-full border-0 bg-transparent pl-11 text-foreground shadow-none ring-0 placeholder:text-[var(--palette-gray-600)] focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-ring/30"
         />
       </label>
       <TorSort
         value={filters.sort}
         onChange={(sort) => applyFilters({ ...filters, sort })}
-        className="w-44 shrink-0 border-0 bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] sm:w-52 dark:bg-[linear-gradient(180deg,var(--palette-gray-700),var(--palette-gray-800))]"
+        className="w-44 shrink-0 border-0 bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] sm:w-52"
       />
       </div>
 

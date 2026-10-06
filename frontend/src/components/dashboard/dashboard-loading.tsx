@@ -64,13 +64,12 @@ export function DashboardLoading() {
             isPending
             values={{
               kpiSources: 0,
-              statCategories: 0,
               statDraftLive: 0,
               statPublished: 0,
             }}
           />
         </div>
-        {(["chartTitle", "compareChartTitle", "historyTableTitle"] as const).map(
+        {(["chartTitle", "historyTableTitle"] as const).map(
           (title) => (
             <MonitorSection
               key={title}
@@ -78,9 +77,7 @@ export function DashboardLoading() {
               description={
                 title === "chartTitle"
                   ? t("chartDescription")
-                  : title === "compareChartTitle"
-                    ? t("compareChartDescription")
-                    : t("historyTableDescription")
+                  : t("historyTableDescription")
               }
             >
               <div className="h-64 animate-pulse rounded-lg bg-background/60" />
