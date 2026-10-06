@@ -29,7 +29,7 @@ export function HomeCoverage() {
             <li key={agency.id}>
               <FrostCard
                 asChild
-                className="flex h-full flex-col gap-2 p-4 rounded-lg md:p-5 hover:ring-primary/40"
+                className="relative flex h-full flex-col gap-2 rounded-lg p-4 transition-transform duration-200 ease-out hover:z-10 hover:-translate-y-1 hover:scale-[1.02] motion-reduce:transition-none motion-reduce:hover:transform-none md:p-5"
               >
                 <Link href={listingsHref(agency.id)}>
                   <span className="flex items-center gap-3">

@@ -1,14 +1,29 @@
+const THAI_DIGITS = "๐๑๒๓๔๕๖๗๘๙";
+
+function latinDigits(value) {
+  return String(value).replace(/[๐-๙]/g, (digit) => String(THAI_DIGITS.indexOf(digit)));
+}
+
 // Public sources return budgets as both numbers and locale-formatted strings.
-// Convert either representation into one safe numeric value for charts and MongoDB.
+// Thai announcement PDFs often use Thai digits (๒๕,๙๙๖,๔๕๔.๘๐). Convert either
+// representation into one safe numeric value for charts and MongoDB.
 function parseBudget(value) {
   if (typeof value === "number") return Number.isFinite(value) ? value : 0;
   if (!value) return 0;
-  const normalized = value
-    .toString()
+  const normalized = latinDigits(value)
     .replace(/[฿บาท]/g, "")
     .replace(/,/g, "")
     .trim();
   return parseFloat(normalized) || 0;
+}
+
+// Announcement notices print the project amount next to "บาท". Column layout
+// scrambles the label, so keep the largest baht figure on the page.
+function parseAnnouncementBudget(text) {
+  const amounts = [...String(text || "").matchAll(
+    /([๐-๙0-9][๐-๙0-9,]{2,}(?:\.[๐-๙0-9]+)?)\s*บาท/g,
+  )].map((match) => parseBudget(match[1]));
+  return amounts.reduce((best, amount) => (amount > best ? amount : best), 0);
 }
 
 function firstPresent(...values) {
@@ -87,6 +102,8 @@ module.exports = {
   budgetYearFromValue,
   classifyCategory,
   firstPresent,
+  latinDigits,
+  parseAnnouncementBudget,
   parseBudget,
   parseDate,
   wait,

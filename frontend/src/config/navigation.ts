@@ -1,8 +1,8 @@
 import {
   Analytics01Icon,
   Award01Icon,
-  Bookmark02Icon,
   File01Icon,
+  HeartIcon,
   Home01Icon,
   Notification03Icon,
   Pulse01Icon,
@@ -56,7 +56,7 @@ export const VENDOR_NAV: NavGroup[] = [
         exact: true,
       },
       { labelKey: "navMatches", href: routes.app.matches, icon: StarIcon },
-      { labelKey: "navWatchlist", href: routes.app.saved, icon: Bookmark02Icon },
+      { labelKey: "navWatchlist", href: routes.app.saved, icon: HeartIcon },
     ],
   },
   {

@@ -9,29 +9,41 @@ export function MonitorSection({
   action,
   children,
   className,
+  surfaceClassName,
 }: {
-  title: string;
+  title?: string;
   description?: string;
   action?: ReactNode;
   children: ReactNode;
   className?: string;
+  surfaceClassName?: string;
 }) {
+  const showHeading = Boolean(title || description || action);
+
   return (
-    <section className={cn("space-y-6", className)}>
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="max-w-3xl space-y-2">
-          <h2 className="text-2xl font-semibold tracking-tight md:text-[2rem] md:leading-[1.2]">
-            {title}
-          </h2>
-          {description ? (
-            <p className="text-base leading-[1.7] text-muted-foreground">
-              {description}
-            </p>
-          ) : null}
+    <section className={cn(showHeading && "space-y-6", className)}>
+      {showHeading ? (
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="max-w-3xl space-y-2">
+            {title ? (
+              <h2 className="text-2xl font-semibold tracking-tight md:text-[2rem] md:leading-[1.2]">
+                {title}
+              </h2>
+            ) : null}
+            {description ? (
+              <p className="text-base leading-[1.7] text-muted-foreground">
+                {description}
+              </p>
+            ) : null}
+          </div>
+          {action}
         </div>
-        {action}
-      </div>
-      <Surface className="bg-surface p-5 ring-transparent md:p-6">{children}</Surface>
+      ) : null}
+      <Surface
+        className={cn("bg-surface p-5 ring-transparent md:p-6", surfaceClassName)}
+      >
+        {children}
+      </Surface>
     </section>
   );
 }

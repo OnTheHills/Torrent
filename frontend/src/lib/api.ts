@@ -153,6 +153,10 @@ function sourceCalendarDate(value: string | Date): string {
   return `${part("year")}-${part("month")}-${part("day")}`;
 }
 
+function isAnnouncementPdf(url: string) {
+  return /view-pdf|\.pdf(?:$|\?)/i.test(url || "");
+}
+
 function mapBackendTorToFrontendTor(data: any): Tor {
   const ingestEn = splitIngestSummary(data.summary);
   const ingestTh = splitIngestSummary(data.summaryTh);
@@ -188,7 +192,12 @@ function mapBackendTorToFrontendTor(data: any): Tor {
       : Array.isArray(data.requirements)
         ? data.requirements
         : [],
-    egpUrl: data.egpUrl || "",
+    egpUrl: isAnnouncementPdf(data.egpUrl) ? "" : data.egpUrl || "",
+    pdfUrl:
+      data.torPdfPath ||
+      (isAnnouncementPdf(data.egpUrl) ? data.egpUrl : "") ||
+      ocr?.fileUrl ||
+      "",
     ocr: ocr
       ? {
           status: ocr.status || "",

@@ -1,8 +1,8 @@
 :root {
   color-scheme: light;
 
-  --font-sans: var(--font-prompt), "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-prompt), "Sora", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-ibm-plex-sans-thai), var(--font-prompt), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-ibm-plex-sans-thai), var(--font-prompt), ui-sans-serif, system-ui, sans-serif;
 
   --palette-black: #05080d;
   --palette-white: #ffffff;
@@ -11,6 +11,7 @@
   --palette-gray-50: #f1f3f5;
   --palette-gray-75: #eef0f3;
   --palette-gray-100: #ebeef2;
+  --palette-gray-150: #e3e7ec;
   --palette-gray-200: #dadfe5;
   --palette-gray-300: #b8bfcc;
   --palette-gray-400: #8a93a6;
@@ -199,6 +200,11 @@
   --toggle-thumb: color-mix(in srgb, var(--palette-white) 28%, transparent);
   --pattern-line: color-mix(in srgb, var(--palette-teal-800) 18%, transparent);
   --band-paper: var(--palette-gray-50);
+}
+
+html[data-locale="en"] {
+  --font-sans: var(--font-prompt), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-prompt), ui-sans-serif, system-ui, sans-serif;
 }
 
 html.dark {

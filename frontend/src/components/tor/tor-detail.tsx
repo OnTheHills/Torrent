@@ -185,17 +185,20 @@ export function TorDetail({
     </div>
   );
 
+  const pdfUrl = tor.pdfUrl || tor.ocr?.fileUrl || "";
   const actions = (
     <div className="flex flex-wrap gap-3">
-      <Button asChild size="lg" variant={vendor ? "default" : "orange"}>
-        <a href={tor.egpUrl} target="_blank" rel="noreferrer">
-          {t("openEgp")}
-          <HugeiconsIcon icon={LinkSquare02Icon} strokeWidth={2} />
-        </a>
-      </Button>
-      {tor.ocr?.fileUrl ? (
+      {tor.egpUrl ? (
+        <Button asChild size="lg" variant={vendor ? "default" : "orange"}>
+          <a href={tor.egpUrl} target="_blank" rel="noreferrer">
+            {t("openEgp")}
+            <HugeiconsIcon icon={LinkSquare02Icon} strokeWidth={2} />
+          </a>
+        </Button>
+      ) : null}
+      {pdfUrl ? (
         <Button asChild size="lg" variant="outline">
-          <a href={tor.ocr.fileUrl} target="_blank" rel="noreferrer">
+          <a href={pdfUrl} target="_blank" rel="noreferrer">
             {t("openPlanPdf")}
             <HugeiconsIcon icon={File01Icon} strokeWidth={2} />
           </a>

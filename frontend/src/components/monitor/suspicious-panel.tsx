@@ -40,7 +40,7 @@ export function SuspiciousPanel() {
             <li key={tor.id}>
               <FrostCard
                 asChild
-                className="flex h-full flex-col gap-3 rounded-lg p-5 hover:ring-primary/40 md:p-5"
+                className="relative flex h-full flex-col gap-3 rounded-lg p-5 transition-transform duration-200 ease-out hover:z-10 hover:-translate-y-1 hover:scale-[1.02] motion-reduce:transition-none motion-reduce:hover:transform-none md:p-5"
               >
                 <Link href={routes.tor(tor.id)}>
                   <div className="flex items-center gap-3">

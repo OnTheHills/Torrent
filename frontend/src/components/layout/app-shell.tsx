@@ -36,6 +36,7 @@ export function AppShell({
   workspace,
   showBackToSite = false,
   inset = false,
+  fullBleedPaths = [],
   children,
 }: {
   nav: NavGroup[];
@@ -43,15 +44,20 @@ export function AppShell({
   showBackToSite?: boolean;
   /** Pad and centre the canvas contents — for pages without full-bleed sections. */
   inset?: boolean;
+  /** Exact paths that skip `inset` because they render their own full-bleed hero. */
+  fullBleedPaths?: string[];
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const padded = inset && !fullBleedPaths.includes(pathname);
+
   return (
     <SidebarProvider className="relative flex h-dvh flex-col overflow-hidden shell-atmosphere">
       <ShellAppBar workspace={workspace} />
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
         <ShellSidebar nav={nav} showBackToSite={showBackToSite} />
         <MainContent>
-          {inset ? (
+          {padded ? (
             <div className="mx-auto max-w-6xl px-5 py-8 md:px-12 md:py-12">
               {children}
             </div>
