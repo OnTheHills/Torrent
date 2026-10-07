@@ -4,6 +4,7 @@ require("module-alias/register");
 const app = require("@/app");
 const { connectDatabase } = require("@/utils/connectDatabase");
 const { startSyncScheduler } = require("@/scheduler/syncScheduler");
+const { startMatchScheduler } = require("@/scheduler/matchScheduler");
 const PORT = process.env.PORT;
 
 async function startServer() {
@@ -16,6 +17,8 @@ async function startServer() {
       console.log(`Server running on port ${PORT}`);
     });
 
+    // Resume saved matching work as soon as MongoDB is ready.
+    await startMatchScheduler();
     // Sync can save data only after the database and indexes are ready.
     await startSyncScheduler();
   } catch (error) {

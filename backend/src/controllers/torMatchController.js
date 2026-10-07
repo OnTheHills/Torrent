@@ -18,6 +18,15 @@ async function getAllTorMatches(request, response) {
   }
 }
 
+async function getMyTorMatches(request, response) {
+  try {
+    const torMatches = await torMatchService.getTorMatchesByUserId(request.user.sub);
+    return response.status(200).json(torMatches);
+  } catch (error) {
+    return response.status(500).json({ message: error.message });
+  }
+}
+
 async function getTorMatchById(request, response) {
   try {
     const torMatch = await torMatchService.getTorMatchById(request.params.id);
@@ -66,6 +75,7 @@ async function deleteTorMatch(request, response) {
 module.exports = {
   createTorMatch,
   getAllTorMatches,
+  getMyTorMatches,
   getTorMatchById,
   updateTorMatch,
   deleteTorMatch,

@@ -43,7 +43,7 @@ Google Identity script -> GoogleButton -> POST /api/auth/google
 
 | File / folder | Role |
 | --- | --- |
-| `src/server.js` | Loads environment settings, connects the database, starts the sync job, then listens for requests. |
+| `src/server.js` | Loads environment settings, connects the database, starts the matching and sync jobs, then listens for requests. |
 | `src/app.js` | Creates Express, configures middleware, and mounts `/api/*` routers. |
 | `src/utils/connectDatabase.js` | Connects to MongoDB and waits for model indexes before startup continues. |
 | `src/routes/*.js` | Declares HTTP method and URL only. Routes hand work to a controller. |
@@ -66,10 +66,10 @@ Google Identity script -> GoogleButton -> POST /api/auth/google
 | --- | --- | --- |
 | `/api/auth` | `authRoute.js` | Google login, current session lookup, logout. |
 | `/api/users` | `userRoute.js` | User CRUD. |
-| `/api/vendor-profiles` | `vendorProfileRoute.js` | Vendor company/profile CRUD. |
+| `/api/vendor-profiles` | `vendorProfileRoute.js` | Vendor company/profile CRUD; a create or update queues eligible TORs for matching. |
 | `/api/user-bios` | `userBioRoute.js` | Public user bio CRUD. |
 | `/api/tors` | `torRoute.js` | Read and maintain procurement TORs. |
-| `/api/tor-matches` | `torMatchRoute.js` | Persist a vendor-to-TOR match. |
+| `/api/tor-matches` | `torMatchRoute.js` | Persist a vendor-to-TOR match; authenticated `GET /mine` returns the signed-in vendor's matches. |
 | `/api/sync` | `syncRoute.js` | Starts all-source, SME-GP-only, or BMA e-GP2-only imports. |
 
 Each CRUD controller follows the same shape: read `request.body` or
@@ -82,9 +82,10 @@ Each CRUD controller follows the same shape: read `request.body` or
 | --- | --- | --- |
 | `TOR.js` | `tors` | A normalized procurement opportunity from any source. `refId` is the stable external identity used during sync. |
 | `User.js` | `users` | Local account, Google identity fields, and role. |
-| `VendorProfile.js` | `vendorprofiles` | Vendor-facing company/profile information. |
+| `VendorProfile.js` | `vendor_profiles` | Vendor-facing company/profile information. Saving it queues eligible TORs for matching. |
 | `UserBio.js` | `userbios` | Public profile/bio data. |
-| `TORMatch.js` | `tormatches` | A user's saved/matched TOR relationship. |
+| `TORMatch.js` | `tor_matches` | A user's stored, above-threshold match to a TOR, including the score and reason. |
+| `TorMatchJob.js` | `tor_match_jobs_by_tor` | Durable TOR-centric matching queue, including cursor, retry, and lease state. |
 
 ### Procurement synchronization
 
@@ -116,6 +117,20 @@ JSON structures and use different HTTP methods, but both return this result:
 uses `findOneAndUpdate(..., { upsert: true })`, so re-running a sync updates an
 existing record instead of creating another record with the same `refId`.
 
+### Vendor matching
+
+`jobs/matchTors.js` owns the durable, TOR-centric matching worker. A changed
+or newly imported TOR is queued by the sync/CRUD flow; creating or updating a
+vendor profile calls `enqueueEligibleTors()` so the saved capabilities are
+also evaluated against the existing eligible TOR catalog. Each job walks vendor
+users, obtains their `VendorProfile`, and asks Vertex to return a score and a
+short reason. Scores below `VERTEX_MATCH_MIN_PERCENT` are removed; qualifying
+scores are upserted into `tor_matches`.
+
+Vertex quota, rate-limit, and availability failures put the current job into a
+durable waiting state. The worker resumes from its saved vendor cursor after
+the retry time, including after an application restart.
+
 ## Frontend
 
 ### Framework and page layout
@@ -143,6 +158,8 @@ browser URL. For example, `src/app/(public)/dashboard/page.tsx` renders at
 | `src/lib/auth.ts` | Typed calls for Google login, session lookup, and logout. |
 | `src/lib/budget.ts` | Groups positive budgets by category and calculates min/median/max benchmark values. |
 | `src/lib/sources/probe.ts` | Server-side checks for configured procurement source URLs. |
+| `src/app/(vendor)/app/profile/page.tsx` | Saves the signed-in vendor's capability profile; the backend queues matching work after a successful save. |
+| `src/app/(vendor)/app/matches/page.tsx` | Loads the signed-in vendor's real `GET /api/tor-matches/mine` results and the associated TOR cards. |
 | `src/lib/utils.ts` | Small shared class-name utility. |
 | `src/data/mock.ts` | Demo TORs plus formatting, translation-selection, and price-analysis helpers used by the UI. |
 | `src/config/agencies.ts` | Agency/source metadata, source labels, and agency lookup helpers. |

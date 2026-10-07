@@ -9,6 +9,7 @@ const execFileAsync = promisify(execFile);
 
 const { SOURCE } = require("@/constants/smeGpConstants");
 const torRepository = require("@/repositories/torRepository");
+const torMatching = require("@/jobs/matchTors");
 const { readPdfText } = require("@/services/tor/ocr/readPdfText");
 const { parseAnnouncementBudget } = require("@/utils/torUtils");
 
@@ -227,6 +228,7 @@ async function enrichStored() {
   });
   summary.announcementSkipped = rows.length - pending.length;
   let blocked = 0;
+  const updatedTorIds = [];
 
   await mapPool(pending, 2, async (row) => {
     const pdfUrl = pdfUrlOf(row);
@@ -240,7 +242,13 @@ async function enrichStored() {
         summary.announcementFailed++;
         return;
       }
+      const changed = Object.entries(update).some(([field, value]) => row[field] !== value);
+      if (!changed) {
+        summary.announcementSkipped++;
+        return;
+      }
       await torRepository.update(row._id, update);
+      updatedTorIds.push(row._id);
       summary.announcementUpdated++;
     } catch (error) {
       summary.announcementFailed++;
@@ -249,6 +257,7 @@ async function enrichStored() {
     }
   });
 
+  if (updatedTorIds.length) await torMatching.enqueueTors(updatedTorIds);
   return summary;
 }
 

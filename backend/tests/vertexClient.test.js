@@ -133,6 +133,25 @@ test("generateFromParts sends inline PDF data to Vertex", async () => {
   assert.equal(calls[0].contents[0].parts[0].inlineData.mimeType, "application/pdf");
 });
 
+test("generateStructured requests JSON output using the supplied schema", async () => {
+  const calls = [];
+  function FakeGoogleGenAI() {
+    this.models = {
+      async generateContent(params) {
+        calls.push(params);
+        return { text: '{"matchPercent":80,"matchReason":"Relevant skills"}' };
+      },
+    };
+  }
+
+  const schema = { type: "object", properties: { matchPercent: { type: "integer" } } };
+  const { generateStructured } = loadVertexClient(CONFIGURED_ENV, FakeGoogleGenAI);
+  const result = await generateStructured({ prompt: "score", responseJsonSchema: schema });
+  assert.equal(result.ok, true);
+  assert.equal(calls[0].config.responseMimeType, "application/json");
+  assert.deepEqual(JSON.parse(JSON.stringify(calls[0].config.responseJsonSchema)), schema);
+});
+
 test("SDK 403 billing maps to UNAUTHENTICATED", async () => {
   function FakeGoogleGenAI() {
     this.models = {
@@ -190,6 +209,23 @@ test("SDK 503 maps to UNAVAILABLE", async () => {
   assert.equal(result.ok, false);
   assert.equal(result.code, "UNAVAILABLE");
   assert.equal(result.message, "Vertex is unavailable");
+});
+
+test("SDK 429 capacity exhaustion is distinct from a daily quota reset", async () => {
+  function FakeGoogleGenAI() {
+    this.models = {
+      async generateContent() {
+        const error = new Error("RESOURCE_EXHAUSTED: quota exceeded");
+        error.status = 429;
+        throw error;
+      },
+    };
+  }
+
+  const { generateText } = loadVertexClient(CONFIGURED_ENV, FakeGoogleGenAI);
+  const result = await generateText({ prompt: "ping" });
+  assert.equal(result.ok, false);
+  assert.equal(result.code, "RATE_LIMITED");
 });
 
 test("AbortError maps to TIMEOUT", async () => {

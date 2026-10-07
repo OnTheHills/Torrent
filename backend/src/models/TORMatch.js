@@ -28,4 +28,6 @@ const torMatchSchema = new mongoose.Schema(
   },
 );
 
+torMatchSchema.index({ userId: 1, torId: 1 }, { unique: true });
+
 module.exports = mongoose.model("TORMatch", torMatchSchema);

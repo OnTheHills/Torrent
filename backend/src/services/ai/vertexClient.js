@@ -44,7 +44,7 @@ function getClient() {
   return cachedClient;
 }
 
-async function generateContentRequest({ contents, timeoutMs } = {}) {
+async function generateContentRequest({ contents, timeoutMs, responseJsonSchema } = {}) {
   const config = readConfig();
   if (!config.project || !config.location || !config.model || !config.credentials) {
     return {
@@ -74,7 +74,12 @@ async function generateContentRequest({ contents, timeoutMs } = {}) {
     const response = await getClient().models.generateContent({
       model: config.model,
       contents,
-      config: { abortSignal: controller.signal },
+      config: {
+        abortSignal: controller.signal,
+        ...(responseJsonSchema
+          ? { responseMimeType: "application/json", responseJsonSchema }
+          : {}),
+      },
     });
 
     const text = String(response?.text || "").trim();
@@ -118,8 +123,17 @@ async function generateFromParts({ parts, timeoutMs } = {}) {
   });
 }
 
+async function generateStructured({ prompt, responseJsonSchema, timeoutMs } = {}) {
+  return generateContentRequest({
+    contents: prompt,
+    responseJsonSchema,
+    timeoutMs,
+  });
+}
+
 module.exports = {
   generateFromParts,
+  generateStructured,
   generateText,
   isConfigured,
   readConfig,

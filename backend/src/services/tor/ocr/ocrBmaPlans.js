@@ -89,7 +89,7 @@ async function enrichOne(tor, existingByRef) {
       });
       return { outcome: "failed", reason: extracted.code || extracted.message };
     }
-    await torRepository.saveOcr(tor.refId, SOURCE, {
+    const saved = await torRepository.saveOcr(tor.refId, SOURCE, {
       status: "ok",
       source: extracted.method === "text" ? "bma-project-tor-text" : "bma-project-tor-ocr",
       method: extracted.method,
@@ -105,7 +105,7 @@ async function enrichOne(tor, existingByRef) {
       deadline: extracted.extract.deadline,
       skills: extracted.extract.skills.length ? extracted.extract.skills : undefined,
     });
-    return { outcome: "updated" };
+    return { outcome: "updated", torId: saved?._id || tor._id };
   } catch (error) {
     await torRepository.saveOcr(tor.refId, SOURCE, {
       status: "failed",
@@ -143,6 +143,9 @@ async function enrich(tors = []) {
     else if (result.outcome === "failed") summary.ocrFailed++;
     else summary.ocrSkipped++;
   }
+  summary.updatedTorIds = results
+    .filter((result) => result.outcome === "updated" && result.torId)
+    .map((result) => result.torId);
   return summary;
 }
 
