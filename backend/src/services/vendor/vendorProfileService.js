@@ -1,4 +1,5 @@
 const vendorProfileRepository = require("@/repositories/vendorProfileRepository");
+const TORMatch = require("@/models/TORMatch");
 
 async function createVendorProfile(data) {
   return vendorProfileRepository.create(data);
@@ -21,7 +22,11 @@ async function updateVendorProfile(id, data) {
 }
 
 async function deleteVendorProfile(id) {
-  return vendorProfileRepository.remove(id);
+  const profile = await vendorProfileRepository.remove(id);
+  if (profile) {
+    await TORMatch.deleteMany({ userId: profile.userId });
+  }
+  return profile;
 }
 
 module.exports = {
