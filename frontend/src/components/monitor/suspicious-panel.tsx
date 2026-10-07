@@ -13,6 +13,9 @@ import { IntegrityBadge } from "@/components/tor/integrity-badge";
 import { Button } from "@/components/ui/button";
 import { FrostCard } from "@/components/ui/frost-card";
 import { routes } from "@/config/routes";
+
+const frostTealButton =
+  "border-0 bg-[color-mix(in_srgb,var(--palette-teal-400)_32%,transparent)] text-[var(--palette-teal-800)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_80%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--palette-teal-400)_48%,transparent)] backdrop-blur-md backdrop-saturate-150 hover:bg-[color-mix(in_srgb,var(--palette-teal-400)_44%,transparent)]";
 import {
   formatBudgetCompact,
   formatDate,
@@ -102,7 +105,7 @@ export function SuspiciousPanel() {
           <p className="text-sm leading-[1.7] text-muted-foreground">
             {t("integrityEmptyBody")}
           </p>
-          <Button asChild variant="outline" className="mt-auto w-fit">
+          <Button asChild className={`mt-auto w-fit ${frostTealButton}`}>
             <Link href={routes.tors}>
               {t("browseTors")}
               <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />

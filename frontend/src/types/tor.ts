@@ -88,16 +88,6 @@ export interface Tor {
   matchReasons?: string[];
 }
 
-export interface ShowcaseEntry {
-  id: string;
-  title: string;
-  vendorName: string;
-  category: TorCategory;
-  approach: string;
-  outcome: string;
-  year: number;
-}
-
 export interface BudgetBenchmark {
   category: TorCategory;
   department: string;

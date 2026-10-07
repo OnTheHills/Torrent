@@ -7,7 +7,6 @@ import { useQuery } from "@tanstack/react-query";
 
 import { BudgetChart } from "@/components/dashboard/budget-chart";
 import { BudgetKpiStrip } from "@/components/dashboard/budget-kpi-strip";
-import { CompareBudgetChart } from "@/components/dashboard/compare-budget-chart";
 import { DashboardFetchStatus } from "@/components/dashboard/dashboard-loading";
 import { HistoricalPriceTable } from "@/components/dashboard/historical-price-table";
 import { MonitorSection } from "@/components/monitor/monitor-section";
@@ -18,7 +17,7 @@ import { fetchTorsForQuery } from "@/lib/api";
 import { buildBudgetBenchmarks } from "@/lib/budget";
 
 export function DashboardView() {
-  const { locale, t } = useLocale();
+  const { t } = useLocale();
   const { data: tors = [], isFetching, isPending } = useQuery({
     queryKey: ["tors"],
     queryFn: fetchTorsForQuery,
@@ -38,27 +37,6 @@ export function DashboardView() {
     (tor) => tor.lifecycle === "published"
   ).length;
   const fundedTors = tors.filter((tor) => tor.budgetThb > 0);
-  const compareRows = [...fundedTors]
-    .filter((tor) => tor.lifecycle !== "awarded")
-    .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
-    .slice(0, 8);
-  const fundedYears = Array.from(
-    new Set(
-      fundedTors
-        .map((tor) => new Date(tor.publishedAt).getFullYear())
-        .filter((year) => Number.isFinite(year))
-    )
-  ).sort((a, b) => a - b);
-  const yearLabel =
-    fundedYears.length === 0
-      ? ""
-      : fundedYears
-          .map((year) => (locale === "th" ? year + 543 : year))
-          .filter((year, index, all) => index === 0 || index === all.length - 1)
-          .join("–");
-  const chartMeta = [t("chartMetaLive"), yearLabel, t("chartMetaCurrency")]
-    .filter(Boolean)
-    .join(" · ");
   const waiting = isPending || (isFetching && tors.length === 0);
 
   return (
@@ -98,7 +76,6 @@ export function DashboardView() {
           isPending={waiting}
           values={{
             kpiSources: sourceCount,
-            statCategories: benchmarks.length,
             statDraftLive: draftCount,
             statPublished: publishedCount,
           }}
@@ -107,22 +84,12 @@ export function DashboardView() {
         <MonitorSection
           title={t("chartTitle")}
           description={t("chartDescription")}
+          surfaceClassName="rounded-lg bg-[color-mix(in_srgb,var(--palette-gray-50)_62%,transparent)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_88%,transparent)] ring-1 ring-[color-mix(in_srgb,white_72%,transparent)] backdrop-blur-md backdrop-saturate-150"
         >
           {waiting ? (
             <div className="h-64 animate-pulse rounded-lg bg-background/60" />
           ) : (
-            <BudgetChart data={benchmarks} meta={chartMeta} />
-          )}
-        </MonitorSection>
-
-        <MonitorSection
-          title={t("compareChartTitle")}
-          description={t("compareChartDescription")}
-        >
-          {waiting ? (
-            <div className="h-64 animate-pulse rounded-lg bg-background/60" />
-          ) : (
-            <CompareBudgetChart benchmarks={benchmarks} tors={compareRows} />
+            <BudgetChart data={benchmarks} />
           )}
         </MonitorSection>
 

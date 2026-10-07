@@ -15,7 +15,13 @@ export default function VendorLayout({
         workspace="audienceVendor"
         showBackToSite
         inset
-        fullBleedPaths={[routes.app.tors, routes.app.saved]}
+        fullBleedPaths={[
+          routes.app.home,
+          routes.app.tors,
+          routes.app.saved,
+          routes.app.profile,
+          routes.app.alerts,
+        ]}
       >
         {children}
       </AppShell>

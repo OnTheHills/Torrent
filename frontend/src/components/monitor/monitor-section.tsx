@@ -10,6 +10,7 @@ export function MonitorSection({
   children,
   className,
   surfaceClassName,
+  bare = false,
 }: {
   title?: string;
   description?: string;
@@ -17,6 +18,7 @@ export function MonitorSection({
   children: ReactNode;
   className?: string;
   surfaceClassName?: string;
+  bare?: boolean;
 }) {
   const showHeading = Boolean(title || description || action);
 
@@ -39,11 +41,15 @@ export function MonitorSection({
           {action}
         </div>
       ) : null}
-      <Surface
-        className={cn("bg-surface p-5 ring-transparent md:p-6", surfaceClassName)}
-      >
-        {children}
-      </Surface>
+      {bare ? (
+        children
+      ) : (
+        <Surface
+          className={cn("bg-surface p-5 ring-transparent md:p-6", surfaceClassName)}
+        >
+          {children}
+        </Surface>
+      )}
     </section>
   );
 }

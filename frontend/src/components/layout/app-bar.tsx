@@ -7,7 +7,6 @@ import { Menu01Icon } from "@hugeicons/core-free-icons";
 import { AccountControl } from "@/components/layout/account-control";
 import { BrandLockup } from "@/components/layout/brand-lockup";
 import { LocaleToggle } from "@/components/layout/locale-toggle";
-import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { ViewToggle } from "@/components/layout/view-toggle";
 import { AlertsPopover } from "@/components/notifications/alerts-popover";
 import { useAudience } from "@/components/providers/audience-provider";
@@ -70,7 +69,6 @@ export function ShellAppBar({
           {showAlerts ? <AlertsPopover tone="chrome" /> : null}
           {!user ? <ViewToggle tone="chrome" className="hidden sm:inline-flex" /> : null}
           <LocaleToggle tone="chrome" />
-          <ThemeToggle tone="chrome" />
           <AccountControl />
         </AppBar.Right>
       </AppBar.Primary>

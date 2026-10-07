@@ -14,6 +14,9 @@ import { Button } from "@/components/ui/button";
 import { FrostCard } from "@/components/ui/frost-card";
 import { Surface } from "@/components/ui/surface";
 import { routes } from "@/config/routes";
+
+const frostButton =
+  "border-0 bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))] text-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] backdrop-blur-md backdrop-saturate-150 hover:bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))]";
 import type { DictionaryKey } from "@/lib/i18n/dictionary";
 
 const ROLES: {
@@ -79,7 +82,7 @@ export function HomeRoles() {
               <p className="text-sm leading-[1.7] text-muted-foreground">
                 {t(role.body)}
               </p>
-              <Button asChild variant="outline" className="mt-auto w-fit">
+              <Button asChild className={`mt-auto w-fit ${frostButton}`}>
                 <Link href={role.href}>
                   {t(role.cta)}
                   <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />

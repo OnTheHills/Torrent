@@ -6,7 +6,6 @@ import {
   Building03Icon,
   CheckmarkCircle02Icon,
   File01Icon,
-  GridIcon,
 } from "@hugeicons/core-free-icons";
 
 import { MonitorSection } from "@/components/monitor/monitor-section";
@@ -16,22 +15,16 @@ import type { DictionaryKey } from "@/lib/i18n/dictionary";
 import { cn } from "@/lib/utils";
 
 const CARDS: {
-  key: "kpiSources" | "statCategories" | "statDraftLive" | "statPublished";
+  key: "kpiSources" | "statDraftLive" | "statPublished";
   hint: DictionaryKey;
   icon: IconSvgElement;
-  tone: "default" | "accent" | "warning" | "warm";
+  tone: "default" | "warning" | "warm";
 }[] = [
   {
     key: "kpiSources",
     hint: "kpiSourcesHint",
     icon: Building03Icon,
     tone: "default",
-  },
-  {
-    key: "statCategories",
-    hint: "statCategoriesHint",
-    icon: GridIcon,
-    tone: "accent",
   },
   {
     key: "statDraftLive",
@@ -47,30 +40,24 @@ const CARDS: {
   },
 ];
 
+const frostCard =
+  "border-0 bg-[color-mix(in_srgb,var(--card-tint)_46%,transparent)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_88%,transparent)] ring-1 backdrop-blur-xl backdrop-saturate-150";
+
 const TONE = {
   default: {
-    cardBg: "bg-[var(--palette-teal-75)]",
+    tint: "var(--palette-teal-100)",
     iconFg: "text-[var(--palette-teal-700)]",
-    ring: "color-mix(in srgb, var(--palette-teal-300) 70%, transparent)",
-    highlight: "color-mix(in srgb, var(--palette-teal-50) 88%, transparent)",
-  },
-  accent: {
-    cardBg: "bg-[var(--palette-blue-75)]",
-    iconFg: "text-[var(--palette-blue-800)]",
-    ring: "color-mix(in srgb, var(--palette-blue-300) 70%, transparent)",
-    highlight: "color-mix(in srgb, var(--palette-blue-50) 88%, transparent)",
+    ring: "color-mix(in srgb, var(--palette-teal-300) 55%, transparent)",
   },
   warning: {
-    cardBg: "bg-[var(--palette-yellow-75)]",
+    tint: "var(--palette-yellow-100)",
     iconFg: "text-[var(--palette-yellow-700)]",
-    ring: "color-mix(in srgb, var(--palette-yellow-300) 70%, transparent)",
-    highlight: "color-mix(in srgb, var(--palette-yellow-50) 88%, transparent)",
+    ring: "color-mix(in srgb, var(--palette-yellow-300) 55%, transparent)",
   },
   warm: {
-    cardBg: "bg-[var(--palette-orange-75)]",
+    tint: "var(--palette-orange-100)",
     iconFg: "text-[var(--palette-orange-700)]",
-    ring: "color-mix(in srgb, var(--palette-orange-300) 70%, transparent)",
-    highlight: "color-mix(in srgb, var(--palette-orange-50) 88%, transparent)",
+    ring: "color-mix(in srgb, var(--palette-orange-300) 55%, transparent)",
   },
 } as const;
 
@@ -80,7 +67,6 @@ export function BudgetKpiStrip({
 }: {
   values: {
     kpiSources: number;
-    statCategories: number;
     statDraftLive: number;
     statPublished: number;
   };
@@ -90,21 +76,19 @@ export function BudgetKpiStrip({
 
   return (
     <MonitorSection
+      bare
       title={t("budgetSnapshotTitle")}
       description={t("budgetSnapshotSubtitle")}
     >
-      <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
         {CARDS.map((card) => (
           <FrostCard
             key={card.key}
-            className={cn(
-              "flex h-full flex-col gap-4 rounded-lg p-6 md:p-5",
-              TONE[card.tone].cardBg
-            )}
+            className={cn("flex h-full flex-col gap-4 rounded-lg p-6 md:p-5", frostCard)}
             style={
               {
+                "--card-tint": TONE[card.tone].tint,
                 "--surface-frost-ring": TONE[card.tone].ring,
-                "--surface-frost-highlight": TONE[card.tone].highlight,
               } as CSSProperties
             }
           >

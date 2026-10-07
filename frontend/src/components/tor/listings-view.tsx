@@ -15,6 +15,7 @@ export function ListingsView({
   tors = [],
   initialQuery = "",
   initialAgencies = [],
+  initialCategories = [],
   initialSources = [],
   initialSort = "newest",
   initialStages = [],
@@ -24,6 +25,7 @@ export function ListingsView({
   tors?: Tor[];
   initialQuery?: string;
   initialAgencies?: AgencyId[];
+  initialCategories?: string[];
   initialSources?: SourceFilter[];
   initialSort?: ListingSort;
   initialStages?: ListingStage[];
@@ -56,6 +58,7 @@ export function ListingsView({
           tors={tors}
           initialQuery={initialQuery}
           initialAgencies={initialAgencies}
+          initialCategories={initialCategories}
           initialSources={initialSources}
           initialSort={initialSort}
           initialStages={initialStages}

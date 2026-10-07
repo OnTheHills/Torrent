@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { NotificationSettingsView } from "@/components/notifications/notification-settings-view";
 
 export const metadata: Metadata = {
-  title: "Alert rules",
+  title: "Smart Alert",
 };
 
 export default function VendorAlertsPage() {

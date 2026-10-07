@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 /** One column for the landing hero and every HomeBand / HomeRule. */
-export const homeFrameClass = "mx-auto w-full max-w-5xl px-6";
+export const homeFrameClass = "mx-auto w-full max-w-6xl px-6";
 
 export function HomeFrame({
   className,

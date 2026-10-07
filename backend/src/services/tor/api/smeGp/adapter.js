@@ -48,7 +48,7 @@ function adapt(rows) {
       source: SOURCE,
       egpUrl: pdfUrl ? undefined : link || WEBSITE_URL,
       torPdfPath: pdfUrl || undefined,
-      category: classifyCategory(keyword),
+      category: classifyCategory(candidate.title),
       budgetThb: parseBudget(
         firstPresent(
           candidate.budget,
