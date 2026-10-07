@@ -5,7 +5,7 @@ const { syncAPI } = require("@/jobs/syncAPI");
 
 async function startSyncScheduler() {
   async function runSync(trigger) {
-    console.log(`Running ${trigger} BMA/SME-GP sync job...`);
+    console.log(`Running ${trigger} procurement sync job...`);
     try {
       const result = await syncAPI();
       console.log(`${trigger} sync job completed successfully:`, result);
@@ -24,7 +24,7 @@ async function startSyncScheduler() {
     noOverlap: true,
   });
 
-  console.log("BMA/SME-GP sync scheduled for 00:00 Asia/Bangkok daily.");
+  console.log("Procurement sync scheduled for 00:00 Asia/Bangkok daily.");
 }
 
 module.exports = { startSyncScheduler };

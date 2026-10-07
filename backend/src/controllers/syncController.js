@@ -13,16 +13,6 @@ async function triggerSyncAll(request, response) {
   }
 }
 
-async function triggerSmeGpSync(request, response) {
-  try {
-    const result = await syncSource("smeGp");
-    return response.status(200).json({ message: "SME-GP sync successful", data: result });
-  } catch (error) {
-    console.error("SME-GP sync error:", error);
-    return response.status(500).json({ message: error.message });
-  }
-}
-
 async function triggerBmaEgp2Sync(request, response) {
   try {
     const result = await syncSource("bmaEgp2");
@@ -43,6 +33,16 @@ async function triggerEgpRssSync(request, response) {
   }
 }
 
+async function triggerDataGoSync(request, response) {
+  try {
+    const result = await syncSource("dataGo");
+    return response.status(200).json({ message: "data.go e-GP sync successful", data: result });
+  } catch (error) {
+    console.error("data.go e-GP sync error:", error);
+    return response.status(500).json({ message: error.message });
+  }
+}
+
 async function triggerBmaOcr(request, response) {
   try {
     const tors = await torRepository.findBySource("BMA-EGP2");
@@ -58,7 +58,7 @@ module.exports = {
   triggerBmaEgp2Sync,
   triggerEgpRssSync,
   triggerBmaOcr,
-  triggerSmeGpSync,
+  triggerDataGoSync,
   triggerSync: triggerSyncAll,
   triggerSyncAll,
 };

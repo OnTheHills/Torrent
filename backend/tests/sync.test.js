@@ -3,11 +3,8 @@ const { readFileSync } = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const { test } = require("node:test");
-const smeConfig = require("@/constants/smeGpConstants");
 const bmaConfig = require("@/constants/bmaConstants");
 const egpConfig = require("@/constants/egpRssConstants");
-const smeFetch = require("@/services/tor/api/smeGp/fetch");
-const smeAdapter = require("@/services/tor/api/smeGp/adapter");
 const bmaFetch = require("@/services/tor/api/bmaEgp2/fetch");
 const bmaAdapter = require("@/services/tor/api/bmaEgp2/adapter");
 const egpFetch = require("@/services/tor/api/egpRss/fetch");
@@ -28,35 +25,6 @@ function loadModule(file, dependencies, env = {}) {
   });
   return module.exports;
 }
-
-test("SME-GP walks POST pages, deduplicates searches, and filters software TORs", async (t) => {
-  const calls = [];
-  t.mock.method(globalThis, "fetch", async (url, options) => {
-    assert.equal(url, smeConfig.API_URL);
-    assert.equal(options.method, "POST");
-    const payload = JSON.parse(options.body);
-    calls.push(payload);
-    return {
-      ok: true,
-      json: async () => ({
-        recordsFiltered: smeConfig.PAGE_SIZE + 1,
-        data: payload.start === "0"
-          ? [{ _id: "sme-1", title: "จ้างพัฒนาเว็บไซต์", budget: "1,200,000" }]
-          : [{ _id: "sme-2", title: "ซื้อเครื่องคอมพิวเตอร์" }],
-      }),
-    };
-  });
-  const raw = await smeFetch.fetch();
-  const result = { ...raw, fetched: raw.rows.length, tors: smeAdapter.adapt(raw.rows), source: smeFetch.source };
-  assert.equal(calls.length, smeConfig.SEARCH_TERMS.length * 2);
-  assert.ok(calls.some((call) => call.start === String(smeConfig.PAGE_SIZE)));
-  assert.equal(result.fetched, smeConfig.SEARCH_TERMS.length * 2);
-  assert.equal(result.tors.length, 1);
-  assert.equal(result.tors[0].refId, "sme-1");
-  assert.equal(result.tors[0].budgetThb, 1200000);
-  assert.equal(result.tors[0].category, "Web Application");
-  assert.equal(result.source, "SME-GP");
-});
 
 test("BMA uses project-search, follows pages, and maps software TORs", async (t) => {
   const calls = [];
@@ -144,7 +112,7 @@ test("e-GP RSS walks official B0/D0/W0 feeds and keeps software draft TORs", asy
 test("sync job adapts and persists each fetched API source", async () => {
   const saved = [];
   const job = loadModule("../src/jobs/syncAPI.js", {
-    "node:fs": { readdirSync: () => [{ name: "smeGp", isDirectory: () => true }, { name: "bmaEgp2", isDirectory: () => true }] },
+    "node:fs": { readdirSync: () => [{ name: "dataGo", isDirectory: () => true }, { name: "bmaEgp2", isDirectory: () => true }] },
     "node:path": { join: (...parts) => {
       const name = parts.at(-2);
       const file = parts.at(-1);
@@ -155,23 +123,22 @@ test("sync job adapts and persists each fetched API source", async () => {
       deleteMissingFromSource: async () => ({ removed: 0 }),
     },
     "@/services/tor/api/bmaEgp2/files": { hydrateProjects: async (tors) => tors },
-    "@/services/tor/api/smeGp/announcement": { enrich: async () => ({}) },
     "@/services/tor/ocr/ocrBmaPlans": { enrich: async () => ({ ocrAttempted: 1, ocrUpdated: 0, ocrSkipped: 1, ocrFailed: 0 }) },
-    "fetch:smeGp": { fetch: async () => ({ rows: [{ refId: "sme-1" }] }), method: "POST", source: "SME-GP" },
-    "adapter:smeGp": { adapt: (rows) => rows },
+    "fetch:dataGo": { fetch: async () => ({ rows: [{ refId: "data-1" }] }), method: "GET", source: "DATA-GO-EGP" },
+    "adapter:dataGo": { adapt: (rows) => rows },
     "fetch:bmaEgp2": { fetch: async () => ({ metadata: { budgetYears: ["2570", "2569"] }, rows: [{ refId: "bma-1" }] }), method: "GET", source: "BMA-EGP2" },
     "adapter:bmaEgp2": { adapt: (rows) => rows },
   });
   const result = await job.syncAPI();
-  assert.deepEqual(saved.sort(), ["bma-1", "sme-1"]);
+  assert.deepEqual(saved.sort(), ["bma-1", "data-1"]);
   assert.deepEqual(JSON.parse(JSON.stringify(result)), [
-    { source: "SME-GP", method: "POST", fetched: 1, matched: 1, created: 1, updated: 0, unchanged: 0 },
+    { source: "DATA-GO-EGP", method: "GET", fetched: 1, matched: 1, created: 1, updated: 0, unchanged: 0 },
     { source: "BMA-EGP2", method: "GET", budgetYears: ["2570", "2569"], fetched: 1, matched: 1, created: 1, updated: 0, unchanged: 0, removed: 0, ocrAttempted: 1, ocrUpdated: 0, ocrSkipped: 1, ocrFailed: 0 },
   ]);
 });
 
 test("TOR persistence bulk-writes new and changed records but skips identical records", async () => {
-  const existing = [{ _id: "tor-1", refId: "sme-1", source: "SME-GP", title: "Original" }];
+  const existing = [{ _id: "tor-1", refId: "data-1", source: "DATA-GO-EGP", title: "Original" }];
   const writes = [];
   const repository = loadModule("../src/repositories/torRepository.js", {
     "node:util": require("node:util"),
@@ -181,12 +148,12 @@ test("TOR persistence bulk-writes new and changed records but skips identical re
     },
   });
 
-  const same = { refId: "sme-1", source: "SME-GP", title: "Original" };
+  const same = { refId: "data-1", source: "DATA-GO-EGP", title: "Original" };
   assert.deepEqual(JSON.parse(JSON.stringify(await repository.saveChanged([same]))), { created: 0, updated: 0, unchanged: 1 });
   assert.deepEqual(writes, []);
 
   const changed = { ...same, title: "Revised" };
-  const newTor = { ...same, refId: "sme-2" };
+  const newTor = { ...same, refId: "data-2" };
   assert.deepEqual(JSON.parse(JSON.stringify(await repository.saveChanged([changed, newTor]))), { created: 1, updated: 1, unchanged: 0 });
   assert.deepEqual(JSON.parse(JSON.stringify(writes)), [
     { updateOne: { filter: { _id: "tor-1" }, update: { $set: changed } } },
