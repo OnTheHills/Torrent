@@ -29,16 +29,52 @@ function isQueuedTorStatus(status) {
   return !status || configured === "any" || String(status).trim().toLowerCase() === configured;
 }
 
-function eligibleTorFilter() {
+const SOURCE_TIME_ZONE = "Asia/Bangkok";
+
+function bangkokDateString(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: SOURCE_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const part = (type) => parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+// Same stages the listing cards call open, closing soon, and draft.
+// Awarded, cancelled, and past-deadline notices are not scored.
+function fitScoreApplies(tor, today = bangkokDateString()) {
+  if (!tor) return false;
+  const status = String(tor.status || "").trim().toLowerCase();
+  if (status === "awarded" || status === "cancelled") return false;
+  if (!status || status === "draft") return true;
+  if (!isQueuedTorStatus(tor.status)) return false;
+  const deadline = tor.deadline || tor.ocr?.deadline;
+  if (!deadline) return true;
+  const deadlineDay = bangkokDateString(new Date(deadline));
+  return deadlineDay >= today;
+}
+
+function scoreableStatusFilter() {
   const configured = queuedTorStatus();
   if (configured === "any") return {};
   return {
     $or: [
       { status: configured },
+      { status: "draft" },
       { status: { $exists: false } },
       { status: null },
+      { status: "" },
     ],
   };
+}
+
+async function findScoreableTors(ids) {
+  const query = { ...scoreableStatusFilter() };
+  if (ids) query._id = { $in: ids };
+  const tors = await TOR.find(query).select("_id status deadline ocr.deadline").lean();
+  return tors.filter((tor) => fitScoreApplies(tor));
 }
 
 async function enqueueTor(torId) {
@@ -49,11 +85,7 @@ async function enqueueTors(torIds = []) {
   const ids = [...new Set(torIds.filter(Boolean).map(String))];
   if (!ids.length) return 0;
 
-  const eligibleTors = await TOR.find({
-    _id: { $in: ids },
-    ...eligibleTorFilter(),
-  }).select("_id").lean();
-  const eligibleIds = eligibleTors.map((tor) => String(tor._id));
+  const eligibleIds = (await findScoreableTors(ids)).map((tor) => String(tor._id));
   if (!eligibleIds.length) return 0;
 
   await Promise.all(eligibleIds.map((torId) => TorMatchJob.findOneAndUpdate(
@@ -77,30 +109,90 @@ async function enqueueTors(torIds = []) {
 // A profile save must therefore requeue the currently eligible TORs instead of
 // waiting for a future source sync to update one of them.
 async function enqueueEligibleTors() {
-  const tors = await TOR.find(eligibleTorFilter()).select("_id").lean();
+  const tors = await findScoreableTors();
   return enqueueTors(tors.map((tor) => tor._id));
+}
+
+async function retireIneligibleJobs() {
+  const active = await TorMatchJob.find({
+    status: { $in: ["pending", "running", "waiting"] },
+  }).select("_id torId").lean();
+  if (!active.length) return 0;
+
+  const tors = await TOR.find({ _id: { $in: active.map((job) => job.torId) } })
+    .select("_id status deadline ocr.deadline")
+    .lean();
+  const scoreable = new Set(
+    tors.filter((tor) => fitScoreApplies(tor)).map((tor) => String(tor._id)),
+  );
+  const dropIds = active
+    .filter((job) => !scoreable.has(String(job.torId)))
+    .map((job) => job._id);
+  if (!dropIds.length) return 0;
+
+  await TorMatchJob.updateMany(
+    { _id: { $in: dropIds } },
+    {
+      $set: {
+        status: "complete",
+        cursor: null,
+        retryAt: null,
+        retryCount: 0,
+        leaseUntil: null,
+        lockId: null,
+        lastError: null,
+        completedAt: new Date(),
+      },
+    },
+  );
+  console.info("TOR matching skipped closed, awarded, and cancelled listings", {
+    jobs: dropIds.length,
+  });
+  return dropIds.length;
 }
 
 async function claimJob() {
   const now = new Date();
-  return TorMatchJob.findOneAndUpdate(
-    {
-      $or: [
-        { status: "pending" },
-        { status: "waiting", retryAt: { $lte: now } },
-        { status: "running", leaseUntil: { $lte: now } },
-      ],
+  const eligible = {
+    $or: [
+      { status: "pending" },
+      { status: "waiting", retryAt: { $lte: now } },
+      { status: "running", leaseUntil: { $lte: now } },
+    ],
+  };
+  const candidates = await TorMatchJob.find(eligible).select("_id torId").lean();
+  if (!candidates.length) return null;
+
+  const tors = await TOR.find({ _id: { $in: candidates.map((job) => job.torId) } })
+    .select("publishedAt")
+    .lean();
+  const publishedAt = new Map(
+    tors.map((tor) => [
+      String(tor._id),
+      tor.publishedAt ? new Date(tor.publishedAt).getTime() : 0,
+    ]),
+  );
+  candidates.sort(
+    (a, b) => (publishedAt.get(String(b.torId)) || 0) - (publishedAt.get(String(a.torId)) || 0),
+  );
+
+  const claim = {
+    $set: {
+      status: "running",
+      lockId: randomUUID(),
+      leaseUntil: new Date(Date.now() + LEASE_MS),
+      lastError: null,
     },
-    {
-      $set: {
-        status: "running",
-        lockId: randomUUID(),
-        leaseUntil: new Date(Date.now() + LEASE_MS),
-        lastError: null,
-      },
-    },
-    { sort: { updatedAt: 1 }, returnDocument: "after" },
-  ).lean();
+  };
+  for (const candidate of candidates) {
+    const claimed = await TorMatchJob.findOneAndUpdate(
+      { _id: candidate._id, ...eligible },
+      claim,
+      { returnDocument: "after" },
+    ).lean();
+    if (claimed) return claimed;
+  }
+  return null;
 }
 
 async function finishJob(job) {
@@ -230,7 +322,7 @@ async function advanceCursor(job, userId) {
 
 async function processJob(job) {
   const tor = await TOR.findById(job.torId).lean();
-  if (!tor || !isQueuedTorStatus(tor.status)) {
+  if (!tor || !fitScoreApplies(tor)) {
     await finishJob(job);
     return "complete";
   }
@@ -280,6 +372,7 @@ async function drain() {
   if (draining) return;
   draining = true;
   try {
+    await retireIneligibleJobs();
     let job;
     while ((job = await claimJob())) {
       try {
@@ -309,6 +402,7 @@ module.exports = {
   enqueueTor,
   enqueueTors,
   enqueueEligibleTors,
+  fitScoreApplies,
   kick,
   nextPacificMidnight,
 };

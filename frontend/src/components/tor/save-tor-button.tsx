@@ -51,7 +51,7 @@ export function SaveTorButton({
         <HugeiconsIcon
           icon={HeartIcon}
           strokeWidth={1.75}
-          className={cn("size-4", saved && "[&_path]:fill-[#e44586]")}
+          className={cn("size-[57%]", saved && "[&_path]:fill-[#e44586]")}
         />
       </button>
     );

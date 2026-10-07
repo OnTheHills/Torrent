@@ -9,7 +9,7 @@ export default function AdminLayout({
 }) {
   return (
     <AudienceProvider audience="admin">
-      <AppShell nav={ADMIN_NAV} workspace="audienceAdmin" showBackToSite inset>
+      <AppShell nav={ADMIN_NAV} workspace="audienceAdmin" showBackToSite>
         {children}
       </AppShell>
     </AudienceProvider>

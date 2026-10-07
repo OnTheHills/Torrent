@@ -12,11 +12,12 @@ import { AlertsPopover } from "@/components/notifications/alerts-popover";
 import { useAudience } from "@/components/providers/audience-provider";
 import { useLocale } from "@/components/providers/locale-provider";
 import { useSession } from "@/components/providers/session-provider";
-import { AppBar } from "@/components/ui/appbar";
+import { AppBar, chromeFrostBar } from "@/components/ui/appbar";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";
 import { routes } from "@/config/routes";
 import { dictionary, type DictionaryKey } from "@/lib/i18n/dictionary";
+import { cn } from "@/lib/utils";
 
 /**
  * Full-width chrome above the sidebar + content canvas.
@@ -44,7 +45,10 @@ export function ShellAppBar({
             size="icon-lg"
             aria-label={t("openMenu")}
             onClick={toggleSidebar}
-            className="text-appbar-muted-foreground hover:bg-appbar-hover hover:text-appbar-foreground md:hidden"
+            className={cn(
+              chromeFrostBar,
+              "hover:bg-[linear-gradient(180deg,var(--palette-gray-700),var(--palette-gray-800))] hover:brightness-125 md:hidden",
+            )}
           >
             <HugeiconsIcon icon={Menu01Icon} strokeWidth={1.75} />
           </Button>

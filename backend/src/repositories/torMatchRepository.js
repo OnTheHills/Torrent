@@ -1,4 +1,5 @@
 const TORMatch = require("@/models/TORMatch");
+const TorMatchJob = require("@/models/TorMatchJob");
 
 async function create(data) {
   return TORMatch.create(data);
@@ -8,12 +9,29 @@ async function findAll() {
   return TORMatch.find();
 }
 
+async function findPendingTorIds() {
+  const jobs = await TorMatchJob.find({
+    status: { $in: ["pending", "running", "waiting"] },
+  })
+    .select("torId")
+    .lean();
+  return jobs.map((job) => String(job.torId));
+}
+
 async function findByUserId(userId) {
   return TORMatch.find({ userId }).sort({ updatedAt: -1 });
 }
 
 async function findById(id) {
   return TORMatch.findById(id);
+}
+
+async function setDismissedForUser(id, userId, dismissed) {
+  return TORMatch.findOneAndUpdate(
+    { _id: id, userId },
+    { $set: { dismissedAt: dismissed ? new Date() : null } },
+    { returnDocument: "after" },
+  );
 }
 
 async function update(id, data) {
@@ -27,4 +45,13 @@ async function remove(id) {
   return TORMatch.findByIdAndDelete(id);
 }
 
-module.exports = { create, findAll, findById, findByUserId, remove, update };
+module.exports = {
+  create,
+  findAll,
+  findById,
+  findByUserId,
+  findPendingTorIds,
+  setDismissedForUser,
+  remove,
+  update,
+};

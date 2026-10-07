@@ -36,6 +36,7 @@ test("quota exhaustion pauses one TOR at the unfinished vendor", async () => {
     },
     "@/models/TOR": {
       findById: () => queryResult(tor),
+      find: () => queryResult([tor]),
     },
     "@/models/TORMatch": {
       updateOne: async (filter, update) => matches.push({ filter, update }),

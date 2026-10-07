@@ -2,15 +2,9 @@
 
 import { useEffect, useState } from "react";
 
+import { MonitorSection } from "@/components/monitor/monitor-section";
 import { useLocale } from "@/components/providers/locale-provider";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import type { SourceVerdict } from "@/config/agencies";
 import type { SourceProbeResult } from "@/lib/sources/probe";
 
@@ -64,12 +58,12 @@ export function SourceHealthPanel() {
   }, []);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{t("sourceHealthTitle")}</CardTitle>
-        <CardDescription>{t("sourceHealthSubtitle")}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
+    <MonitorSection
+      title={t("sourceHealthTitle")}
+      description={t("sourceHealthSubtitle")}
+      surfaceClassName="rounded-lg bg-[color-mix(in_srgb,var(--palette-gray-50)_62%,transparent)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_88%,transparent)] ring-1 ring-[color-mix(in_srgb,white_72%,transparent)] backdrop-blur-md backdrop-saturate-150"
+    >
+      <div className="space-y-3">
         {error ? (
           <p className="text-sm text-muted-foreground">{error}</p>
         ) : null}
@@ -80,7 +74,7 @@ export function SourceHealthPanel() {
           ? data.results.map((item) => (
               <div
                 key={item.id}
-                className="flex flex-col gap-2 rounded-lg border border-border p-3 sm:flex-row sm:items-start sm:justify-between"
+                className="flex flex-col gap-2 rounded-lg bg-[color-mix(in_srgb,white_55%,transparent)] px-4 py-3 sm:flex-row sm:items-start sm:justify-between"
               >
                 <div className="min-w-0 space-y-1">
                   <p className="text-sm font-medium">{item.label}</p>
@@ -98,7 +92,7 @@ export function SourceHealthPanel() {
               </div>
             ))
           : null}
-      </CardContent>
-    </Card>
+      </div>
+    </MonitorSection>
   );
 }

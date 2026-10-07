@@ -24,7 +24,10 @@ async function googleLogin(request, response) {
     setSession(response, user);
     return response.status(200).json(publicUser);
   } catch (error) {
-    return response.status(error.statusCode || 500).json({ message: error.message });
+    return response.status(error.statusCode || 500).json({
+      message: error.message,
+      ...(error.code ? { code: error.code } : {}),
+    });
   }
 }
 

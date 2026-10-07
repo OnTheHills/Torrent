@@ -6,7 +6,10 @@ const {
   pickTorAnnouncement,
   projectIdFromUrl,
 } = require("@/services/tor/api/bmaEgp2/files");
-const { extractPlanPdf } = require("@/services/tor/ocr/extractPlanPdf");
+const {
+  extractPlanPdf,
+  SUMMARY_VERSION,
+} = require("@/services/tor/ocr/extractPlanPdf");
 const torRepository = require("@/repositories/torRepository");
 
 function ocrEnabled() {
@@ -27,6 +30,7 @@ function alreadyExtracted(current, fileName) {
   return Boolean(
     current?.ocr?.status === "ok" &&
       current?.ocr?.fileName === fileName &&
+      current?.ocr?.summaryVersion === SUMMARY_VERSION &&
       (current.ocr.summary ||
         current.ocr.summaryTh ||
         (current.ocr.requirements || []).length),
@@ -96,6 +100,7 @@ async function enrichOne(tor, existingByRef) {
       fileName,
       fileUrl,
       model: extracted.model,
+      summaryVersion: SUMMARY_VERSION,
       extractedAt: new Date(),
       summary: extracted.extract.summary || undefined,
       summaryTh: extracted.extract.summaryTh || undefined,

@@ -4,7 +4,10 @@ import { notFound } from "next/navigation";
 import { TorDetail } from "@/components/tor/tor-detail";
 import { fetchTorById, fetchTors } from "@/lib/api";
 
-type Props = { params: Promise<{ id: string }> };
+type Props = {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string }>;
+};
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
@@ -12,9 +15,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: tor?.title ?? "TOR" };
 }
 
-export default async function VendorTorDetailPage({ params }: Props) {
+export default async function VendorTorDetailPage({ params, searchParams }: Props) {
   const { id } = await params;
+  const { from } = await searchParams;
   const [tor, tors] = await Promise.all([fetchTorById(id), fetchTors()]);
   if (!tor) notFound();
-  return <TorDetail benchmarkTors={tors} tor={tor} />;
+  return (
+    <TorDetail
+      benchmarkTors={tors}
+      tor={tor}
+      returnTo={from === "matches" ? "matches" : undefined}
+    />
+  );
 }

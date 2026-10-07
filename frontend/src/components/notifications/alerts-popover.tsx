@@ -9,6 +9,7 @@ import { Notification03Icon } from "@hugeicons/core-free-icons";
 import { useLocale } from "@/components/providers/locale-provider";
 import { MatchBadge } from "@/components/tor/match-badge";
 import { SkillTags } from "@/components/tor/skill-tags";
+import { chromeFrostBar } from "@/components/ui/appbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -183,7 +184,11 @@ export function AlertsPopover({
         onClick={() => setOpen((value) => !value)}
         className={cn(
           tone === "chrome" &&
-            "relative text-appbar-muted-foreground hover:bg-appbar-hover hover:text-appbar-foreground aria-expanded:bg-appbar-active aria-expanded:text-appbar-foreground"
+            cn(
+              "relative hover:bg-[linear-gradient(180deg,var(--palette-gray-700),var(--palette-gray-800))] hover:brightness-125",
+              chromeFrostBar,
+              "aria-expanded:bg-[color-mix(in_srgb,var(--palette-teal-400)_32%,transparent)] aria-expanded:ring-[color-mix(in_srgb,var(--palette-teal-300)_45%,transparent)]",
+            )
         )}
       >
         {tone === "chrome" ? (

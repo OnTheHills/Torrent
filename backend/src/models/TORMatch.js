@@ -21,6 +21,10 @@ const torMatchSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    dismissedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     collection: "tor_matches",

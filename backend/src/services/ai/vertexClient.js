@@ -116,10 +116,11 @@ async function generateText({ prompt, timeoutMs } = {}) {
   });
 }
 
-async function generateFromParts({ parts, timeoutMs } = {}) {
+async function generateFromParts({ parts, timeoutMs, responseJsonSchema } = {}) {
   return generateContentRequest({
     contents: [{ role: "user", parts }],
     timeoutMs,
+    responseJsonSchema,
   });
 }
 

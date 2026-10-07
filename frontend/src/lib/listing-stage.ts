@@ -51,6 +51,12 @@ export function listingStage(
   return "open";
 }
 
+const FIT_SCORE_STAGES = new Set<ListingStage>(["open", "closing", "draft"]);
+
+export function fitScoreApplies(tor: { lifecycle: string; deadline?: string }) {
+  return FIT_SCORE_STAGES.has(listingStage(tor));
+}
+
 export function parseListingStages(values: string[]): ListingStage[] {
   return [...new Set(values.filter((item): item is ListingStage => STAGE_SET.has(item)))];
 }
