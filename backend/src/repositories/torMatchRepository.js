@@ -8,6 +8,10 @@ async function findAll() {
   return TORMatch.find();
 }
 
+async function findByUserId(userId) {
+  return TORMatch.find({ userId }).sort({ updatedAt: -1 });
+}
+
 async function findById(id) {
   return TORMatch.findById(id);
 }
@@ -23,4 +27,4 @@ async function remove(id) {
   return TORMatch.findByIdAndDelete(id);
 }
 
-module.exports = { create, findAll, findById, remove, update };
+module.exports = { create, findAll, findById, findByUserId, remove, update };

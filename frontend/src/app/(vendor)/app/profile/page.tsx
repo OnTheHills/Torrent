@@ -120,7 +120,7 @@ export default function ProfilePage() {
       <PageHeader
         eyebrow="Account"
         title="Capability profile"
-        description="Matching uses technologies, project types, and team size. Edits stay local in this prototype."
+        description="Matching uses technologies, project types, and team size. Saving queues your profile against current TORs."
       />
 
       <Card>

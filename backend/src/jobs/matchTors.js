@@ -24,7 +24,21 @@ function queuedTorStatus() {
 
 function isQueuedTorStatus(status) {
   const configured = queuedTorStatus();
-  return configured === "any" || String(status || "").trim().toLowerCase() === configured;
+  // Older imported records may not have a lifecycle status. Treat those as
+  // eligible so a profile save does not silently skip the legacy catalog.
+  return !status || configured === "any" || String(status).trim().toLowerCase() === configured;
+}
+
+function eligibleTorFilter() {
+  const configured = queuedTorStatus();
+  if (configured === "any") return {};
+  return {
+    $or: [
+      { status: configured },
+      { status: { $exists: false } },
+      { status: null },
+    ],
+  };
 }
 
 async function enqueueTor(torId) {
@@ -35,10 +49,9 @@ async function enqueueTors(torIds = []) {
   const ids = [...new Set(torIds.filter(Boolean).map(String))];
   if (!ids.length) return 0;
 
-  const configuredStatus = queuedTorStatus();
   const eligibleTors = await TOR.find({
     _id: { $in: ids },
-    ...(configuredStatus === "any" ? {} : { status: configuredStatus }),
+    ...eligibleTorFilter(),
   }).select("_id").lean();
   const eligibleIds = eligibleTors.map((tor) => String(tor._id));
   if (!eligibleIds.length) return 0;
@@ -58,6 +71,14 @@ async function enqueueTors(torIds = []) {
   );
   kick();
   return eligibleIds.length;
+}
+
+// Jobs are TOR-centric: one job evaluates a TOR against every vendor profile.
+// A profile save must therefore requeue the currently eligible TORs instead of
+// waiting for a future source sync to update one of them.
+async function enqueueEligibleTors() {
+  const tors = await TOR.find(eligibleTorFilter()).select("_id").lean();
+  return enqueueTors(tors.map((tor) => tor._id));
 }
 
 async function claimJob() {
@@ -283,4 +304,11 @@ function kick() {
   setImmediate(() => drain().catch((error) => console.error("TOR matching drain failed", error)));
 }
 
-module.exports = { drain, enqueueTor, enqueueTors, kick, nextPacificMidnight };
+module.exports = {
+  drain,
+  enqueueTor,
+  enqueueTors,
+  enqueueEligibleTors,
+  kick,
+  nextPacificMidnight,
+};

@@ -8,6 +8,10 @@ async function getAllTorMatches() {
   return torMatchRepository.findAll();
 }
 
+async function getTorMatchesByUserId(userId) {
+  return torMatchRepository.findByUserId(userId);
+}
+
 async function getTorMatchById(id) {
   return torMatchRepository.findById(id);
 }
@@ -24,6 +28,7 @@ module.exports = {
   createTorMatch,
   deleteTorMatch,
   getAllTorMatches,
+  getTorMatchesByUserId,
   getTorMatchById,
   updateTorMatch,
 };

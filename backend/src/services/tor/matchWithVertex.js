@@ -55,7 +55,7 @@ function matchPrompt(profile, tor) {
     "Use team size or location only when the TOR makes them relevant. Do not reward or penalize them by themselves.",
     "Score guide: 90-100 = strong evidence for nearly all important requirements; 70-89 = good fit with limited gaps; 50-69 = partial fit or important unknowns; 25-49 = weak fit; 0-24 = little relevant evidence.",
     "Missing profile details or TOR requirements must lower the score because fit is uncertain. Never invent experience, skills, requirements, or evidence.",
-    "Return a matchPercent from 0 to 100 and a matchReason under 60 words naming the best evidence and main gap, if any.",
+    "Return a matchPercent from 0 to 100 and a matchReason under 60 words naming the best evidence and main gap, if any. Write matchReason only in Thai (ภาษาไทย), even when the supplied profile or TOR text is in another language.",
     `Vendor: ${JSON.stringify(vendor)}`,
     `TOR: ${JSON.stringify(opportunity)}`,
   ].join("\n");
