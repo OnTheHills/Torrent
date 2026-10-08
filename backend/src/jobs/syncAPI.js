@@ -1,7 +1,6 @@
 const { readdirSync } = require("node:fs");
 const { join } = require("node:path");
 const { hydrateProjects } = require("@/services/tor/api/bmaEgp2/files");
-const smeAnnouncements = require("@/services/tor/api/smeGp/announcement");
 const ocrBmaPlans = require("@/services/tor/ocr/ocrBmaPlans");
 const torRepository = require("@/repositories/torRepository");
 const torMatching = require("@/jobs/matchTors");
@@ -30,7 +29,6 @@ async function syncSource(name, { enqueueMatches = true, collectMatchIds = false
   const result = await source.fetcher.fetch();
   const matched = source.adapter.adapt(result.rows);
   const tors = name === "bmaEgp2" ? await hydrateProjects(matched) : matched;
-  const announcement = name === "smeGp" ? await smeAnnouncements.enrich(tors) : {};
   const { changedTorIds = [], ...persisted } = await save(tors);
   const replaced =
     name === "bmaEgp2" && result.rows.length
@@ -49,7 +47,6 @@ async function syncSource(name, { enqueueMatches = true, collectMatchIds = false
     method: source.fetcher.method,
     ...persisted,
     ...replaced,
-    ...announcement,
     ...ocr,
     source: source.fetcher.source,
     ...(collectMatchIds ? { _matchTorIds: matchTorIds } : {}),

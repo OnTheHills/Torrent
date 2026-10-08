@@ -1,4 +1,4 @@
-const { INCLUDE_KEYWORDS, EXCLUDE_KEYWORDS } = require("@/constants/smeGpConstants");
+const { INCLUDE_KEYWORDS, EXCLUDE_KEYWORDS } = require("@/constants/egpRssConstants");
 const { SOURCE } = require("@/constants/egpRssConstants");
 const { classifyCategory, parseDate } = require("@/utils/torUtils");
 
