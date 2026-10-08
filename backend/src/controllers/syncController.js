@@ -1,6 +1,7 @@
 const { syncAPI, syncSource } = require("@/jobs/syncAPI");
 const ocrBmaPlans = require("@/services/tor/ocr/ocrBmaPlans");
 const torRepository = require("@/repositories/torRepository");
+const torMatching = require("@/jobs/matchTors");
 
 // Manual synchronization for both procurement APIs or one selected source.
 async function triggerSyncAll(request, response) {
@@ -47,6 +48,12 @@ async function triggerBmaOcr(request, response) {
   try {
     const tors = await torRepository.findBySource("BMA-EGP2");
     const result = await ocrBmaPlans.enrich(tors);
+    if (result.updatedTorIds?.length) {
+      // The OCR endpoint can respond once extraction is complete. Queue writes
+      // continue in the background and log failures instead of failing the response.
+      torMatching.enqueueTors(result.updatedTorIds)
+        .catch((error) => console.error("Failed to queue BMA TOR matches:", error));
+    }
     return response.status(200).json({ message: "BMA TOR PDF extract complete", data: result });
   } catch (error) {
     console.error("BMA OCR error:", error);

@@ -111,6 +111,7 @@ test("e-GP RSS walks official B0/D0/W0 feeds and keeps software draft TORs", asy
 
 test("sync job adapts and persists each fetched API source", async () => {
   const saved = [];
+  const queued = [];
   const job = loadModule("../src/jobs/syncAPI.js", {
     "node:fs": { readdirSync: () => [{ name: "dataGo", isDirectory: () => true }, { name: "bmaEgp2", isDirectory: () => true }] },
     "node:path": { join: (...parts) => {
@@ -119,18 +120,28 @@ test("sync job adapts and persists each fetched API source", async () => {
       return file === "fetch" || file === "adapter" ? `${file}:${name}` : "api";
     } },
     "@/repositories/torRepository": {
-      saveChanged: async (tors) => { saved.push(...tors.map(({ refId }) => refId)); return { created: tors.length, updated: 0, unchanged: 0 }; },
+      saveChanged: async (tors) => {
+        saved.push(...tors.map(({ refId }) => refId));
+        return {
+          created: tors.length,
+          updated: 0,
+          unchanged: 0,
+          changedTorIds: tors.map(({ refId }) => `tor-id-${refId}`),
+        };
+      },
       deleteMissingFromSource: async () => ({ removed: 0 }),
     },
     "@/services/tor/api/bmaEgp2/files": { hydrateProjects: async (tors) => tors },
     "@/services/tor/ocr/ocrBmaPlans": { enrich: async () => ({ ocrAttempted: 1, ocrUpdated: 0, ocrSkipped: 1, ocrFailed: 0 }) },
     "fetch:dataGo": { fetch: async () => ({ rows: [{ refId: "data-1" }] }), method: "GET", source: "DATA-GO-EGP" },
     "adapter:dataGo": { adapt: (rows) => rows },
+    "@/jobs/matchTors": { enqueueTors: async (ids) => { queued.push(...ids); return ids.length; } },
     "fetch:bmaEgp2": { fetch: async () => ({ metadata: { budgetYears: ["2570", "2569"] }, rows: [{ refId: "bma-1" }] }), method: "GET", source: "BMA-EGP2" },
     "adapter:bmaEgp2": { adapt: (rows) => rows },
   });
   const result = await job.syncAPI();
   assert.deepEqual(saved.sort(), ["bma-1", "data-1"]);
+  assert.deepEqual(queued.sort(), ["tor-id-bma-1", "tor-id-data-1"]);
   assert.deepEqual(JSON.parse(JSON.stringify(result)), [
     { source: "DATA-GO-EGP", method: "GET", fetched: 1, matched: 1, created: 1, updated: 0, unchanged: 0 },
     { source: "BMA-EGP2", method: "GET", budgetYears: ["2570", "2569"], fetched: 1, matched: 1, created: 1, updated: 0, unchanged: 0, removed: 0, ocrAttempted: 1, ocrUpdated: 0, ocrSkipped: 1, ocrFailed: 0 },
@@ -143,18 +154,23 @@ test("TOR persistence bulk-writes new and changed records but skips identical re
   const repository = loadModule("../src/repositories/torRepository.js", {
     "node:util": require("node:util"),
     "@/models/TOR": {
-      find: () => ({ lean: async () => existing }),
+      find: (query) => ({
+        lean: async () => query.$or ? [{ _id: "tor-1" }, { _id: "tor-2" }] : existing,
+        select: () => ({ lean: async () => [{ _id: "tor-1" }, { _id: "tor-2" }] }),
+      }),
       bulkWrite: async (operations) => writes.push(...operations),
     },
+    "@/models/TORMatch": { deleteMany: async () => ({ deletedCount: 0 }) },
+    "@/models/TorMatchJob": { deleteMany: async () => ({ deletedCount: 0 }), deleteOne: async () => ({ deletedCount: 0 }) },
   });
 
   const same = { refId: "data-1", source: "DATA-GO-EGP", title: "Original" };
-  assert.deepEqual(JSON.parse(JSON.stringify(await repository.saveChanged([same]))), { created: 0, updated: 0, unchanged: 1 });
+  assert.deepEqual(JSON.parse(JSON.stringify(await repository.saveChanged([same]))), { created: 0, updated: 0, unchanged: 1, changedTorIds: [] });
   assert.deepEqual(writes, []);
 
   const changed = { ...same, title: "Revised" };
   const newTor = { ...same, refId: "data-2" };
-  assert.deepEqual(JSON.parse(JSON.stringify(await repository.saveChanged([changed, newTor]))), { created: 1, updated: 1, unchanged: 0 });
+  assert.deepEqual(JSON.parse(JSON.stringify(await repository.saveChanged([changed, newTor]))), { created: 1, updated: 1, unchanged: 0, changedTorIds: ["tor-1", "tor-2"] });
   assert.deepEqual(JSON.parse(JSON.stringify(writes)), [
     { updateOne: { filter: { _id: "tor-1" }, update: { $set: changed } } },
     { insertOne: { document: newTor } },

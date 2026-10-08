@@ -2,6 +2,7 @@
 
 import * as React from "react";
 
+import { chromeFrostBar, chromeFrostTeal } from "@/components/ui/appbar";
 import { cn } from "@/lib/utils";
 
 export type ToggleOption<T extends string = string> = {
@@ -28,14 +29,12 @@ const frostTrack =
 const pageFrostTrack =
   "bg-surface-frost shadow-[inset_0_1px_0_0_var(--surface-frost-highlight)] ring-1 ring-[var(--surface-frost-ring)]";
 
-const chromeFrostTrack =
-  "bg-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] ring-1 ring-white/12";
+const chromeFrostTrack = chromeFrostBar;
 
 const pageFrostThumb =
   "bg-[var(--toggle-thumb)] shadow-none ring-0 backdrop-blur-md";
 
-const chromeFrostThumb =
-  "bg-white/[0.08] text-white shadow-none ring-0 backdrop-blur-md";
+const chromeFrostThumb = chromeFrostTeal;
 
 /**
  * Frosted segmented toggle. Track and thumb stay translucent + blurred
@@ -79,7 +78,7 @@ function Toggle<T extends string>({
                   ? chromeFrostThumb
                   : cn(pageFrostThumb, "text-foreground")
                 : tone === "chrome"
-                  ? "text-white/55 hover:text-white"
+                  ? "text-[var(--palette-teal-100)]/60 hover:text-[var(--palette-teal-50)]"
                   : "text-muted-foreground hover:text-foreground"
             )}
           >

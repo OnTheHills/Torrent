@@ -9,6 +9,7 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { useSaved } from "@/components/providers/saved-provider";
 import { ListingFrostCard } from "@/components/tor/listing-frost-card";
 import { TorFetchStatus } from "@/components/tor/tor-loading";
+import { useTorsWithMatches } from "@/components/tor/use-match-scores";
 import { Button } from "@/components/ui/button";
 import { routes } from "@/config/routes";
 import { fetchTorsForQuery } from "@/lib/api";
@@ -16,10 +17,11 @@ import { fetchTorsForQuery } from "@/lib/api";
 export function SavedView() {
   const { t } = useLocale();
   const { savedIds, ready } = useSaved();
-  const { data: tors = [], isPending } = useQuery({
+  const { data: sourceTors = [], isPending } = useQuery({
     queryKey: ["tors"],
     queryFn: fetchTorsForQuery,
   });
+  const tors = useTorsWithMatches(sourceTors, true);
 
   const savedTors = tors
     .filter((tor) => savedIds.includes(tor.id))
@@ -29,12 +31,9 @@ export function SavedView() {
   return (
     <div>
       <section className="relative -mt-[144px] overflow-hidden hero-atmosphere text-hero-foreground">
-        <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-[calc(72px+4rem)] sm:px-6 md:pb-12 md:pt-[calc(72px+6rem)]">
-          <div className="mt-2 w-full max-w-2xl md:max-w-3xl lg:max-w-4xl">
-            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-hero-muted">
-              {t("savedEyebrow")}
-            </p>
-            <h1 className="mt-4 text-3xl font-semibold tracking-tight md:text-5xl md:leading-[1.1]">
+        <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-[calc(144px+2rem)] sm:px-6 md:pb-12 md:pt-[calc(144px+3rem)]">
+          <div className="w-full max-w-2xl md:max-w-3xl lg:max-w-4xl">
+            <h1 className="text-3xl font-semibold tracking-tight md:text-5xl md:leading-[1.1]">
               {t("savedTitle")}
             </h1>
             <p className="mt-5 text-base leading-[1.7] text-hero-muted md:text-lg">

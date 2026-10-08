@@ -140,7 +140,7 @@
 
   --background-body: var(--palette-teal-50);
 
-  /* Chrome stays dark in both themes. */
+  /* Chrome stays one dark surface. A live blur samples the peach page in the bar and the plain wallpaper in the sidebar, so the two pieces never match. */
   --appbar: var(--palette-gray-900);
   --appbar-foreground: var(--palette-teal-50);
   --appbar-muted-foreground: var(--palette-teal-300);

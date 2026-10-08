@@ -80,11 +80,17 @@ export interface Tor {
   ocr?: {
     status: string;
     method?: "text" | "ocr";
+    model?: string;
+    summaryVersion?: number;
     extractedAt?: string;
     fileUrl?: string;
   };
   procurementMethod?: ProcurementMethod;
   matchScore?: number;
+  /** Vertex reason this TOR fits the signed-in studio. */
+  matchInsight?: string;
+  /** True while this listing is still in the match queue. */
+  matchPending?: boolean;
   matchReasons?: string[];
 }
 

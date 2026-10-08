@@ -1,7 +1,11 @@
 const vendorProfileRepository = require("@/repositories/vendorProfileRepository");
+const TORMatch = require("@/models/TORMatch");
+const torMatching = require("@/jobs/matchTors");
 
 async function createVendorProfile(data) {
-  return vendorProfileRepository.create(data);
+  const profile = await vendorProfileRepository.create(data);
+  await torMatching.enqueueEligibleTors();
+  return profile;
 }
 
 async function getAllVendorProfiles() {
@@ -17,11 +21,17 @@ async function getVendorProfileByUserId(userId) {
 }
 
 async function updateVendorProfile(id, data) {
-  return vendorProfileRepository.update(id, data);
+  const profile = await vendorProfileRepository.update(id, data);
+  if (profile) await torMatching.enqueueEligibleTors();
+  return profile;
 }
 
 async function deleteVendorProfile(id) {
-  return vendorProfileRepository.remove(id);
+  const profile = await vendorProfileRepository.remove(id);
+  if (profile) {
+    await TORMatch.deleteMany({ userId: profile.userId });
+  }
+  return profile;
 }
 
 module.exports = {

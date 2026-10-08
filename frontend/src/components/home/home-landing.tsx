@@ -28,12 +28,9 @@ export function HomeLanding() {
   return (
     <div>
       <section className="relative -mt-[144px] overflow-hidden hero-atmosphere text-hero-foreground">
-        <HomeFrame className="relative pb-8 pt-[calc(72px+4rem)] md:pb-12 md:pt-[calc(72px+6rem)]">
+        <HomeFrame className="relative pb-8 pt-[calc(144px+2rem)] md:pb-12 md:pt-[calc(144px+3rem)]">
           <BrandLockup size="xxxxl" priority />
-          <p className="mt-2 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-hero-muted">
-            {t("homeEyebrow")}
-          </p>
-          <h1 className="mt-4 whitespace-pre-line text-3xl font-semibold tracking-tight md:text-5xl md:leading-[1.1]">
+          <h1 className="mt-2 whitespace-pre-line text-3xl font-semibold tracking-tight md:text-5xl md:leading-[1.1]">
             {t("homeTitle")}
           </h1>
           <div className="mt-8 grid grid-cols-1 items-center gap-6 md:grid-cols-[minmax(0,1fr)_auto]">

@@ -57,7 +57,10 @@ export const VENDOR_NAV: NavGroup[] = [
   },
   {
     labelKey: "navGroupCatalog",
-    items: [{ labelKey: "navCatalog", href: routes.app.tors, icon: File01Icon }],
+    items: [
+      { labelKey: "navCatalog", href: routes.app.tors, icon: File01Icon },
+      { labelKey: "navBudgets", href: routes.app.dashboard, icon: Analytics01Icon },
+    ],
   },
   {
     labelKey: "navGroupAccount",

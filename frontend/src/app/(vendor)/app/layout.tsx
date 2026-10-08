@@ -21,6 +21,8 @@ export default function VendorLayout({
           routes.app.saved,
           routes.app.profile,
           routes.app.alerts,
+          routes.app.matches,
+          routes.app.dashboard,
         ]}
       >
         {children}

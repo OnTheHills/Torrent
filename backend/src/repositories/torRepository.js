@@ -1,4 +1,6 @@
 const TOR = require("@/models/TOR");
+const TORMatch = require("@/models/TORMatch");
+const TorMatchJob = require("@/models/TorMatchJob");
 const { isDeepStrictEqual } = require("node:util");
 
 async function create(data) {
@@ -21,7 +23,14 @@ async function update(id, data) {
 }
 
 async function remove(id) {
-  return TOR.findByIdAndDelete(id);
+  const tor = await TOR.findByIdAndDelete(id);
+  if (tor) {
+    await Promise.all([
+      TORMatch.deleteMany({ torId: tor._id }),
+      TorMatchJob.deleteOne({ torId: tor._id }),
+    ]);
+  }
+  return tor;
 }
 
 function key({ refId, source }) {
@@ -30,7 +39,7 @@ function key({ refId, source }) {
 }
 
 async function saveChanged(tors) {
-  const summary = { created: 0, updated: 0, unchanged: 0 };
+  const summary = { created: 0, updated: 0, unchanged: 0, changedTorIds: [] };
   // Ignore duplicate results from overlapping source searches before touching MongoDB.
   const uniqueTors = [...new Map(tors.map((tor) => [key(tor), tor])).values()];
   if (!uniqueTors.length) return summary;
@@ -42,6 +51,7 @@ async function saveChanged(tors) {
   }).lean();
   const byKey = new Map(existing.map((tor) => [key(tor), tor]));
   const writes = [];
+  const changedPairs = [];
 
   for (const tor of uniqueTors) {
     const current = byKey.get(key(tor));
@@ -49,10 +59,12 @@ async function saveChanged(tors) {
       // No existing source/refId pair: this is a newly discovered TOR.
       summary.created++;
       writes.push({ insertOne: { document: tor } });
+      changedPairs.push({ source: tor.source, refId: tor.refId });
     } else if (Object.keys(tor).some((field) => !isDeepStrictEqual(current[field], tor[field]))) {
       // Same TOR changed at its source: update the stored record in place.
       summary.updated++;
       writes.push({ updateOne: { filter: { _id: current._id }, update: { $set: tor } } });
+      changedPairs.push({ source: tor.source, refId: tor.refId });
     } else {
       // Identical source data: do not issue a redundant database write.
       summary.unchanged++;
@@ -61,6 +73,10 @@ async function saveChanged(tors) {
 
   // Send only inserts and updates; unchanged TORs are deliberately absent.
   if (writes.length) await TOR.bulkWrite(writes);
+  if (changedPairs.length) {
+    const changed = await TOR.find({ $or: changedPairs }).select("_id").lean();
+    summary.changedTorIds = changed.map((tor) => tor._id);
+  }
   return summary;
 }
 
@@ -77,10 +93,18 @@ async function saveOcr(refId, source, ocr) {
 }
 
 async function deleteMissingFromSource(source, keepRefIds) {
+  const missing = await TOR.find({ source, refId: { $nin: keepRefIds } }).select("_id").lean();
   const result = await TOR.deleteMany({
     source,
     refId: { $nin: keepRefIds },
   });
+  if (missing.length) {
+    const torIds = missing.map((tor) => tor._id);
+    await Promise.all([
+      TORMatch.deleteMany({ torId: { $in: torIds } }),
+      TorMatchJob.deleteMany({ torId: { $in: torIds } }),
+    ]);
+  }
   return { removed: result.deletedCount || 0 };
 }
 

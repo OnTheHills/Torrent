@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import { useSession } from "@/components/providers/session-provider";
 import { googleLogin, type SessionUser } from "@/lib/auth";
 import { routes } from "@/config/routes";
@@ -38,6 +39,7 @@ export function GoogleButton({
 }) {
   const router = useRouter();
   const { refresh } = useSession();
+  const { t } = useLocale();
   const ref = useRef<HTMLDivElement>(null);
   const paintRef = useRef<() => void>(() => {});
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +96,13 @@ export function GoogleButton({
               user.role === "vendor" ? afterVendor : homeFor(user);
             router.push(href);
           } catch (err) {
-            setError(err instanceof Error ? err.message : "Sign-in failed.");
+            const code =
+              err instanceof Error && "code" in err && typeof err.code === "string"
+                ? err.code
+                : "";
+            if (code === "email_registered") setError(t("emailAlreadyRegistered"));
+            else if (code === "email_unknown") setError(t("emailNotRegistered"));
+            else setError(err instanceof Error ? err.message : "Sign-in failed.");
           }
         },
       });
@@ -110,7 +118,7 @@ export function GoogleButton({
       window.clearInterval(timer);
       observer.disconnect();
     };
-  }, [role, afterVendor, router, refresh, clientId]);
+  }, [role, afterVendor, router, refresh, clientId, t]);
 
   // A later React render drops the nodes Google injects. Put the button back
   // before the browser paints.

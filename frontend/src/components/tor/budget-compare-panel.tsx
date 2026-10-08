@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { useAudience } from "@/components/providers/audience-provider";
 import { useLocale } from "@/components/providers/locale-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { routes } from "@/config/routes";
+import { dashboardHref } from "@/config/routes";
 import {
   formatBudgetCompact,
   getPriceAnalysisStatus,
@@ -28,6 +29,7 @@ export function BudgetComparePanel({
   tor: Tor;
 }) {
   const { locale, t } = useLocale();
+  const audience = useAudience();
   const benchmarks = buildBudgetBenchmarks(benchmarkTors?.length ? benchmarkTors : [tor]);
   const benchmark = getBenchmarkForCategory(benchmarks, tor.category);
 
@@ -102,7 +104,7 @@ export function BudgetComparePanel({
         </div>
 
         <Button asChild variant="outline" size="sm" className="w-full">
-          <Link href={routes.dashboard}>{t("viewPriceAnalysis")}</Link>
+          <Link href={dashboardHref(audience)}>{t("viewPriceAnalysis")}</Link>
         </Button>
       </CardContent>
     </Card>
