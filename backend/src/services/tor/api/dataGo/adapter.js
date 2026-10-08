@@ -1,13 +1,12 @@
-const { PROJECT_SEARCH_URL, SOURCE } = require("@/constants/dataGoConstants");
 const {
-  DEVELOPMENT_TERMS,
-  EXCLUDE_TERMS,
-  IT_CONTEXT_TERMS,
-  STRONG_TERMS,
-} = require("@/constants/bmaConstants");
+  EXCLUDE_KEYWORDS,
+  INCLUDE_KEYWORDS,
+  PROJECT_SEARCH_URL,
+  SOFTWARE_CONTEXT_KEYWORDS,
+  SOURCE,
+  SYSTEM_ACTION_KEYWORDS,
+} = require("@/constants/dataGoConstants");
 const { classifyCategory, parseBudget, parseDate, latinDigits } = require("@/utils/torUtils");
-
-const WEAK_CONTEXT_TERMS = new Set(["อิเล็กทรอนิกส์", "ดิจิทัล", "digital", "คอมพิวเตอร์"]);
 
 const THAI_MONTHS = {
   มค: 0, กพ: 1, มีค: 2, เมย: 3, พค: 4, มิย: 5,
@@ -31,18 +30,14 @@ function parseEgpDate(value) {
 
 function matchingSoftwareTerms(title) {
   const name = String(title || "").toLowerCase();
-  if (!name || EXCLUDE_TERMS.some((term) => name.includes(term.toLowerCase()))) return [];
+  if (!name || EXCLUDE_KEYWORDS.some((term) => name.includes(term.toLowerCase()))) return [];
 
-  const directTerms = STRONG_TERMS.filter(
-    (term) => !DEVELOPMENT_TERMS.includes(term) && name.includes(term.toLowerCase()),
-  );
-  if (directTerms.length) return directTerms;
-
-  const developmentTerms = DEVELOPMENT_TERMS.filter((term) => name.includes(term.toLowerCase()));
-  const hasSoftwareContext = IT_CONTEXT_TERMS.some(
-    (term) => !WEAK_CONTEXT_TERMS.has(term) && name.includes(term.toLowerCase()),
-  );
-  return developmentTerms.length && hasSoftwareContext ? developmentTerms : [];
+  const directMatches = INCLUDE_KEYWORDS.filter((term) => name.includes(term.toLowerCase()));
+  const systemActions = SYSTEM_ACTION_KEYWORDS.filter((term) => name.includes(term.toLowerCase()));
+  const hasSoftwareContext = SOFTWARE_CONTEXT_KEYWORDS.some((term) => name.includes(term.toLowerCase()));
+  if (directMatches.length) return directMatches;
+  if (systemActions.length && hasSoftwareContext) return systemActions;
+  return [];
 }
 
 function adapt(rows = []) {
