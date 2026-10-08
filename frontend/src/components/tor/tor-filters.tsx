@@ -14,6 +14,7 @@ import {
 import { AGENCIES, agencyName } from "@/config/agencies";
 import type { ListingStage } from "@/lib/listing-stage";
 import { cn } from "@/lib/utils";
+import { TOR_CATEGORIES } from "@/lib/tor-categories";
 import type {
   AgencyId,
   IntegrityStatus,
@@ -22,20 +23,9 @@ import type {
 } from "@/types/tor";
 
 export type { ListingSort };
+export { TOR_CATEGORIES };
 
 export type SourceFilter = Extract<ListingSource, "egp-rss" | "sme-gp" | "bma-egp2">;
-
-export const TOR_CATEGORIES = [
-  "Software Development",
-  "Web Application",
-  "Mobile Application",
-  "Data Platform",
-  "Digital Platform",
-  "AI / Analytics",
-  "Cybersecurity",
-  "GIS",
-  "Others",
-] as const;
 
 export type TorFilterState = {
   agencies: AgencyId[];

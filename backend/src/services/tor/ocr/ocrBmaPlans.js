@@ -6,7 +6,10 @@ const {
   pickTorAnnouncement,
   projectIdFromUrl,
 } = require("@/services/tor/api/bmaEgp2/files");
-const { extractPlanPdf } = require("@/services/tor/ocr/extractPlanPdf");
+const {
+  extractPlanPdf,
+  SUMMARY_VERSION,
+} = require("@/services/tor/ocr/extractPlanPdf");
 const torRepository = require("@/repositories/torRepository");
 
 function ocrEnabled() {
@@ -27,6 +30,7 @@ function alreadyExtracted(current, fileName) {
   return Boolean(
     current?.ocr?.status === "ok" &&
       current?.ocr?.fileName === fileName &&
+      current?.ocr?.summaryVersion === SUMMARY_VERSION &&
       (current.ocr.summary ||
         current.ocr.summaryTh ||
         (current.ocr.requirements || []).length),
@@ -89,13 +93,14 @@ async function enrichOne(tor, existingByRef) {
       });
       return { outcome: "failed", reason: extracted.code || extracted.message };
     }
-    await torRepository.saveOcr(tor.refId, SOURCE, {
+    const saved = await torRepository.saveOcr(tor.refId, SOURCE, {
       status: "ok",
       source: extracted.method === "text" ? "bma-project-tor-text" : "bma-project-tor-ocr",
       method: extracted.method,
       fileName,
       fileUrl,
       model: extracted.model,
+      summaryVersion: SUMMARY_VERSION,
       extractedAt: new Date(),
       summary: extracted.extract.summary || undefined,
       summaryTh: extracted.extract.summaryTh || undefined,
@@ -105,7 +110,7 @@ async function enrichOne(tor, existingByRef) {
       deadline: extracted.extract.deadline,
       skills: extracted.extract.skills.length ? extracted.extract.skills : undefined,
     });
-    return { outcome: "updated" };
+    return { outcome: "updated", torId: saved?._id || tor._id };
   } catch (error) {
     await torRepository.saveOcr(tor.refId, SOURCE, {
       status: "failed",
@@ -143,6 +148,9 @@ async function enrich(tors = []) {
     else if (result.outcome === "failed") summary.ocrFailed++;
     else summary.ocrSkipped++;
   }
+  summary.updatedTorIds = results
+    .filter((result) => result.outcome === "updated" && result.torId)
+    .map((result) => result.torId);
   return summary;
 }
 

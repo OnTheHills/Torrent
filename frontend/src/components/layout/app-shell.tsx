@@ -49,7 +49,13 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const padded = inset && !fullBleedPaths.includes(pathname);
+  const fullBleed = fullBleedPaths.some((path) => {
+    if (pathname === path) return true;
+    // `/app` is only the vendor home. Nested pages opt in with their own path.
+    if (path === "/app") return false;
+    return pathname.startsWith(`${path}/`);
+  });
+  const padded = inset && !fullBleed;
 
   return (
     <SidebarProvider className="relative flex h-dvh flex-col overflow-hidden shell-atmosphere">

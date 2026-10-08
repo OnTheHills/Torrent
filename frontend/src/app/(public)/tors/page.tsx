@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 
 import { ListingsView } from "@/components/tor/listings-view";
-import { TOR_CATEGORIES, type SourceFilter } from "@/components/tor/tor-filters";
+import { type SourceFilter } from "@/components/tor/tor-filters";
+import { TOR_CATEGORIES } from "@/lib/tor-categories";
 import { parseAgencyId } from "@/config/agencies";
 import { parseListingStages } from "@/lib/listing-stage";
 import {

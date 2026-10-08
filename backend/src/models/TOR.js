@@ -104,6 +104,9 @@ const torSchema = new mongoose.Schema(
         type: String,
         trim: true,
       },
+      summaryVersion: {
+        type: Number,
+      },
       extractedAt: {
         type: Date,
       },

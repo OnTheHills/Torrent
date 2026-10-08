@@ -13,6 +13,7 @@ import {
   Sorting01Icon,
 } from "@hugeicons/core-free-icons";
 
+import { useAudience } from "@/components/providers/audience-provider";
 import { useLocale } from "@/components/providers/locale-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { routes } from "@/config/routes";
+import { listingHref } from "@/config/routes";
 import {
   formatBudgetCompact,
   getPriceAnalysisStatus,
@@ -46,6 +47,7 @@ export function HistoricalPriceTable({
   tors: Tor[];
 }) {
   const { locale, t } = useLocale();
+  const audience = useAudience();
   const [page, setPage] = useState(1);
   const [analysisSort, setAnalysisSort] = useState<AnalysisSort>("none");
   // Precompute median comparison once, then reuse it for sorting and row badges.
@@ -176,7 +178,7 @@ export function HistoricalPriceTable({
               <TableRow key={tor.id}>
                 <TableCell className="whitespace-normal break-words align-top">
                   <Link
-                    href={routes.tor(tor.id)}
+                    href={listingHref(tor.id, audience)}
                     className="font-medium leading-snug hover:text-primary"
                   >
                     {torTitle(tor, locale)}

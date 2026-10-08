@@ -8,7 +8,15 @@ import { cn } from "@/lib/utils";
  */
 
 export const appBarRootStyles =
-  "absolute inset-x-0 top-0 z-30 flex h-[72px] w-full items-center border-b border-appbar-border/40 bg-appbar text-appbar-foreground backdrop-blur-xl backdrop-saturate-150";
+  "absolute inset-x-0 top-0 z-30 flex h-[72px] w-full items-center bg-appbar text-appbar-foreground";
+
+/** Frost bar for controls on the dark chrome — the page gray bar, tuned for a dark field. */
+export const chromeFrostBar =
+  "border-0 bg-[linear-gradient(180deg,var(--palette-gray-700),var(--palette-gray-800))] text-[var(--palette-teal-50)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_14%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-600)_80%,transparent)] backdrop-blur-md backdrop-saturate-150";
+
+/** Selected / primary frost on the dark chrome. */
+export const chromeFrostTeal =
+  "border-0 bg-[color-mix(in_srgb,var(--palette-teal-400)_32%,transparent)] text-[var(--palette-teal-50)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_28%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--palette-teal-300)_45%,transparent)] backdrop-blur-md backdrop-saturate-150";
 
 export const appBarPrimaryStyles =
   "flex h-full w-full items-center justify-between gap-3 px-4 md:gap-4";

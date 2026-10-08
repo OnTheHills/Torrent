@@ -18,6 +18,43 @@ async function getAllTorMatches(request, response) {
   }
 }
 
+async function getPendingTorMatchIds(_request, response) {
+  try {
+    const ids = await torMatchService.getPendingTorIds();
+    return response.status(200).json(ids);
+  } catch (error) {
+    return response.status(500).json({ message: error.message });
+  }
+}
+
+async function getMyTorMatches(request, response) {
+  try {
+    const torMatches = await torMatchService.getTorMatchesByUserId(request.user.sub);
+    return response.status(200).json(torMatches);
+  } catch (error) {
+    return response.status(500).json({ message: error.message });
+  }
+}
+
+async function setMyMatchDismissed(request, response) {
+  try {
+    const dismissed = request.body?.dismissed !== false;
+    const torMatch = await torMatchService.setMyMatchDismissed(
+      request.params.id,
+      request.user.sub,
+      dismissed,
+    );
+
+    if (!torMatch) {
+      return response.status(404).json({ message: "TOR match not found." });
+    }
+
+    return response.status(200).json(torMatch);
+  } catch (error) {
+    return response.status(500).json({ message: error.message });
+  }
+}
+
 async function getTorMatchById(request, response) {
   try {
     const torMatch = await torMatchService.getTorMatchById(request.params.id);
@@ -66,6 +103,9 @@ async function deleteTorMatch(request, response) {
 module.exports = {
   createTorMatch,
   getAllTorMatches,
+  getPendingTorMatchIds,
+  getMyTorMatches,
+  setMyMatchDismissed,
   getTorMatchById,
   updateTorMatch,
   deleteTorMatch,

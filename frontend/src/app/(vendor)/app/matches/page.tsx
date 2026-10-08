@@ -1,7 +1,5 @@
-import { redirect } from "next/navigation";
-
-import { routes } from "@/config/routes";
+import { InboxView } from "@/components/notifications/inbox-view";
 
 export default function MatchesPage() {
-  redirect(routes.app.home);
+  return <InboxView />;
 }

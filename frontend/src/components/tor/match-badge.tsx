@@ -12,6 +12,7 @@ export function MatchBadge({
   className?: string;
 }) {
   const { t } = useLocale();
+  const tier = score >= 85 ? "fitStrong" : score >= 70 ? "fitGood" : "fitPossible";
 
   return (
     <span
@@ -20,6 +21,9 @@ export function MatchBadge({
         className
       )}
     >
+      <span className="text-[0.65rem] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+        {t(tier)}
+      </span>
       <span>{score}%</span>
       <span className="text-[0.65rem] font-medium uppercase tracking-[0.12em] text-muted-foreground">
         {t("match")}

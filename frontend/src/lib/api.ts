@@ -47,8 +47,16 @@ export async function api<T>(
       typeof data === "object" && data && "message" in data
         ? String((data as { message: string }).message)
         : `Request failed (${response.status})`;
-    const error = new Error(message) as Error & { status: number };
+    const error = new Error(message) as Error & { status: number; code?: string };
     error.status = response.status;
+    if (
+      typeof data === "object" &&
+      data &&
+      "code" in data &&
+      typeof (data as { code?: unknown }).code === "string"
+    ) {
+      error.code = (data as { code: string }).code;
+    }
     throw error;
   }
 
@@ -80,6 +88,68 @@ export async function fetchTors(): Promise<Tor[]> {
 // the backend container is still completing its optional startup synchronization.
 export function fetchTorsForQuery(): Promise<Tor[]> {
   return requestTors();
+}
+
+export type StoredMatch = {
+  _id: string;
+  torId: string | { _id?: string };
+  matchPercent: number | string | { $numberDecimal?: string };
+  matchReason: string;
+  dismissedAt?: string | null;
+  updatedAt: string;
+};
+
+export function storedMatchScore(value: StoredMatch["matchPercent"]) {
+  if (typeof value === "number") return value;
+  if (typeof value === "string") return Number(value) || 0;
+  return Number(value?.$numberDecimal) || 0;
+}
+
+export async function setMatchDismissed(id: string, dismissed: boolean) {
+  return api<StoredMatch>(`/tor-matches/mine/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ dismissed }),
+  });
+}
+
+export function storedMatchTorId(value: StoredMatch["torId"]) {
+  if (typeof value === "string") return value;
+  return value?._id ?? "";
+}
+
+/** TOR ids whose match job is still pending, running, or waiting. */
+export async function fetchPendingMatchIds(): Promise<string[]> {
+  const response = await fetch(apiUrl("/tor-matches/pending"), { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch pending matches (${response.status})`);
+  }
+  const data = await response.json();
+  return Array.isArray(data) ? data.map(String) : [];
+}
+
+export type StoredMatchSummary = {
+  score: number;
+  reason: string;
+};
+
+/** Scores keyed by TOR id for the signed-in vendor; empty when signed out. */
+export async function fetchMyMatchScores(): Promise<Record<string, StoredMatchSummary>> {
+  try {
+    const matches = await api<StoredMatch[]>("/tor-matches/mine");
+    return Object.fromEntries(
+      matches.map((match) => [
+        storedMatchTorId(match.torId),
+        {
+          score: storedMatchScore(match.matchPercent),
+          reason: match.matchReason ?? "",
+        },
+      ]),
+    );
+  } catch (error) {
+    const status = (error as { status?: number }).status;
+    if (status === 401 || status === 403 || status === 404) return {};
+    throw error;
+  }
 }
 
 export async function fetchTorById(id: string): Promise<Tor | undefined> {
@@ -202,6 +272,9 @@ function mapBackendTorToFrontendTor(data: any): Tor {
       ? {
           status: ocr.status || "",
           method: ocr.method === "text" || ocr.method === "ocr" ? ocr.method : undefined,
+          model: ocr.model || undefined,
+          summaryVersion:
+            typeof ocr.summaryVersion === "number" ? ocr.summaryVersion : undefined,
           extractedAt: ocr.extractedAt,
           fileUrl: ocr.fileUrl || "",
         }
@@ -214,6 +287,5 @@ function mapBackendTorToFrontendTor(data: any): Tor {
           : data.source === "SME-GP"
             ? "sme-gp"
             : "html",
-    matchScore: 0,
   };
 }

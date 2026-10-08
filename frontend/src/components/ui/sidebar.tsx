@@ -93,7 +93,7 @@ function Sidebar({
           data-mobile="true"
           side={side}
           showCloseButton={false}
-          className="w-(--sidebar-width) gap-0 border-sidebar-border bg-sidebar p-0 text-sidebar-foreground backdrop-blur-xl backdrop-saturate-150"
+          className="w-(--sidebar-width) gap-0 bg-sidebar p-0 text-sidebar-foreground"
           style={
             { "--sidebar-width": SIDEBAR_WIDTH_MOBILE } as React.CSSProperties
           }
@@ -127,7 +127,7 @@ function Sidebar({
         )}
         {...props}
       >
-        <div className="flex h-full w-full flex-col overflow-hidden border-r border-sidebar-border bg-sidebar pt-[72px]">
+        <div className="flex h-full w-full flex-col overflow-hidden bg-sidebar pt-[72px]">
           {children}
         </div>
       </div>
@@ -234,9 +234,9 @@ function SidebarMenuButton({
       data-active={isActive}
       className={cn(
         "flex h-10 w-full items-center gap-3 overflow-hidden rounded-full px-3 text-left text-sm text-sidebar-foreground outline-none ring-1 ring-transparent transition-all",
-        "hover:bg-[color-mix(in_srgb,var(--palette-teal-400)_22%,transparent)] hover:text-sidebar-accent-foreground hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2)] hover:ring-[color-mix(in_srgb,var(--palette-teal-300)_35%,transparent)] hover:backdrop-blur-md",
+        "hover:bg-[linear-gradient(180deg,var(--palette-gray-700),var(--palette-gray-800))] hover:text-[var(--palette-teal-50)] hover:shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_14%,transparent)] hover:ring-[color-mix(in_srgb,var(--palette-gray-600)_80%,transparent)] hover:backdrop-blur-md hover:backdrop-saturate-150",
         "focus-visible:ring-2 focus-visible:ring-sidebar-ring",
-        "data-[active=true]:bg-[color-mix(in_srgb,var(--palette-teal-400)_32%,transparent)] data-[active=true]:font-medium data-[active=true]:text-[var(--palette-teal-50)] data-[active=true]:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.28)] data-[active=true]:ring-[color-mix(in_srgb,var(--palette-teal-300)_45%,transparent)] data-[active=true]:backdrop-blur-md data-[active=true]:backdrop-saturate-150",
+        "data-[active=true]:bg-[color-mix(in_srgb,var(--palette-teal-400)_32%,transparent)] data-[active=true]:bg-none data-[active=true]:font-medium data-[active=true]:text-[var(--palette-teal-50)] data-[active=true]:shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_28%,transparent)] data-[active=true]:ring-[color-mix(in_srgb,var(--palette-teal-300)_45%,transparent)] data-[active=true]:backdrop-blur-md data-[active=true]:backdrop-saturate-150",
         "[&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
         className
       )}
@@ -257,11 +257,15 @@ function MainContent({
     <div
       data-slot="main-content-gutter"
       className={cn(
-        "flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-transparent",
+        "relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-transparent",
         className
       )}
       {...props}
     >
+      <span
+        aria-hidden
+        className="pointer-events-none absolute top-[72px] left-0 z-10 hidden size-[20px] bg-[radial-gradient(circle_at_100%_100%,transparent_20px,var(--sidebar)_21px)] md:block"
+      />
       <main
         data-slot="main-content-canvas"
         className={cn(

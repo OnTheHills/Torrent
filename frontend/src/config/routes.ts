@@ -18,6 +18,7 @@ export const routes = {
     tors: "/app/tors",
     tor: (id: string) => `/app/tors/${id}`,
     matches: "/app/matches",
+    dashboard: "/app/dashboard",
     saved: "/app/saved",
     alerts: "/app/alerts",
     profile: "/app/profile",
@@ -27,8 +28,18 @@ export const routes = {
   },
 } as const;
 
-export function listingHref(id: string, audience: "public" | "vendor" | "admin") {
-  return audience === "vendor" ? routes.app.tor(id) : routes.tor(id);
+export function listingHref(
+  id: string,
+  audience: "public" | "vendor" | "admin",
+  from?: "matches",
+) {
+  const path = audience === "vendor" ? routes.app.tor(id) : routes.tor(id);
+  if (from === "matches" && audience === "vendor") return `${path}?from=matches`;
+  return path;
+}
+
+export function dashboardHref(audience: "public" | "vendor" | "admin") {
+  return audience === "vendor" ? routes.app.dashboard : routes.dashboard;
 }
 
 export function listingsHref(agency?: AgencyId | "all") {

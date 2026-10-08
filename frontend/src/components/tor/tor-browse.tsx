@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Surface } from "@/components/ui/surface";
 import { torAgency, torDepartment, torTitle } from "@/data/mock";
+import { useTorsWithMatches } from "@/components/tor/use-match-scores";
 import { fetchTorsForQuery } from "@/lib/api";
 import { listingStage, type ListingStage } from "@/lib/listing-stage";
 import {
@@ -46,7 +47,16 @@ function knownBudget(amount: number) {
   return Number.isFinite(amount) && amount > 0;
 }
 
-function compareListings(a: Tor, b: Tor, sort: ListingSort) {
+function compareListings(a: Tor, b: Tor, sort: ListingSort, vendor = false) {
+  if (vendor && sort === "newest") {
+    const aScore = typeof a.matchScore === "number" ? a.matchScore : null;
+    const bScore = typeof b.matchScore === "number" ? b.matchScore : null;
+    if (aScore !== null || bScore !== null) {
+      if (aScore === null) return 1;
+      if (bScore === null) return -1;
+      if (aScore !== bScore) return bScore - aScore;
+    }
+  }
   if (sort === "newest") return b.publishedAt.localeCompare(a.publishedAt);
   if (sort === "oldest") return a.publishedAt.localeCompare(b.publishedAt);
 
@@ -100,13 +110,14 @@ export function TorBrowse({
   });
   const vendor = audience === "vendor";
 
-  const { data: tors = [], isFetching, isPending } = useQuery({
+  const { data: sourceTors = [], isFetching, isPending } = useQuery({
     queryKey: ["tors"],
     queryFn: fetchTorsForQuery,
     initialData: initialTors.length > 0 ? initialTors : undefined,
     retry: 30,
     retryDelay: (attempt) => Math.min(1_000 * 2 ** attempt, 5_000),
   });
+  const tors = useTorsWithMatches(sourceTors, vendor);
 
   function applyFilters(next: TorFilterState, nextQuery = query) {
     setFilters(next);
@@ -175,7 +186,7 @@ export function TorBrowse({
         matchesTeam &&
         matchesQuery
       );
-    }).sort((a, b) => compareListings(a, b, filters.sort));
+    }).sort((a, b) => compareListings(a, b, filters.sort, vendor));
   }, [filters, locale, query, tors, vendor]);
 
   const totalRows = filtered.length;

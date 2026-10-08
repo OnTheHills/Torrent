@@ -6,6 +6,7 @@ const {
   hasUsableTextLayer,
   normalizeExtract,
   parseModelJson,
+  SUMMARY_VERSION,
   structurePlainText,
 } = require("@/services/tor/ocr/extractPlanPdf");
 
@@ -58,11 +59,19 @@ test("already extracted rows skip the same plan file", () => {
           status: "ok",
           fileName: "plan.pdf",
           summaryTh: "แผน",
+          summaryVersion: SUMMARY_VERSION,
         },
       },
       "plan.pdf",
     ),
     true,
+  );
+  assert.equal(
+    alreadyExtracted(
+      { ocr: { status: "ok", fileName: "plan.pdf", summaryTh: "แผน" } },
+      "plan.pdf",
+    ),
+    false,
   );
   assert.equal(
     alreadyExtracted({ ocr: { status: "ok", fileName: "old.pdf", summaryTh: "แผน" } }, "plan.pdf"),
