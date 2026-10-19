@@ -19,7 +19,8 @@ function minimumMatchPercent() {
 }
 
 function queuedTorStatus() {
-  return (process.env.VERTEX_MATCH_TOR_STATUS || "published").trim().toLowerCase();
+  const configured = (process.env.VERTEX_MATCH_TOR_STATUS || "default").trim().toLowerCase();
+  return configured === "default" ? "published" : configured;
 }
 
 function isQueuedTorStatus(status) {
@@ -46,6 +47,7 @@ function bangkokDateString(date = new Date()) {
 // Awarded, cancelled, and past-deadline notices are not scored.
 function fitScoreApplies(tor, today = bangkokDateString()) {
   if (!tor) return false;
+  if (queuedTorStatus() === "any") return true;
   const status = String(tor.status || "").trim().toLowerCase();
   if (status === "awarded" || status === "cancelled") return false;
   if (!status || status === "draft") return true;

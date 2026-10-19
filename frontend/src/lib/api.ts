@@ -236,6 +236,7 @@ function mapBackendTorToFrontendTor(data: any): Tor {
 
   return {
     id: data._id,
+    matchEligible: typeof data.matchEligible === "boolean" ? data.matchEligible : undefined,
     refId: data.refId || data._id,
     title: data.title,
     titleTh: data.titleTh || data.title,

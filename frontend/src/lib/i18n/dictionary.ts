@@ -633,7 +633,7 @@ export const dictionary = {
     cardStageClosing: "ใกล้ปิด",
     cardStageDraft: "ร่าง",
     cardStageClosed: "ปิดแล้ว",
-    cardStageAwarded: "ผู้ชนะ",
+    cardStageAwarded: "มีผู้ชนะ",
     cardStageCancelled: "ยกเลิก",
     stageAll: "ทุกขั้นตอน",
     deadline: "ปิดรับ",

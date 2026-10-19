@@ -1,9 +1,16 @@
+const { fitScoreApplies } = require("@/jobs/matchTors");
+
+function withMatchEligibility(tor) {
+  const data = typeof tor.toObject === "function" ? tor.toObject() : tor;
+  return { ...data, matchEligible: fitScoreApplies(data) };
+}
+
 const torCrudService = require("@/services/tor/torCrudService");
 
 async function createTor(request, response) {
   try {
     const tor = await torCrudService.createTor(request.body);
-    return response.status(201).json(tor);
+    return response.status(201).json(withMatchEligibility(tor));
   } catch (error) {
     return response.status(500).json({ message: error.message });
   }
@@ -12,7 +19,7 @@ async function createTor(request, response) {
 async function getAllTors(request, response) {
   try {
     const tors = await torCrudService.getAllTors();
-    return response.status(200).json(tors);
+    return response.status(200).json(tors.map(withMatchEligibility));
   } catch (error) {
     return response.status(500).json({ message: error.message });
   }
@@ -24,7 +31,7 @@ async function getTorById(request, response) {
     if (!tor) {
       return response.status(404).json({ message: "TOR not found." });
     }
-    return response.status(200).json(tor);
+    return response.status(200).json(withMatchEligibility(tor));
   } catch (error) {
     return response.status(500).json({ message: error.message });
   }
@@ -36,7 +43,7 @@ async function updateTor(request, response) {
     if (!tor) {
       return response.status(404).json({ message: "TOR not found." });
     }
-    return response.status(200).json(tor);
+    return response.status(200).json(withMatchEligibility(tor));
   } catch (error) {
     return response.status(500).json({ message: error.message });
   }
@@ -48,7 +55,7 @@ async function deleteTor(request, response) {
     if (!tor) {
       return response.status(404).json({ message: "TOR not found." });
     }
-    return response.status(200).json(tor);
+    return response.status(200).json(withMatchEligibility(tor));
   } catch (error) {
     return response.status(500).json({ message: error.message });
   }
