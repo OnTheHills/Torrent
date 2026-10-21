@@ -13,7 +13,7 @@ test("quota exhaustion pauses one TOR at the unfinished vendor", async () => {
     cursor: null,
     retryCount: 0,
   };
-  const tor = { _id: "tor-1", title: "Software project" };
+  const tor = { _id: "tor-1", source: "EGP-PROCESS5", title: "Software project" };
   const vendors = [{ _id: "vendor-1" }, { _id: "vendor-2" }];
   const calls = [];
   const matches = [];
@@ -43,6 +43,7 @@ test("quota exhaustion pauses one TOR at the unfinished vendor", async () => {
       deleteOne: async () => {},
     },
     "@/models/TorMatchJob": {
+      find: (query) => queryResult(query.status?.$in ? [] : [job]),
       findOneAndUpdate: () => ({
         lean: async () => {
           if (claimed || job.status === "complete") return null;

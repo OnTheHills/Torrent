@@ -24,6 +24,7 @@
     "dotenv": "^17.4.2",
     "env": "^0.0.2",
     "express": "^5.2.1",
+    "fflate": "^0.8.2",
     "google-auth-library": "^11.0.2",
     "jsonwebtoken": "^9.0.3",
     "module-alias": "^2.3.4",

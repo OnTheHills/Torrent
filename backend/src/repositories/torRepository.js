@@ -8,7 +8,7 @@ async function create(data) {
 }
 
 async function findAll() {
-  return TOR.find().sort({ publishedAt: -1 });
+  return TOR.find({ source: "EGP-PROCESS5" }).sort({ publishedAt: -1 });
 }
 
 async function findById(id) {
@@ -81,7 +81,11 @@ async function saveChanged(tors) {
 }
 
 async function findBySource(source) {
-  return TOR.find({ source }).select("refId source ocr egpUrl budgetThb torPdfPath").lean();
+  return TOR.find({ source }).select("refId source ocr egpUrl documentUrl budgetThb torPdfPath").lean();
+}
+
+async function findEgpDeptIds(source) {
+  return TOR.distinct("egpDeptId", { source, egpDeptId: { $ne: null } });
 }
 
 async function saveOcr(refId, source, ocr) {
@@ -114,6 +118,7 @@ module.exports = {
   findAll,
   findById,
   findBySource,
+  findEgpDeptIds,
   remove,
   saveChanged,
   saveOcr,

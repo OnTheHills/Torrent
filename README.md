@@ -103,10 +103,19 @@ Open http://localhost:3000.
 
 ## Option 2: run the complete stack with Docker Compose
 
-Set `FETCH_ON_STARTUP` in `backend/.env` to `true` to fetch live
-SME-GP and BMA data once whenever the backend starts, before it serves requests.
-Set it to `false` (the default) to skip that initial fetch. Both settings keep
-the daily sync at **02:00 Asia/Bangkok**, regardless of the container timezone.
+Set `FETCH_ON_STARTUP` in `backend/.env` to `true` to run the e-GP pipeline
+when the backend starts. It finds tech project IDs through data.go, verifies
+project details and budgets with process5, resolves public e-GP document ZIPs,
+and extracts TOR details and bid deadlines from the PDFs. Configure
+`DATA_GO_API_KEY` in `backend/.env`; `EGP_MAX_PROJECTS_PER_SYNC` limits new
+project lookups per run (default 20). The sync response reports
+`process5Resolved`, `documentLinks`, `ocrUpdated`, and per-project errors.
+Run `POST /api/sync/data-go-process5` to trigger one batch manually. Projects
+without a downloadable TOR remain `discovered` and are not matched. Set
+`FETCH_ON_STARTUP=false` to skip the initial fetch. Both settings keep the
+daily sync at **00:00 Asia/Bangkok**, regardless of the container timezone.
+The older process3 RSS path remains available through
+`POST /api/sync/process3-process5` for manual comparison.
 Apply a changed setting with `docker compose up -d --force-recreate backend`.
 An initial fetch failure is logged and the backend still starts with the nightly
 schedule enabled. For npm development, set `FETCH_ON_STARTUP` in `backend/.env`.

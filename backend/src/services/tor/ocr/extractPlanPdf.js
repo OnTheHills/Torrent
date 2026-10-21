@@ -7,7 +7,7 @@ const {
 const { hasUsableTextLayer, readPdfText } = require("@/services/tor/ocr/readPdfText");
 const { parseDate } = require("@/utils/torUtils");
 
-const SUMMARY_VERSION = 2;
+const SUMMARY_VERSION = 3;
 
 const RESPONSE_SCHEMA = {
   type: "object",
@@ -38,7 +38,7 @@ Return JSON with this shape:
   "summaryTh": "2-4 sentence Thai executive summary, or null",
   "summaryEn": "2-4 sentence English summary of the same facts, or null",
   "requirements": ["visible line items or requirements only"],
-  "deadline": "YYYY-MM-DD or null",
+  "deadline": "YYYY-MM-DD bid submission closing date or null; do not use the project delivery date",
   "skills": ["visible software skills only"]
 }`;
 
