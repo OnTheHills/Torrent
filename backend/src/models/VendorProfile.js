@@ -1,5 +1,19 @@
 const mongoose = require("mongoose");
 
+function normalizePastProjects(projects) {
+  return Array.isArray(projects)
+    ? projects.map((project) => typeof project === "string" ? { name: project } : project)
+    : projects;
+}
+
+const pastProjectSchema = new mongoose.Schema({
+  name: { type: String, trim: true, required: true },
+  description: { type: String, trim: true, default: "" },
+  budget: { type: Number, min: 0, default: null },
+  isGovernment: { type: Boolean, default: null },
+  completedAt: { type: Date, default: null },
+}, { _id: false });
+
 const vendorProfileSchema = new mongoose.Schema(
   {
     userId: {
@@ -30,8 +44,9 @@ const vendorProfileSchema = new mongoose.Schema(
       default: undefined,
     },
     pastProjects: {
-      type: [String],
+      type: [pastProjectSchema],
       default: undefined,
+      set: normalizePastProjects,
     },
     website: {
       type: String,
@@ -55,5 +70,10 @@ const vendorProfileSchema = new mongoose.Schema(
     timestamps: true,
   },
 );
+
+// Preserve old string entries when reading profiles; saving writes structured records.
+vendorProfileSchema.pre("init", function (data) {
+  if (data.pastProjects) data.pastProjects = normalizePastProjects(data.pastProjects);
+});
 
 module.exports = mongoose.model("VendorProfile", vendorProfileSchema);

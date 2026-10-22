@@ -19,7 +19,8 @@ function minimumMatchPercent() {
 }
 
 function queuedTorStatus() {
-  return (process.env.VERTEX_MATCH_TOR_STATUS || "published").trim().toLowerCase();
+  const configured = (process.env.VERTEX_MATCH_TOR_STATUS || "default").trim().toLowerCase();
+  return configured === "default" ? "published" : configured;
 }
 
 function isQueuedTorStatus(status) {

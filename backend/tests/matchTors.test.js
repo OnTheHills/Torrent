@@ -98,3 +98,31 @@ test("quota exhaustion pauses one TOR at the unfinished vendor", async () => {
   assert.deepEqual(calls, ["tor-1:vendor-1", "tor-1:vendor-2", "tor-1:vendor-2"]);
   assert.equal(matches.length, 2);
 });
+
+test("default keeps existing eligibility while any includes every status and deadline", () => {
+  const tors = [
+    [{ status: "published", deadline: "2999-01-01" }, true],
+    [{ status: "published", deadline: "2000-01-01" }, false],
+    [{ status: "awarded" }, false],
+    [{ status: "cancelled" }, false],
+    [{ status: "closed" }, false],
+    [{ status: "draft" }, true],
+    [{}, true],
+  ];
+  for (const mode of [undefined, "default", "published", "any"]) {
+    const module = { exports: {} };
+    vm.runInNewContext(
+      readFileSync(path.join(__dirname, "../src/jobs/matchTors.js"), "utf8"),
+      {
+        module,
+        process: { env: mode ? { VERTEX_MATCH_TOR_STATUS: mode } : {} },
+        console, setImmediate, setTimeout, clearTimeout,
+        require: () => ({}),
+      },
+    );
+    for (const [tor, eligible] of tors) {
+      assert.equal(module.exports.fitScoreApplies(tor), mode === "any" || eligible, `${mode}: ${tor.status}`);
+    }
+    assert.equal(module.exports.fitScoreApplies(null), false);
+  }
+});
