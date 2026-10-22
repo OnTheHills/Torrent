@@ -109,17 +109,17 @@ test("e-GP RSS walks official B0/D0/W0 feeds and keeps software draft TORs", asy
   assert.equal(tors[0].category, "Software Development");
 });
 
-test("sync job adapts and persists each fetched API source", async () => {
+test("sync job saves data.go projects but waits for a TOR document before matching", async () => {
   const saved = [];
   const queued = [];
   const job = loadModule("../src/jobs/syncAPI.js", {
-    "node:fs": { readdirSync: () => [{ name: "dataGo", isDirectory: () => true }, { name: "bmaEgp2", isDirectory: () => true }] },
     "node:path": { join: (...parts) => {
       const name = parts.at(-2);
       const file = parts.at(-1);
       return file === "fetch" || file === "adapter" ? `${file}:${name}` : "api";
     } },
     "@/repositories/torRepository": {
+      findBySource: async () => saved.map((refId) => ({ refId, source: "EGP-PROCESS5" })),
       saveChanged: async (tors) => {
         saved.push(...tors.map(({ refId }) => refId));
         return {
@@ -129,23 +129,58 @@ test("sync job adapts and persists each fetched API source", async () => {
           changedTorIds: tors.map(({ refId }) => `tor-id-${refId}`),
         };
       },
-      deleteMissingFromSource: async () => ({ removed: 0 }),
     },
-    "@/services/tor/api/bmaEgp2/files": { hydrateProjects: async (tors) => tors },
-    "@/services/tor/ocr/ocrBmaPlans": { enrich: async () => ({ ocrAttempted: 1, ocrUpdated: 0, ocrSkipped: 1, ocrFailed: 0 }) },
-    "fetch:dataGo": { fetch: async () => ({ rows: [{ refId: "data-1" }] }), method: "GET", source: "DATA-GO-EGP" },
-    "adapter:dataGo": { adapt: (rows) => rows },
+    "@/services/tor/ocr/ocrEgp": { enrich: async () => ({ ocrAttempted: 1, ocrUpdated: 0, ocrSkipped: 1, ocrFailed: 0 }) },
     "@/jobs/matchTors": { enqueueTors: async (ids) => { queued.push(...ids); return ids.length; } },
-    "fetch:bmaEgp2": { fetch: async () => ({ metadata: { budgetYears: ["2570", "2569"] }, rows: [{ refId: "bma-1" }] }), method: "GET", source: "BMA-EGP2" },
-    "adapter:bmaEgp2": { adapt: (rows) => rows },
+    "fetch:dataGoProcess5": { fetch: async () => ({ metadata: { discovered: 1, process5Resolved: 1, documentLinks: 0 }, rows: [{ refId: "egp-1" }] }), method: "GET", source: "EGP-PROCESS5" },
+    "adapter:dataGoProcess5": { adapt: (rows) => rows },
   });
   const result = await job.syncAPI();
-  assert.deepEqual(saved.sort(), ["bma-1", "data-1"]);
-  assert.deepEqual(queued.sort(), ["tor-id-bma-1", "tor-id-data-1"]);
+  assert.deepEqual(saved, ["egp-1"]);
+  assert.deepEqual(queued, []);
   assert.deepEqual(JSON.parse(JSON.stringify(result)), [
-    { source: "DATA-GO-EGP", method: "GET", fetched: 1, matched: 1, created: 1, updated: 0, unchanged: 0 },
-    { source: "BMA-EGP2", method: "GET", budgetYears: ["2570", "2569"], fetched: 1, matched: 1, created: 1, updated: 0, unchanged: 0, removed: 0, ocrAttempted: 1, ocrUpdated: 0, ocrSkipped: 1, ocrFailed: 0 },
+    { source: "EGP-PROCESS5", method: "GET", discovered: 1, process5Resolved: 1, documentLinks: 0, fetched: 1, matched: 1, created: 1, updated: 0, unchanged: 0, ocrAttempted: 1, ocrUpdated: 0, ocrSkipped: 1, ocrFailed: 0 },
   ]);
+});
+
+test("data.go project enters matching only after its TOR has been extracted", async () => {
+  const queued = [];
+  const job = loadModule("../src/jobs/syncAPI.js", {
+    "node:path": { join: (...parts) => `${parts.at(-1)}:${parts.at(-2)}` },
+    "@/repositories/torRepository": {
+      saveChanged: async () => ({ changedTorIds: ["project-id"], created: 1 }),
+      findBySource: async () => [{ refId: "egp-1", documentUrl: "https://process5.gprocurement.go.th/tor.zip" }],
+    },
+    "@/services/tor/ocr/ocrEgp": { enrich: async () => ({ updatedTorIds: ["ocr-id"], ocrUpdated: 1 }) },
+    "@/jobs/matchTors": { enqueueTors: async (ids) => queued.push(...ids) },
+    "fetch:dataGoProcess5": { fetch: async () => ({ rows: [{}] }), method: "GET", source: "EGP-PROCESS5" },
+    "adapter:dataGoProcess5": { adapt: () => [{ refId: "egp-1", documentUrl: "https://process5.gprocurement.go.th/tor.zip" }] },
+  });
+  await job.syncAPI();
+  assert.deepEqual(queued, ["ocr-id"]);
+});
+
+test("data.go rate limit still processes saved TOR ZIPs", async () => {
+  const queued = [];
+  const saved = [{ refId: "egp-1", documentUrl: "https://process5.gprocurement.go.th/tor.zip" }];
+  const job = loadModule("../src/jobs/syncAPI.js", {
+    "node:path": { join: (...parts) => `${parts.at(-1)}:${parts.at(-2)}` },
+    "@/repositories/torRepository": {
+      saveChanged: async () => ({ created: 0, updated: 0, unchanged: 0, changedTorIds: [] }),
+      findBySource: async () => saved,
+    },
+    "@/services/tor/ocr/ocrEgp": { enrich: async (tors) => {
+      assert.deepEqual(tors, saved);
+      return { updatedTorIds: ["ocr-id"], ocrUpdated: 1 };
+    } },
+    "@/jobs/matchTors": { enqueueTors: async (ids) => queued.push(...ids) },
+    "fetch:dataGoProcess5": { fetch: async () => { throw new Error("data.go discovery failed: data.go API HTTP 429"); }, method: "GET", source: "EGP-PROCESS5" },
+    "adapter:dataGoProcess5": { adapt: () => [] },
+  });
+  const [result] = await job.syncAPI();
+  assert.equal(result.rateLimited, true);
+  assert.equal(result.ocrUpdated, 1);
+  assert.deepEqual(queued, ["ocr-id"]);
 });
 
 test("TOR persistence bulk-writes new and changed records but skips identical records", async () => {

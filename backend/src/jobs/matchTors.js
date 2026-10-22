@@ -46,8 +46,7 @@ function bangkokDateString(date = new Date()) {
 // Same stages the listing cards call open, closing soon, and draft.
 // Awarded, cancelled, and past-deadline notices are not scored.
 function fitScoreApplies(tor, today = bangkokDateString()) {
-  if (!tor) return false;
-  if (queuedTorStatus() === "any") return true;
+  if (!tor || tor.source !== "EGP-PROCESS5") return false;
   const status = String(tor.status || "").trim().toLowerCase();
   if (status === "awarded" || status === "cancelled") return false;
   if (!status || status === "draft") return true;
@@ -73,9 +72,9 @@ function scoreableStatusFilter() {
 }
 
 async function findScoreableTors(ids) {
-  const query = { ...scoreableStatusFilter() };
+  const query = { source: "EGP-PROCESS5", ...scoreableStatusFilter() };
   if (ids) query._id = { $in: ids };
-  const tors = await TOR.find(query).select("_id status deadline ocr.deadline").lean();
+  const tors = await TOR.find(query).select("_id source status deadline ocr.deadline").lean();
   return tors.filter((tor) => fitScoreApplies(tor));
 }
 
@@ -122,7 +121,7 @@ async function retireIneligibleJobs() {
   if (!active.length) return 0;
 
   const tors = await TOR.find({ _id: { $in: active.map((job) => job.torId) } })
-    .select("_id status deadline ocr.deadline")
+    .select("_id source status deadline ocr.deadline")
     .lean();
   const scoreable = new Set(
     tors.filter((tor) => fitScoreApplies(tor)).map((tor) => String(tor._id)),

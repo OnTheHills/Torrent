@@ -19,7 +19,7 @@ async function getTorMatchesByUserId(userId) {
   if (!matches.length) return matches;
 
   const tors = await TOR.find({ _id: { $in: matches.map((match) => match.torId) } })
-    .select("_id status deadline ocr.deadline")
+    .select("_id source status deadline ocr.deadline")
     .lean();
   const byId = new Map(tors.map((tor) => [String(tor._id), tor]));
   const kept = [];

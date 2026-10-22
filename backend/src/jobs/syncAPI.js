@@ -1,21 +1,22 @@
-const { readdirSync } = require("node:fs");
 const { join } = require("node:path");
-const { hydrateProjects } = require("@/services/tor/api/bmaEgp2/files");
-const ocrBmaPlans = require("@/services/tor/ocr/ocrBmaPlans");
+const ocrEgp = require("@/services/tor/ocr/ocrEgp");
 const torRepository = require("@/repositories/torRepository");
 const torMatching = require("@/jobs/matchTors");
 
 const apiDirectory = join(__dirname, "../services/tor/api");
 
-// Find fetchers so adding api/<name>/fetch.js automatically adds it to the job.
+const ACTIVE_SOURCES = ["dataGoProcess5"];
+
+function source(name) {
+  return ({
+    name,
+    fetcher: require(join(apiDirectory, name, "fetch")),
+    adapter: require(join(apiDirectory, name, "adapter")),
+  });
+}
+
 function sources() {
-  return readdirSync(apiDirectory, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => ({
-      name: entry.name,
-      fetcher: require(join(apiDirectory, entry.name, "fetch")),
-      adapter: require(join(apiDirectory, entry.name, "adapter")),
-    }));
+  return ACTIVE_SOURCES.map(source);
 }
 
 async function save(tors) {
@@ -24,31 +25,33 @@ async function save(tors) {
 }
 
 async function syncSource(name, { enqueueMatches = true, collectMatchIds = false } = {}) {
-  const source = sources().find((candidate) => candidate.name === name);
-  if (!source) throw new Error(`Unknown API source: ${name}`);
-  const result = await source.fetcher.fetch();
-  const matched = source.adapter.adapt(result.rows);
-  const tors = name === "bmaEgp2" ? await hydrateProjects(matched) : matched;
+  if (![...ACTIVE_SOURCES, "process3Process5"].includes(name)) throw new Error(`Unknown API source: ${name}`);
+  const selected = source(name);
+  let result;
+  try {
+    result = await selected.fetcher.fetch();
+  } catch (error) {
+    if (name !== "dataGoProcess5" || !/data\.go discovery failed: data\.go API HTTP 429/.test(error.message)) throw error;
+    result = { rows: [], metadata: { discoveryError: error.message, rateLimited: true } };
+  }
+  const matched = selected.adapter.adapt(result.rows);
+  const tors = matched;
   const { changedTorIds = [], ...persisted } = await save(tors);
-  const replaced =
-    name === "bmaEgp2" && result.rows.length
-      ? await torRepository.deleteMissingFromSource(
-          source.fetcher.source,
-          tors.map((tor) => tor.refId),
-        )
-      : {};
-  const { updatedTorIds = [], ...ocr } = name === "bmaEgp2" ? await ocrBmaPlans.enrich(tors) : {};
-  const matchTorIds = [...new Set([...changedTorIds, ...updatedTorIds].filter(Boolean).map(String))];
+  const ocrCandidates = name === "dataGoProcess5"
+    ? await torRepository.findBySource("EGP-PROCESS5")
+    : tors;
+  const { updatedTorIds = [], ...ocr } = await ocrEgp.enrich(ocrCandidates);
+  const matchTorIds = [...new Set((name === "dataGoProcess5" ? updatedTorIds : [...changedTorIds, ...updatedTorIds])
+    .filter(Boolean).map(String))];
   if (enqueueMatches && matchTorIds.length) await torMatching.enqueueTors(matchTorIds);
   return {
     ...(result.metadata || {}),
     fetched: result.rows.length,
     matched: tors.length,
-    method: source.fetcher.method,
+    method: selected.fetcher.method,
     ...persisted,
-    ...replaced,
     ...ocr,
-    source: source.fetcher.source,
+    source: selected.fetcher.source,
     ...(collectMatchIds ? { _matchTorIds: matchTorIds } : {}),
   };
 }

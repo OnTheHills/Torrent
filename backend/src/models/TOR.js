@@ -55,11 +55,26 @@ const torSchema = new mongoose.Schema(
     budgetThb: {
       type: Number,
     },
+    priceBuildThb: {
+      type: Number,
+    },
     budgetYear: {
       type: String,
       trim: true,
     },
     agencyId: {
+      type: String,
+      trim: true,
+    },
+    egpDeptId: {
+      type: String,
+      trim: true,
+    },
+    egpDeptSubId: {
+      type: String,
+      trim: true,
+    },
+    documentUrl: {
       type: String,
       trim: true,
     },
