@@ -1,0 +1,2 @@
+- Vendor can filter tor places budget things and all
+- Vendor can set their profile and make the profile more descriptive

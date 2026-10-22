@@ -53,7 +53,8 @@ export function listingStage(
 
 const FIT_SCORE_STAGES = new Set<ListingStage>(["open", "closing", "draft"]);
 
-export function fitScoreApplies(tor: { lifecycle: string; deadline?: string }) {
+export function fitScoreApplies(tor: { lifecycle: string; deadline?: string; matchEligible?: boolean }) {
+  if (typeof tor.matchEligible === "boolean") return tor.matchEligible;
   return FIT_SCORE_STAGES.has(listingStage(tor));
 }
 

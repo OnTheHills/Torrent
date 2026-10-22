@@ -103,6 +103,26 @@ const frostPillDanger =
 const frostButton =
   "border-0 bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))] text-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] backdrop-blur-md backdrop-saturate-150 hover:bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))]";
 
+type PastProject = {
+  name: string;
+  description: string;
+  budget: number | null;
+  isGovernment: boolean | null;
+  completedAt: string | null;
+};
+
+type ProjectRow = {
+  name: string;
+  description: string;
+  budget: string;
+  isGovernment: string;
+  completedAt: string;
+};
+
+const emptyProject = (): ProjectRow => ({
+  name: "", description: "", budget: "", isGovernment: "", completedAt: "",
+});
+
 type SavedProfile = {
   companyName?: string;
   companyEmail?: string;
@@ -110,7 +130,7 @@ type SavedProfile = {
   teamSize?: string;
   vendorCapDescription?: string;
   techSkills?: string[];
-  pastProjects?: string[];
+  pastProjects?: (PastProject | string)[];
   website?: string;
   location?: string;
   bio?: string;
@@ -123,7 +143,7 @@ const initialProfile = {
   teamSize: "",
   vendorCapDescription: "",
   techSkills: "",
-  pastProjects: "",
+  pastProjects: [] as ProjectRow[],
   website: "",
   location: "",
   bio: "",
@@ -141,15 +161,10 @@ export default function ProfilePage() {
   const [customTechnology, setCustomTechnology] = useState("");
   const techCommitted = useRef(false);
   const bioRef = useRef<HTMLTextAreaElement>(null);
-  const pastProjectsRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (bioRef.current) fitTextBox(bioRef.current);
   }, [profile.bio]);
-
-  useEffect(() => {
-    if (pastProjectsRef.current) fitTextBox(pastProjectsRef.current);
-  }, [profile.pastProjects]);
 
   useEffect(() => {
     let cancelled = false;
@@ -168,7 +183,15 @@ export default function ProfilePage() {
           teamSize: saved.teamSize ?? "",
           vendorCapDescription: saved.vendorCapDescription ?? "",
           techSkills: (saved.techSkills ?? []).join(", "),
-          pastProjects: (saved.pastProjects ?? []).join("\n"),
+          pastProjects: (saved.pastProjects ?? []).map((project) =>
+            typeof project === "string" ? { ...emptyProject(), name: project } : {
+              name: project.name ?? "",
+              description: project.description ?? "",
+              budget: project.budget == null ? "" : String(project.budget),
+              isGovernment: project.isGovernment == null ? "" : String(project.isGovernment),
+              completedAt: project.completedAt?.slice(0, 10) ?? "",
+            },
+          ),
           website: saved.website ?? "",
           location: saved.location ?? "",
           bio: saved.bio ?? "",
@@ -183,8 +206,17 @@ export default function ProfilePage() {
     };
   }, []);
 
-  function updateProfile(field: keyof typeof initialProfile, value: string) {
+  function updateProfile(field: Exclude<keyof typeof initialProfile, "pastProjects">, value: string) {
     setProfile((current) => ({ ...current, [field]: value }));
+  }
+
+  function updateProject(index: number, field: keyof ProjectRow, value: string) {
+    setProfile((current) => ({
+      ...current,
+      pastProjects: current.pastProjects.map((project, row) =>
+        row === index ? { ...project, [field]: value } : project,
+      ),
+    }));
   }
 
   const selectedCapabilities = capabilityList(profile.vendorCapDescription);
@@ -252,6 +284,16 @@ export default function ProfilePage() {
     setSaveFailed(false);
 
     try {
+      const projects = profile.pastProjects.filter((project) =>
+        Object.values(project).some((value) => value.trim() !== ""),
+      );
+      for (const [index, project] of projects.entries()) {
+        if (!project.name.trim() || !project.description.trim() ||
+            project.budget.trim() === "" || !Number.isFinite(Number(project.budget)) ||
+            Number(project.budget) < 0 || !["true", "false"].includes(project.isGovernment)) {
+          throw new Error(`Past project row ${index + 1}: enter a name, description, non-negative budget, and government status.`);
+        }
+      }
       const currentUser = await getMe();
       let existingProfile: { _id: string } | null = null;
 
@@ -282,10 +324,13 @@ export default function ProfilePage() {
           .split(",")
           .map((skill) => skill.trim())
           .filter(Boolean),
-        pastProjects: profile.pastProjects
-          .split(/[,\n]/)
-          .map((project) => project.trim())
-          .filter(Boolean),
+        pastProjects: projects.map((project) => ({
+          name: project.name.trim(),
+          description: project.description.trim(),
+          budget: Number(project.budget),
+          isGovernment: project.isGovernment === "true",
+          completedAt: project.completedAt || null,
+        })),
         website: profile.website,
         companyPhone: profile.companyPhone,
         bio: profile.bio,
@@ -760,27 +805,47 @@ export default function ProfilePage() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2.5 sm:col-span-2">
-                  <label
-                    className="text-base font-medium leading-snug"
-                    htmlFor="pastProjects"
-                  >
-                    Similar past work
-                  </label>
-                  <textarea
-                    ref={pastProjectsRef}
-                    className={cn(
-                      fieldClass,
-                      "h-auto min-h-16 resize-none overflow-hidden py-2 leading-5",
-                    )}
-                    id="pastProjects"
-                    rows={2}
-                    value={profile.pastProjects}
-                    onChange={(event) => {
-                      updateProfile("pastProjects", event.target.value);
-                      fitTextBox(event.currentTarget);
-                    }}
-                    placeholder="One project per line, or separate with commas"
-                  />
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-base font-medium leading-snug">Similar past work</h3>
+                  </div>
+                  <div className="overflow-x-auto rounded-lg border border-border/50">
+                    <table className="w-full min-w-[850px] text-left text-sm">
+                      <caption className="sr-only">Past projects used to assess procurement fit</caption>
+                      <thead className="bg-white/50">
+                        <tr>
+                          {["Project name", "Short description", "Budget (THB)", "Government project?", "Completed date (optional)", "Actions"].map((heading) =>
+                            <th key={heading} scope="col" className="p-3 font-medium">{heading}</th>,
+                          )}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {profile.pastProjects.length === 0 && <tr><td colSpan={6} className="p-4 text-muted-foreground">No projects added. Add a project to describe your past work.</td></tr>}
+                        {profile.pastProjects.map((project, index) => (
+                          <tr key={index} className="border-t border-border/50">
+                            <td className="p-3 align-top"><Input aria-label={`Project ${index + 1} name`} className={cn(fieldClass, "min-w-36")} value={project.name} onChange={(event) => updateProject(index, "name", event.target.value)} /></td>
+                            <td className="p-3 align-top"><textarea aria-label={`Project ${index + 1} short description`} rows={2} className={cn(fieldClass, "h-auto min-w-48 resize-y py-2")} value={project.description} onChange={(event) => updateProject(index, "description", event.target.value)} /></td>
+                            <td className="p-3 align-top"><Input aria-label={`Project ${index + 1} budget in THB`} type="number" min="0" step="0.01" className={cn(fieldClass, "min-w-28")} value={project.budget} onChange={(event) => updateProject(index, "budget", event.target.value)} /></td>
+                            <td className="p-3 align-top"><select aria-label={`Project ${index + 1} government status`} className={cn(fieldClass, "min-w-28")} value={project.isGovernment} onChange={(event) => updateProject(index, "isGovernment", event.target.value)}><option value="">Select</option><option value="true">Yes</option><option value="false">No</option></select></td>
+                            <td className="p-3 align-top"><Input aria-label={`Project ${index + 1} completed date (optional)`} type="date" className={fieldClass} value={project.completedAt} onChange={(event) => updateProject(index, "completedAt", event.target.value)} /></td>
+                            <td className="p-3 align-top"><button type="button" aria-label={`Remove project ${index + 1}`} className={cn(frostPill, frostPillDanger)} onClick={() => setProfile((current) => ({ ...current, pastProjects: current.pastProjects.filter((_, row) => row !== index) }))}><HugeiconsIcon icon={Cancel01Icon} className="size-4" /></button></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-7 gap-1.5 bg-emerald-600 px-2.5 text-xs text-white hover:bg-emerald-700"
+                      onClick={() => setProfile((current) => ({
+                        ...current,
+                        pastProjects: [...current.pastProjects, emptyProject()],
+                      }))}
+                    >
+                      <HugeiconsIcon icon={PlusSignIcon} className="size-3.5" /> Add project
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>

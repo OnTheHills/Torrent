@@ -86,6 +86,8 @@ export interface Tor {
     fileUrl?: string;
   };
   procurementMethod?: ProcurementMethod;
+  /** Backend eligibility, including the configured TOR status policy. */
+  matchEligible?: boolean;
   matchScore?: number;
   /** Vertex reason this TOR fits the signed-in studio. */
   matchInsight?: string;
@@ -122,6 +124,8 @@ export interface AppNotification {
   bodyTh: string;
   createdAt: string;
   read: boolean;
+  /** Backend eligibility, including the configured TOR status policy. */
+  matchEligible?: boolean;
   matchScore?: number;
   skills: string[];
 }
