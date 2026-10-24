@@ -55,7 +55,9 @@ export default async function TorsPage({ searchParams }: Props) {
   );
   const sources = searchValues(source).flatMap((item) => {
     const id = parseListingSource(item);
-    return id === "egp-rss" || id === "sme-gp" || id === "bma-egp2" ? [id] : [];
+    return id === "egp-rss" || id === "sme-gp" || id === "bma-egp2" || id === "data-go"
+      ? [id]
+      : [];
   });
   const stages = parseListingStages(searchValues(stage));
   const budgetYears = searchValues(year).filter((item) => /^25\d{2}$/.test(item));

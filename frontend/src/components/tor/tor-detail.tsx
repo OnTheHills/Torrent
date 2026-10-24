@@ -12,7 +12,7 @@ import {
   CancelCircleIcon,
   Clock01Icon,
   File01Icon,
-  GuestHouseIcon,
+  SourceCodeIcon,
   SparklesIcon,
   LinkSquare02Icon,
   Money01Icon,
@@ -499,9 +499,9 @@ export function TorDetail({
                         />
                       ) : (
                         <HugeiconsIcon
-                          icon={GuestHouseIcon}
+                          icon={SourceCodeIcon}
                           strokeWidth={1.75}
-                          className="size-3.5 shrink-0"
+                          className="size-5 shrink-0"
                         />
                       )}
                       <span>{sourceLabel}</span>
@@ -563,7 +563,7 @@ export function TorDetail({
                       />
                     ) : (
                       <HugeiconsIcon
-                        icon={GuestHouseIcon}
+                        icon={SourceCodeIcon}
                         strokeWidth={1.75}
                         className="size-4 shrink-0"
                       />

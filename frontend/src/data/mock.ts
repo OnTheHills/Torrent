@@ -592,12 +592,19 @@ export function formatBudget(amount: number, locale: "en" | "th" = "en"): string
   }).format(amount);
 }
 
-/** Competitor-style compact budget: ฿12.5M / ฿12.5 ล้าน. Missing source amounts stay blank. */
+function scaledAmount(amount: number, scale: number) {
+  const fixed = (amount / scale).toFixed(1);
+  return fixed.endsWith(".0") ? fixed.slice(0, -2) : fixed;
+}
+
+/** Compact budget: ฿12.5M / ฿10,000, or ฿12.5 ล้าน / ฿10,000. Missing source amounts stay blank. */
 export function formatBudgetCompact(amount: number, locale: "en" | "th" = "en"): string {
   if (!Number.isFinite(amount) || amount <= 0) return "—";
-  const millions = amount / 1_000_000;
-  const value = millions.toFixed(1);
-  return locale === "th" ? `฿${value} ล้าน` : `฿${value}M`;
+  if (amount >= 1_000_000) {
+    const million = locale === "th" ? " ล้าน" : "M";
+    return `฿${scaledAmount(amount, 1_000_000)}${million}`;
+  }
+  return `฿${Math.round(amount).toLocaleString("en-US")}`;
 }
 
 export function formatBudgetYear(year?: string): string {
@@ -637,14 +644,18 @@ export function torCardTitle(tor: Tor, locale: "en" | "th") {
 }
 
 export function torAgency(tor: Tor, locale: "en" | "th") {
+  const id = String(tor.agencyId || "");
+  if (id === "egp") return "e-GP";
   const agency = AGENCY_BY_ID[tor.agencyId];
-  if (!agency) return tor.agencyId || "Unknown";
+  if (!agency) return id || "Unknown";
   return locale === "th" ? agency.nameTh : agency.nameEn;
 }
 
 export function torAgencyShort(tor: Tor, locale: "en" | "th") {
+  const id = String(tor.agencyId || "");
+  if (id === "egp") return "e-GP";
   const agency = AGENCY_BY_ID[tor.agencyId];
-  if (!agency) return tor.agencyId || "Unknown";
+  if (!agency) return id || "Unknown";
   return locale === "th" ? agency.shortTh : agency.shortEn;
 }
 

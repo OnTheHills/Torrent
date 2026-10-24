@@ -1,9 +1,11 @@
 const {
   ANNOUNCE_URL,
+  DETAIL_URL,
   FILE_ORIGIN,
   PROJECT_URL,
   USER_AGENT,
 } = require("@/constants/bmaConstants");
+const { projectStatus } = require("@/services/tor/api/bmaEgp2/adapter");
 const { parseDate } = require("@/utils/torUtils");
 
 function projectIdFromUrl(egpUrl) {
@@ -32,6 +34,21 @@ function announceKind(name) {
   if (/เชิญชวน|ร่างเอกสารประกวดราคา|e-Bidding/i.test(value)) return "open";
   if (/ผู้ชนะ|ได้รับการคัดเลือก/.test(value)) return "winner";
   return "other";
+}
+
+async function fetchProjectDetail(projectId) {
+  const url = new URL(DETAIL_URL);
+  url.searchParams.set("projectId", projectId);
+  const response = await fetch(url, {
+    headers: {
+      Accept: "application/json, text/plain, */*",
+      Referer: `${PROJECT_URL}/${projectId}`,
+      "User-Agent": USER_AGENT,
+    },
+  });
+  if (!response.ok) throw new Error(`BMA project detail failed (${response.status})`);
+  const result = await response.json();
+  return result.data || result;
 }
 
 async function fetchAnnouncements(projectId) {
@@ -105,11 +122,18 @@ async function hydrateProjects(tors = []) {
       continue;
     }
     try {
-      const announcements = await fetchAnnouncements(projectId);
+      const [announcements, detail] = await Promise.all([
+        fetchAnnouncements(projectId),
+        fetchProjectDetail(projectId),
+      ]);
+      const fromProject = projectStatus(detail);
       hydrated.push({
         ...tor,
         publishedAt: datesFromAnnouncements(announcements) || tor.publishedAt,
-        status: statusFromAnnouncements(announcements, tor.status),
+        status:
+          fromProject === "cancelled" || fromProject === "awarded"
+            ? fromProject
+            : statusFromAnnouncements(announcements, tor.status),
       });
     } catch (error) {
       console.error(`BMA project hydrate ${projectId}: ${error.message}`);

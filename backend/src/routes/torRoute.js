@@ -6,13 +6,16 @@ const {
   updateTor,
   deleteTor,
 } = require("@/controllers/torController");
+const { requireAuth } = require("@/middleware/requireAuth");
+const { requireRole } = require("@/middleware/requireRole");
 
 const torRouter = express.Router();
+const adminOnly = [requireAuth, requireRole("admin")];
 
-torRouter.post("/", createTor);
+torRouter.post("/", ...adminOnly, createTor);
 torRouter.get("/", getAllTors);
 torRouter.get("/:id", getTorById);
-torRouter.patch("/:id", updateTor);
-torRouter.delete("/:id", deleteTor);
+torRouter.patch("/:id", ...adminOnly, updateTor);
+torRouter.delete("/:id", ...adminOnly, deleteTor);
 
 module.exports = torRouter;

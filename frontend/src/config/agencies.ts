@@ -1,6 +1,12 @@
 export type AgencyId = "bma" | "mdes" | "dga" | "depa" | "mol";
 
-export type DataSourceKind = "bma-ocds" | "bma-egp2" | "egp-rss" | "sme-gp" | "html";
+export type DataSourceKind =
+  | "bma-ocds"
+  | "bma-egp2"
+  | "egp-rss"
+  | "sme-gp"
+  | "data-go"
+  | "html";
 
 export type SourceVerdict = "green" | "yellow" | "red";
 
@@ -154,6 +160,7 @@ export function agencyName(id: AgencyId | string, locale: "en" | "th") {
 }
 
 export function agencyShort(id: AgencyId | string, locale: "en" | "th") {
+  if (id === "egp") return "e-GP";
   const agency = AGENCY_BY_ID[id as AgencyId];
   if (!agency) return id;
   return locale === "th" ? agency.shortTh : agency.shortEn;

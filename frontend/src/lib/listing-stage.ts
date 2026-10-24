@@ -36,10 +36,12 @@ function daysUntil(deadline: string, today: string) {
 
 // Deadline splits an open notice into open, closing soon, or closed.
 // Draft, winner, and cancelled stay their own stages.
+// SME-GP has no close date, so those cards stay closed until a real stage is known.
 export function listingStage(
-  tor: { lifecycle: string; deadline?: string },
+  tor: { lifecycle: string; deadline?: string; sourceKind?: string },
   today = bangkokToday(),
 ): ListingStage {
+  if (tor.sourceKind === "sme-gp") return "closed";
   if (tor.lifecycle === "cancelled") return "cancelled";
   if (tor.lifecycle === "awarded") return "awarded";
   if (tor.lifecycle === "draft") return "draft";
@@ -53,7 +55,12 @@ export function listingStage(
 
 const FIT_SCORE_STAGES = new Set<ListingStage>(["open", "closing", "draft"]);
 
-export function fitScoreApplies(tor: { lifecycle: string; deadline?: string; matchEligible?: boolean }) {
+export function fitScoreApplies(tor: {
+  lifecycle: string;
+  deadline?: string;
+  sourceKind?: string;
+  matchEligible?: boolean;
+}) {
   if (typeof tor.matchEligible === "boolean") return tor.matchEligible;
   return FIT_SCORE_STAGES.has(listingStage(tor));
 }

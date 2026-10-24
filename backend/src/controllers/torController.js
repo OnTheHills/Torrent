@@ -28,7 +28,7 @@ async function getAllTors(request, response) {
 async function getTorById(request, response) {
   try {
     const tor = await torCrudService.getTorById(request.params.id);
-    if (!tor) {
+    if (!tor || tor.hidden) {
       return response.status(404).json({ message: "TOR not found." });
     }
     return response.status(200).json(withMatchEligibility(tor));

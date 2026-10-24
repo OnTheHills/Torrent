@@ -63,6 +63,19 @@ export async function api<T>(
   return data as T;
 }
 
+export async function apiBlob(path: string): Promise<Blob> {
+  const response = await fetch(apiUrl(path), { credentials: "include" });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    const message =
+      typeof data === "object" && data && "message" in data
+        ? String((data as { message: string }).message)
+        : `Request failed (${response.status})`;
+    throw new Error(message);
+  }
+  return response.blob();
+}
+
 async function requestTors(): Promise<Tor[]> {
   // TOR data can change immediately after manual sync, so do not reuse stale data.
   const response = await fetch(apiUrl("/tors"), { cache: "no-store" });
@@ -171,10 +184,12 @@ const INGEST_SUMMARY_PREFIXES = [
   /^BMA e-GP2 plan matched terms:\s*/i,
   /^BMA e-GP2 project matched terms:\s*/i,
   /^e-GP RSS matched terms:\s*/i,
+  /^data\.go e-GP matched software terms:\s*/i,
   /^พบคำค้นหา:\s*/,
   /^แผนจัดซื้อจัดจ้าง กทม\. e-GP2 พบคำค้นหา:\s*/,
   /^โครงการ กทม\. e-GP2 พบคำค้นหา:\s*/,
   /^RSS e-GP พบคำค้นหา:\s*/,
+  /^data\.go e-GP พบคำค้นซอฟต์แวร์:\s*/,
 ];
 
 function splitIngestSummary(value?: string) {
@@ -246,7 +261,10 @@ function mapBackendTorToFrontendTor(data: any): Tor {
     category: data.category || "Uncategorized",
     lifecycle:
       data.status === "published" ? "published" : data.status || "draft",
-    integrity: "ok",
+    integrity:
+      data.integrityStatus === "flagged" || data.integrityStatus === "confirmed"
+        ? "suspicious"
+        : "ok",
     budgetThb: data.budgetThb || 0,
     budgetYear: data.budgetYear || inferBudgetYear(data),
     publishedAt: data.publishedAt
@@ -287,6 +305,8 @@ function mapBackendTorToFrontendTor(data: any): Tor {
           ? "egp-rss"
           : data.source === "SME-GP"
             ? "sme-gp"
-            : "html",
+            : data.source === "DATA-GO-EGP"
+              ? "data-go"
+              : "html",
   };
 }

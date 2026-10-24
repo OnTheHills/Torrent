@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { routes } from "@/config/routes";
-
+import { DevAdminShortcut } from "@/components/auth/dev-admin-shortcut";
 import { GoogleButton } from "@/components/auth/google-button";
+import { routes } from "@/config/routes";
 
 export const metadata: Metadata = {
   title: "Log in",
@@ -25,6 +25,7 @@ export default function LoginPage() {
           Register
         </Link>
       </p>
+      <DevAdminShortcut />
     </div>
   );
 }

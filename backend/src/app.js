@@ -8,6 +8,7 @@ const userBioRouter = require("@/routes/userBioRoute");
 const torRouter = require("@/routes/torRoute");
 const torMatchRouter = require("@/routes/torMatchRoute");
 const syncRouter = require("@/routes/syncRoute");
+const adminRouter = require("@/routes/adminRoute");
 
 // Configure the HTTP application. Database connection and jobs start in server.js.
 const app = express();
@@ -31,6 +32,7 @@ app.use("/api/user-bios", userBioRouter);
 app.use("/api/tors", torRouter);
 app.use("/api/tor-matches", torMatchRouter);
 app.use("/api/sync", syncRouter);
+app.use("/api/admin", adminRouter);
 
 app.get("/", (req, res) => {
   res.json({ message: "Backend is running" });

@@ -42,6 +42,7 @@ export function GoogleButton({
   const { t } = useLocale();
   const ref = useRef<HTMLDivElement>(null);
   const paintRef = useRef<() => void>(() => {});
+  const readyRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
@@ -52,11 +53,13 @@ export function GoogleButton({
 
     let cancelled = false;
     let tries = 0;
+    readyRef.current = false;
 
     const paint = () => {
       const host = ref.current;
       const google = window.google;
-      if (!host || !google) return;
+      // GSI throws if renderButton runs before initialize().
+      if (!host || !google || !readyRef.current) return;
       const width = Math.min(400, Math.round(host.getBoundingClientRect().width));
       if (width < 200) return;
       const current = host.querySelector("iframe");
@@ -106,7 +109,7 @@ export function GoogleButton({
           }
         },
       });
-
+      readyRef.current = true;
       paint();
     }, 50);
 
@@ -115,13 +118,14 @@ export function GoogleButton({
 
     return () => {
       cancelled = true;
+      readyRef.current = false;
       window.clearInterval(timer);
       observer.disconnect();
     };
   }, [role, afterVendor, router, refresh, clientId, t]);
 
   // A later React render drops the nodes Google injects. Put the button back
-  // before the browser paints.
+  // before the browser paints — only after initialize() has run.
   useLayoutEffect(() => {
     paintRef.current();
   });

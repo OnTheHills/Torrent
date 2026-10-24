@@ -42,6 +42,7 @@ const userSchema = new mongoose.Schema(
     },
     picture: { type: String, trim: true },
     emailVerified: { type: Boolean, default: false },
+    disabled: { type: Boolean, default: false },
   },
   {
     timestamps: true,

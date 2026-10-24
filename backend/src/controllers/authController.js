@@ -35,7 +35,7 @@ async function me(request, response) {
   try {
     const user = await authService.getCurrentUser(request.user.sub);
 
-    if (!user) {
+    if (!user || user.disabled) {
       return response.status(401).json({ message: "Not signed in." });
     }
 
@@ -45,9 +45,19 @@ async function me(request, response) {
   }
 }
 
+async function devAdminLogin(request, response) {
+  try {
+    const { publicUser, user } = await authService.loginAsDevAdmin();
+    setSession(response, user);
+    return response.status(200).json(publicUser);
+  } catch (error) {
+    return response.status(error.statusCode || 500).json({ message: error.message });
+  }
+}
+
 async function logout(request, response) {
   response.clearCookie(COOKIE_NAME, { ...cookieOptions(), maxAge: 0 });
   return response.status(200).json({ ok: true });
 }
 
-module.exports = { googleLogin, me, logout };
+module.exports = { devAdminLogin, googleLogin, me, logout };

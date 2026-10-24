@@ -1,5 +1,4 @@
 const { randomUUID } = require("node:crypto");
-const User = require("@/models/User");
 const VendorProfile = require("@/models/VendorProfile");
 const TOR = require("@/models/TOR");
 const TORMatch = require("@/models/TORMatch");
@@ -330,41 +329,40 @@ async function processJob(job) {
 
   let cursor = job.cursor;
   while (true) {
-    const query = { role: "vendor", ...(cursor ? { _id: { $gt: cursor } } : {}) };
-    const user = await User.findOne(query).sort({ _id: 1 }).select("_id").lean();
-    if (!user) {
+    // Walk every capability profile, not only role=vendor users — admins
+    // who filled a profile for testing were previously skipped forever.
+    const query = cursor ? { userId: { $gt: cursor } } : {};
+    const profile = await VendorProfile.findOne(query).sort({ userId: 1 }).lean();
+    if (!profile) {
       await finishJob(job);
       return "complete";
     }
 
-    const profile = await VendorProfile.findOne({ userId: user._id }).lean();
-    if (profile) {
-      const result = await matchWithVertex(profile, tor);
-      if (!result.ok) {
-        await waitForVertex(job, result.code || "UNAVAILABLE");
-        console.warn("TOR matching paused", { code: result.code, torId: String(tor._id) });
-        return "waiting";
-      }
-
-      const stillOwned = await TorMatchJob.exists({
-        _id: job._id,
-        lockId: job.lockId,
-        status: "running",
-      });
-      if (!stillOwned) return "lost-lease";
-
-      if (result.matchPercent >= minimumMatchPercent()) {
-        await TORMatch.updateOne(
-          { userId: user._id, torId: tor._id },
-          { $set: { matchPercent: result.matchPercent, matchReason: result.matchReason } },
-          { upsert: true },
-        );
-      } else {
-        await TORMatch.deleteOne({ userId: user._id, torId: tor._id });
-      }
+    const result = await matchWithVertex(profile, tor);
+    if (!result.ok) {
+      await waitForVertex(job, result.code || "UNAVAILABLE");
+      console.warn("TOR matching paused", { code: result.code, torId: String(tor._id) });
+      return "waiting";
     }
 
-    cursor = user._id;
+    const stillOwned = await TorMatchJob.exists({
+      _id: job._id,
+      lockId: job.lockId,
+      status: "running",
+    });
+    if (!stillOwned) return "lost-lease";
+
+    if (result.matchPercent >= minimumMatchPercent()) {
+      await TORMatch.updateOne(
+        { userId: profile.userId, torId: tor._id },
+        { $set: { matchPercent: result.matchPercent, matchReason: result.matchReason } },
+        { upsert: true },
+      );
+    } else {
+      await TORMatch.deleteOne({ userId: profile.userId, torId: tor._id });
+    }
+
+    cursor = profile.userId;
     if (!await advanceCursor(job, cursor)) return "lost-lease";
   }
 }

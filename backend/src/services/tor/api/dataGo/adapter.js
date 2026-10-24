@@ -28,11 +28,13 @@ function parseEgpDate(value) {
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
-function matchingSoftwareTerms(title) {
+function matchingSoftwareTerms(title, rules) {
+  const include = rules?.includeKeywords?.length ? rules.includeKeywords : INCLUDE_KEYWORDS;
+  const exclude = rules?.excludeKeywords?.length ? rules.excludeKeywords : EXCLUDE_KEYWORDS;
   const name = String(title || "").toLowerCase();
-  if (!name || EXCLUDE_KEYWORDS.some((term) => name.includes(term.toLowerCase()))) return [];
+  if (!name || exclude.some((term) => name.includes(String(term).toLowerCase()))) return [];
 
-  const directMatches = INCLUDE_KEYWORDS.filter((term) => name.includes(term.toLowerCase()));
+  const directMatches = include.filter((term) => name.includes(String(term).toLowerCase()));
   const systemActions = SYSTEM_ACTION_KEYWORDS.filter((term) => name.includes(term.toLowerCase()));
   const hasSoftwareContext = SOFTWARE_CONTEXT_KEYWORDS.some((term) => name.includes(term.toLowerCase()));
   if (directMatches.length) return directMatches;
@@ -40,12 +42,12 @@ function matchingSoftwareTerms(title) {
   return [];
 }
 
-function adapt(rows = []) {
+function adapt(rows = [], rules) {
   const projects = new Map();
   for (const row of rows) {
     const projectId = String(row.project_id || "");
     const title = String(row.project_name || "").trim();
-    const terms = matchingSoftwareTerms(title);
+    const terms = matchingSoftwareTerms(title, rules);
     if (!projectId || !terms.length) continue;
     projects.set(projectId, {
       refId: projectId,

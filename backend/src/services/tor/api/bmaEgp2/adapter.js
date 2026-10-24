@@ -39,7 +39,8 @@ function matchingBmaSoftwareTerms(title) {
 function projectStatus(row) {
   const code = String(row.masterContractAvailableCode || "").toUpperCase();
   const name = String(row.masterContractAvailableName || "");
-  if (code === "S2" || /แล้วเสร็จ|ปิดโครงการ|ยกเลิก/.test(name)) return "awarded";
+  if (code === "S5" || /ยกเลิก/.test(name)) return "cancelled";
+  if (code === "S2" || /แล้วเสร็จ|ปิดโครงการ/.test(name)) return "awarded";
   return "published";
 }
 
@@ -79,4 +80,4 @@ function adapt(rows) {
   });
 }
 
-module.exports = { adapt, matchingBmaSoftwareTerms };
+module.exports = { adapt, matchingBmaSoftwareTerms, projectStatus };
