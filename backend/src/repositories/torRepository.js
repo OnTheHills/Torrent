@@ -8,7 +8,8 @@ async function create(data) {
 }
 
 async function findAll() {
-  return TOR.find({ source: "EGP-PROCESS5" }).sort({ publishedAt: -1 });
+  // Public catalog: every non-hidden software TOR from all active feeds.
+  return TOR.find({ hidden: { $ne: true } }).sort({ publishedAt: -1 });
 }
 
 async function findById(id) {
@@ -39,7 +40,13 @@ function key({ refId, source }) {
 }
 
 async function saveChanged(tors) {
-  const summary = { created: 0, updated: 0, unchanged: 0, changedTorIds: [] };
+  const summary = {
+    created: 0,
+    updated: 0,
+    unchanged: 0,
+    changedTorIds: [],
+    createdTorIds: [],
+  };
   // Ignore duplicate results from overlapping source searches before touching MongoDB.
   const uniqueTors = [...new Map(tors.map((tor) => [key(tor), tor])).values()];
   if (!uniqueTors.length) return summary;
@@ -52,6 +59,7 @@ async function saveChanged(tors) {
   const byKey = new Map(existing.map((tor) => [key(tor), tor]));
   const writes = [];
   const changedPairs = [];
+  const createdPairs = [];
 
   for (const tor of uniqueTors) {
     const current = byKey.get(key(tor));
@@ -60,6 +68,7 @@ async function saveChanged(tors) {
       summary.created++;
       writes.push({ insertOne: { document: tor } });
       changedPairs.push({ source: tor.source, refId: tor.refId });
+      createdPairs.push({ source: tor.source, refId: tor.refId });
     } else if (Object.keys(tor).some((field) => !isDeepStrictEqual(current[field], tor[field]))) {
       // Same TOR changed at its source: update the stored record in place.
       summary.updated++;
@@ -77,11 +86,17 @@ async function saveChanged(tors) {
     const changed = await TOR.find({ $or: changedPairs }).select("_id").lean();
     summary.changedTorIds = changed.map((tor) => tor._id);
   }
+  if (createdPairs.length) {
+    const created = await TOR.find({ $or: createdPairs }).select("_id").lean();
+    summary.createdTorIds = created.map((tor) => tor._id);
+  }
   return summary;
 }
 
 async function findBySource(source) {
-  return TOR.find({ source }).select("refId source ocr egpUrl documentUrl budgetThb torPdfPath").lean();
+  return TOR.find({ source })
+    .select("refId source status ocr egpUrl documentUrl budgetThb torPdfPath")
+    .lean();
 }
 
 async function findEgpDeptIds(source) {

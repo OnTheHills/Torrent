@@ -25,6 +25,15 @@ export const routes = {
   },
   admin: {
     home: "/admin",
+    sources: "/admin/sources",
+    review: "/admin/review",
+    reviewItem: (id: string) => `/admin/review/${id}`,
+    tors: "/admin/tors",
+    tor: (id: string) => `/admin/tors/${id}`,
+    audit: "/admin/audit",
+    users: "/admin/users",
+    matches: "/admin/matches",
+    settings: "/admin/settings",
   },
 } as const;
 

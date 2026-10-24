@@ -1,4 +1,5 @@
 import {
+  Alert02Icon,
   Analytics01Icon,
   File01Icon,
   HeartIcon,
@@ -6,6 +7,8 @@ import {
   Notification03Icon,
   Pulse01Icon,
   Shield01Icon,
+  SourceCodeIcon,
+  SparklesIcon,
   UserSettings01Icon,
 } from "@hugeicons/core-free-icons";
 import type { IconSvgElement } from "@hugeicons/react";
@@ -89,6 +92,23 @@ export const ADMIN_NAV: NavGroup[] = [
         icon: Shield01Icon,
         exact: true,
       },
+      { labelKey: "navAdminSources", href: routes.admin.sources, icon: Pulse01Icon },
+      { labelKey: "navAdminReview", href: routes.admin.review, icon: Alert02Icon },
+      { labelKey: "navAdminTors", href: routes.admin.tors, icon: File01Icon },
+    ],
+  },
+  {
+    labelKey: "navGroupTools",
+    items: [
+      { labelKey: "navAdminMatches", href: routes.admin.matches, icon: SparklesIcon },
+      { labelKey: "navAdminAudit", href: routes.admin.audit, icon: Analytics01Icon },
+    ],
+  },
+  {
+    labelKey: "navGroupAccount",
+    items: [
+      { labelKey: "navAdminUsers", href: routes.admin.users, icon: UserSettings01Icon },
+      { labelKey: "navAdminSettings", href: routes.admin.settings, icon: SourceCodeIcon },
     ],
   },
 ];

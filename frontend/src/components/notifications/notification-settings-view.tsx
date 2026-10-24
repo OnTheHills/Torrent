@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Tick02Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 import {
   useNotificationPrefs,
   type NotificationPrefs,
 } from "@/components/providers/notification-prefs-provider";
 import { useLocale } from "@/components/providers/locale-provider";
+import { categoryTone } from "@/components/tor/listing-badges";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -163,20 +166,36 @@ export function NotificationSettingsView() {
         <CardContent className="flex flex-wrap gap-2 pt-5">
           {CATEGORIES.map((category) => {
             const selected = draft.categories.includes(category);
+            const tone = categoryTone(category);
             return (
               <button
                 key={category}
                 type="button"
+                aria-pressed={selected}
                 disabled={!ready}
                 onClick={() => toggleCategory(category)}
                 className={cn(
-                  "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                  "inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium",
+                  "shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_88%,transparent)] backdrop-blur-md backdrop-saturate-150",
+                  "ring-1 transition-[background-color,transform] duration-200 ease-out",
+                  "hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-60",
+                  "motion-reduce:transition-none motion-reduce:hover:transform-none",
                   selected
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-background text-muted-foreground hover:text-foreground"
+                    ? cn(
+                        tone.fill,
+                        tone.text,
+                        "ring-[color-mix(in_srgb,currentColor_28%,transparent)]",
+                      )
+                    : "bg-[color-mix(in_srgb,white_72%,transparent)] text-muted-foreground ring-[color-mix(in_srgb,var(--palette-gray-900)_10%,transparent)] hover:bg-[color-mix(in_srgb,white_88%,transparent)]",
                 )}
               >
-                {selected ? "✓ " : ""}
+                {selected ? (
+                  <HugeiconsIcon
+                    icon={Tick02Icon}
+                    strokeWidth={2.25}
+                    className="size-3.5 shrink-0"
+                  />
+                ) : null}
                 {category}
               </button>
             );

@@ -39,6 +39,7 @@ export function parseListingSource(value?: string): ListingSource {
     value === "egp-rss" ||
     value === "sme-gp" ||
     value === "bma-egp2" ||
+    value === "data-go" ||
     value === "bma-ocds" ||
     value === "html"
   ) {

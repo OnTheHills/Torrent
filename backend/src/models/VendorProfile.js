@@ -64,6 +64,21 @@ const vendorProfileSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    certificates: {
+      type: [
+        {
+          name: { type: String, trim: true },
+          issuer: { type: String, trim: true },
+          status: {
+            type: String,
+            enum: ["pending", "approved", "rejected"],
+            default: "pending",
+          },
+          note: { type: String, trim: true },
+        },
+      ],
+      default: undefined,
+    },
   },
   {
     collection: "vendor_profiles",

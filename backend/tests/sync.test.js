@@ -109,9 +109,27 @@ test("e-GP RSS walks official B0/D0/W0 feeds and keeps software draft TORs", asy
   assert.equal(tors[0].category, "Software Development");
 });
 
+const syncJobMocks = {
+  "@/services/tor/api/bmaEgp2/files": { hydrateProjects: async (tors) => tors },
+  "@/services/tor/ocr/ocrBmaPlans": { enrich: async () => ({}) },
+  "@/services/admin/classification": { activeRules: async () => null },
+  "@/services/admin/scoreReviewTors": {
+    scoreTorIds: async (ids) => ({ scored: ids.length, vertexScored: 0 }),
+  },
+  "@/services/tor/smeAnnouncement": {
+    enrichStored: async () => ({
+      announcementRead: 0,
+      announcementUpdated: 0,
+      announcementSkipped: 1,
+      announcementFailed: 0,
+    }),
+  },
+};
+
 test("sync job saves data.go projects but waits for a TOR document before matching", async () => {
   const saved = [];
   const queued = [];
+  const scored = [];
   const job = loadModule("../src/jobs/syncAPI.js", {
     "node:path": { join: (...parts) => {
       const name = parts.at(-2);
@@ -127,19 +145,29 @@ test("sync job saves data.go projects but waits for a TOR document before matchi
           updated: 0,
           unchanged: 0,
           changedTorIds: tors.map(({ refId }) => `tor-id-${refId}`),
+          createdTorIds: tors.map(({ refId }) => `tor-id-${refId}`),
         };
       },
     },
     "@/services/tor/ocr/ocrEgp": { enrich: async () => ({ ocrAttempted: 1, ocrUpdated: 0, ocrSkipped: 1, ocrFailed: 0 }) },
     "@/jobs/matchTors": { enqueueTors: async (ids) => { queued.push(...ids); return ids.length; } },
+    ...syncJobMocks,
+    "@/services/admin/scoreReviewTors": {
+      scoreTorIds: async (ids) => {
+        scored.push(...ids);
+        return { scored: ids.length, vertexScored: 0 };
+      },
+    },
     "fetch:dataGoProcess5": { fetch: async () => ({ metadata: { discovered: 1, process5Resolved: 1, documentLinks: 0 }, rows: [{ refId: "egp-1" }] }), method: "GET", source: "EGP-PROCESS5" },
     "adapter:dataGoProcess5": { adapt: (rows) => rows },
   });
   const result = await job.syncAPI();
   assert.deepEqual(saved, ["egp-1"]);
   assert.deepEqual(queued, []);
+  assert.deepEqual(scored, ["tor-id-egp-1"]);
   assert.deepEqual(JSON.parse(JSON.stringify(result)), [
     { source: "EGP-PROCESS5", method: "GET", discovered: 1, process5Resolved: 1, documentLinks: 0, fetched: 1, matched: 1, created: 1, updated: 0, unchanged: 0, ocrAttempted: 1, ocrUpdated: 0, ocrSkipped: 1, ocrFailed: 0 },
+    { source: "SME-GP", announcementRead: 0, announcementUpdated: 0, announcementSkipped: 1, announcementFailed: 0 },
   ]);
 });
 
@@ -148,11 +176,12 @@ test("data.go project enters matching only after its TOR has been extracted", as
   const job = loadModule("../src/jobs/syncAPI.js", {
     "node:path": { join: (...parts) => `${parts.at(-1)}:${parts.at(-2)}` },
     "@/repositories/torRepository": {
-      saveChanged: async () => ({ changedTorIds: ["project-id"], created: 1 }),
+      saveChanged: async () => ({ changedTorIds: ["project-id"], createdTorIds: ["project-id"], created: 1 }),
       findBySource: async () => [{ refId: "egp-1", documentUrl: "https://process5.gprocurement.go.th/tor.zip" }],
     },
     "@/services/tor/ocr/ocrEgp": { enrich: async () => ({ updatedTorIds: ["ocr-id"], ocrUpdated: 1 }) },
     "@/jobs/matchTors": { enqueueTors: async (ids) => queued.push(...ids) },
+    ...syncJobMocks,
     "fetch:dataGoProcess5": { fetch: async () => ({ rows: [{}] }), method: "GET", source: "EGP-PROCESS5" },
     "adapter:dataGoProcess5": { adapt: () => [{ refId: "egp-1", documentUrl: "https://process5.gprocurement.go.th/tor.zip" }] },
   });
@@ -166,7 +195,7 @@ test("data.go rate limit still processes saved TOR ZIPs", async () => {
   const job = loadModule("../src/jobs/syncAPI.js", {
     "node:path": { join: (...parts) => `${parts.at(-1)}:${parts.at(-2)}` },
     "@/repositories/torRepository": {
-      saveChanged: async () => ({ created: 0, updated: 0, unchanged: 0, changedTorIds: [] }),
+      saveChanged: async () => ({ created: 0, updated: 0, unchanged: 0, changedTorIds: [], createdTorIds: [] }),
       findBySource: async () => saved,
     },
     "@/services/tor/ocr/ocrEgp": { enrich: async (tors) => {
@@ -174,6 +203,7 @@ test("data.go rate limit still processes saved TOR ZIPs", async () => {
       return { updatedTorIds: ["ocr-id"], ocrUpdated: 1 };
     } },
     "@/jobs/matchTors": { enqueueTors: async (ids) => queued.push(...ids) },
+    ...syncJobMocks,
     "fetch:dataGoProcess5": { fetch: async () => { throw new Error("data.go discovery failed: data.go API HTTP 429"); }, method: "GET", source: "EGP-PROCESS5" },
     "adapter:dataGoProcess5": { adapt: () => [] },
   });
@@ -186,12 +216,18 @@ test("data.go rate limit still processes saved TOR ZIPs", async () => {
 test("TOR persistence bulk-writes new and changed records but skips identical records", async () => {
   const existing = [{ _id: "tor-1", refId: "data-1", source: "DATA-GO-EGP", title: "Original" }];
   const writes = [];
+  function idsFor(query) {
+    if (!query.$or) return existing;
+    return query.$or.map((pair) => ({
+      _id: pair.refId === "data-1" ? "tor-1" : "tor-2",
+    }));
+  }
   const repository = loadModule("../src/repositories/torRepository.js", {
     "node:util": require("node:util"),
     "@/models/TOR": {
       find: (query) => ({
-        lean: async () => query.$or ? [{ _id: "tor-1" }, { _id: "tor-2" }] : existing,
-        select: () => ({ lean: async () => [{ _id: "tor-1" }, { _id: "tor-2" }] }),
+        lean: async () => idsFor(query),
+        select: () => ({ lean: async () => idsFor(query) }),
       }),
       bulkWrite: async (operations) => writes.push(...operations),
     },
@@ -200,17 +236,35 @@ test("TOR persistence bulk-writes new and changed records but skips identical re
   });
 
   const same = { refId: "data-1", source: "DATA-GO-EGP", title: "Original" };
-  assert.deepEqual(JSON.parse(JSON.stringify(await repository.saveChanged([same]))), { created: 0, updated: 0, unchanged: 1, changedTorIds: [] });
+  assert.deepEqual(JSON.parse(JSON.stringify(await repository.saveChanged([same]))), {
+    created: 0,
+    updated: 0,
+    unchanged: 1,
+    changedTorIds: [],
+    createdTorIds: [],
+  });
   assert.deepEqual(writes, []);
 
   const changed = { ...same, title: "Revised" };
   const newTor = { ...same, refId: "data-2" };
-  assert.deepEqual(JSON.parse(JSON.stringify(await repository.saveChanged([changed, newTor]))), { created: 1, updated: 1, unchanged: 0, changedTorIds: ["tor-1", "tor-2"] });
+  assert.deepEqual(JSON.parse(JSON.stringify(await repository.saveChanged([changed, newTor]))), {
+    created: 1,
+    updated: 1,
+    unchanged: 0,
+    changedTorIds: ["tor-1", "tor-2"],
+    createdTorIds: ["tor-2"],
+  });
   assert.deepEqual(JSON.parse(JSON.stringify(writes)), [
     { updateOne: { filter: { _id: "tor-1" }, update: { $set: changed } } },
     { insertOne: { document: newTor } },
   ]);
 });
+
+const syncRunsMock = {
+  start: async () => ({ _id: "run-1" }),
+  finish: async () => {},
+  closeInterrupted: async () => {},
+};
 
 for (const flag of [undefined, "false", "true"]) {
   test(`sync job honors FETCH_ON_STARTUP=${flag} and schedules midnight Bangkok`, async () => {
@@ -219,6 +273,7 @@ for (const flag of [undefined, "false", "true"]) {
     const job = loadModule("../src/scheduler/syncScheduler.js", {
       "node-cron": { schedule: (...args) => { scheduled = args; } },
       "@/jobs/syncAPI": { syncAPI: async () => { syncs++; } },
+      "@/services/admin/syncRuns": syncRunsMock,
     }, { FETCH_ON_STARTUP: flag });
     await job.startSyncScheduler();
     assert.equal(syncs, flag === "true" ? 1 : 0);
@@ -235,6 +290,7 @@ test("startup sync failure still enables the nightly job", async () => {
   const job = loadModule("../src/scheduler/syncScheduler.js", {
     "node-cron": { schedule: () => { scheduled = true; } },
     "@/jobs/syncAPI": { syncAPI: async () => { throw new Error("API unavailable"); } },
+    "@/services/admin/syncRuns": syncRunsMock,
   }, { FETCH_ON_STARTUP: "true" });
   await job.startSyncScheduler();
   assert.equal(scheduled, true);

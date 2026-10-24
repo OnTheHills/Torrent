@@ -15,22 +15,50 @@ import type { DictionaryKey } from "@/lib/i18n/dictionary";
 import { listingStage, type ListingStage } from "@/lib/listing-stage";
 import { cn } from "@/lib/utils";
 
-const CATEGORY_COLOR: Record<string, string> = {
-  "Software Development":
-    "bg-[var(--palette-purple-100)] text-[var(--palette-purple-800)]",
-  "Web Application":
-    "bg-[var(--palette-blue-100)] text-[var(--palette-blue-800)]",
-  "Mobile Application": "bg-[#d4effb] text-[#0b5c7d]",
-  "Data Platform":
-    "bg-[var(--palette-teal-100)] text-[var(--palette-teal-800)]",
-  "Digital Platform":
-    "bg-[var(--palette-green-75)] text-[var(--palette-green-800)]",
-  "AI / Analytics":
-    "bg-[var(--palette-orange-100)] text-[var(--palette-orange-800)]",
-  Cybersecurity: "bg-[var(--palette-red-100)] text-[var(--palette-red-800)]",
-  GIS: "bg-[var(--palette-yellow-100)] text-[var(--palette-yellow-800)]",
-  Others: "bg-[color-mix(in_srgb,#f7b6cf_60%,white)] text-[#b02d66]",
+const CATEGORY_TONE: Record<string, { fill: string; text: string }> = {
+  "Software Development": {
+    fill: "bg-[var(--palette-purple-100)]",
+    text: "text-[var(--palette-purple-800)]",
+  },
+  "Web Application": {
+    fill: "bg-[var(--palette-blue-100)]",
+    text: "text-[var(--palette-blue-800)]",
+  },
+  "Mobile Application": { fill: "bg-[#d4effb]", text: "text-[#0b5c7d]" },
+  "Data Platform": {
+    fill: "bg-[var(--palette-teal-100)]",
+    text: "text-[var(--palette-teal-800)]",
+  },
+  "Digital Platform": {
+    fill: "bg-[var(--palette-green-75)]",
+    text: "text-[var(--palette-green-800)]",
+  },
+  "AI / Analytics": {
+    fill: "bg-[var(--palette-orange-100)]",
+    text: "text-[var(--palette-orange-800)]",
+  },
+  Cybersecurity: {
+    fill: "bg-[var(--palette-red-100)]",
+    text: "text-[var(--palette-red-800)]",
+  },
+  GIS: {
+    fill: "bg-[var(--palette-yellow-100)]",
+    text: "text-[var(--palette-yellow-800)]",
+  },
+  Others: {
+    fill: "bg-[color-mix(in_srgb,#f7b6cf_60%,white)]",
+    text: "text-[#b02d66]",
+  },
 };
+
+export function categoryTone(category: string) {
+  return (
+    CATEGORY_TONE[category] ?? {
+      fill: "bg-[var(--palette-gray-150)]",
+      text: "text-[var(--palette-gray-700)]",
+    }
+  );
+}
 
 const STAGE_BADGE: Record<
   ListingStage,
@@ -113,8 +141,8 @@ export function CategoryBadge({
       className={cn(
         "inline-flex min-w-0 max-w-full items-center rounded-full font-medium",
         BADGE_SIZE[size].pill,
-        CATEGORY_COLOR[category] ??
-          "bg-[var(--palette-gray-150)] text-[var(--palette-gray-700)]",
+        categoryTone(category).fill,
+        categoryTone(category).text,
       )}
     >
       <span className="truncate">{category}</span>

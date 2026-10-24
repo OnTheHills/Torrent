@@ -9,6 +9,7 @@ const SOURCE_KEY = {
   "bma-egp2": "sourceBmaEgp2",
   "egp-rss": "sourceRss",
   "sme-gp": "sourceSmeGp",
+  "data-go": "sourceDataGo",
   html: "sourceHtml",
 } as const;
 

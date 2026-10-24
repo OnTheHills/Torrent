@@ -94,6 +94,67 @@ const torSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    hidden: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    hiddenReason: {
+      type: String,
+      trim: true,
+    },
+    confidence: {
+      type: Number,
+    },
+    reviewStatus: {
+      type: String,
+      enum: ["auto", "review", "manual", "approved", "rejected"],
+      index: true,
+    },
+    reviewMissing: {
+      type: [String],
+      default: undefined,
+    },
+    reviewScoreSource: {
+      type: String,
+      enum: ["heuristic", "vertex"],
+    },
+    reviewScoreReason: {
+      type: String,
+      trim: true,
+    },
+    reviewScoredAt: {
+      type: Date,
+    },
+    reviewNote: {
+      type: String,
+      trim: true,
+    },
+    reviewedAt: {
+      type: Date,
+    },
+    reviewedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    integrityStatus: {
+      type: String,
+      enum: ["clear", "flagged", "confirmed", "dismissed"],
+      default: "clear",
+      index: true,
+    },
+    integrityFlags: {
+      type: [String],
+      default: [],
+    },
+    integrityReason: {
+      type: String,
+      trim: true,
+    },
+    integrityNote: {
+      type: String,
+      trim: true,
+    },
     ocr: {
       status: {
         type: String,

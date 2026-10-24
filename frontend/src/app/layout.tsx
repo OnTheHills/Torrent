@@ -40,6 +40,7 @@ export default function RootLayout({
   return (
     <html
       lang="th"
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
       className={`${prompt.variable} ${ibmPlexSansThai.variable}`}
     >

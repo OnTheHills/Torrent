@@ -25,7 +25,10 @@ import type {
 export type { ListingSort };
 export { TOR_CATEGORIES };
 
-export type SourceFilter = Extract<ListingSource, "egp-rss" | "sme-gp" | "bma-egp2">;
+export type SourceFilter = Extract<
+  ListingSource,
+  "egp-rss" | "sme-gp" | "bma-egp2" | "data-go"
+>;
 
 export type TorFilterState = {
   agencies: AgencyId[];
@@ -56,7 +59,7 @@ function toggleMany<T extends string>(current: T[], value: T, checked: boolean) 
   return current.includes(value) ? current : [...current, value];
 }
 
-function FilterChecks<T extends string>({
+export function FilterChecks<T extends string>({
   label,
   items,
   isChecked,
@@ -246,6 +249,7 @@ export function TorFilters({
           { value: "egp-rss", label: t("sourceRss") },
           { value: "sme-gp", label: t("sourceSmeGp") },
           { value: "bma-egp2", label: t("sourceBmaEgp2") },
+          { value: "data-go", label: t("sourceDataGo") },
         ]}
         isChecked={(source) => value.sources.includes(source)}
         onToggle={(source, checked) =>
