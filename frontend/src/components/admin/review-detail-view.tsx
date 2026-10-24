@@ -115,17 +115,21 @@ export function ReviewDetailView({ id }: { id: string }) {
   >({ status: "idle" });
 
   useEffect(() => {
-    if (!data?.pdfUrl) {
-      setPdfPreview({ status: "idle" });
-      return;
-    }
+    if (!data?.pdfUrl) return;
+
     let objectUrl = "";
     let cancelled = false;
-    setPdfPreview({ status: "loading" });
+
     // Same-origin Next.js proxy fetches the PDF on the host (Docker backend
     // can't resolve e-GP), then we blob it so iframe isn't blocked by XFO.
-    fetch(`/api/admin/tors/${id}/pdf`, { credentials: "include" })
-      .then(async (response) => {
+    void (async () => {
+      await Promise.resolve();
+      if (cancelled) return;
+      setPdfPreview({ status: "loading" });
+      try {
+        const response = await fetch(`/api/admin/tors/${id}/pdf`, {
+          credentials: "include",
+        });
         if (!response.ok) {
           const body = await response.json().catch(() => ({}));
           const message =
@@ -134,29 +138,27 @@ export function ReviewDetailView({ id }: { id: string }) {
               : `Could not load PDF (${response.status})`;
           throw new Error(message);
         }
-        return response.blob();
-      })
-      .then((blob) => {
+        const blob = await response.blob();
+        if (cancelled) return;
         const url = URL.createObjectURL(blob);
-        if (cancelled) {
-          URL.revokeObjectURL(url);
-          return;
-        }
         objectUrl = url;
         setPdfPreview({ status: "ready", url });
-      })
-      .catch((err) => {
+      } catch (err) {
         if (cancelled) return;
         setPdfPreview({
           status: "error",
           message: err instanceof Error ? err.message : "Could not load PDF",
         });
-      });
+      }
+    })();
+
     return () => {
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [data?.pdfUrl, id]);
+
+  const preview = data?.pdfUrl ? pdfPreview : { status: "idle" as const };
 
   function value(name: string, fallback = "") {
     return fields[name] ?? fallback;
@@ -353,12 +355,12 @@ export function ReviewDetailView({ id }: { id: string }) {
                   <p className="text-sm text-muted-foreground">
                     No PDF attached to this TOR.
                   </p>
-                ) : pdfPreview.status === "loading" ||
-                  pdfPreview.status === "idle" ? (
+                ) : preview.status === "loading" ||
+                  preview.status === "idle" ? (
                   <div className="flex h-[min(70vh,720px)] items-center justify-center rounded-md bg-muted/40 text-sm text-muted-foreground">
                     Loading PDF…
                   </div>
-                ) : pdfPreview.status === "error" ? (
+                ) : preview.status === "error" ? (
                   <div className="flex h-[min(70vh,720px)] flex-col items-center justify-center gap-4 rounded-md bg-[color-mix(in_srgb,var(--palette-red-50)_70%,transparent)] px-6 py-8 text-center">
                     <HugeiconsIcon
                       icon={Alert02Icon}
@@ -366,13 +368,13 @@ export function ReviewDetailView({ id }: { id: string }) {
                       className="size-12 text-[var(--palette-red-700)]"
                     />
                     <p className="max-w-md text-sm font-medium leading-snug text-[var(--palette-red-800)] md:text-base">
-                      {pdfPreview.message}
+                      {preview.message}
                     </p>
                   </div>
                 ) : (
                   <iframe
                     title="Source document preview"
-                    src={pdfPreview.url}
+                    src={preview.url}
                     className="h-[min(70vh,720px)] w-full rounded-md border border-border bg-white"
                   />
                 )}

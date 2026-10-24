@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -187,31 +188,29 @@ export function formatWhen(value?: string | null) {
 }
 
 export function useAdminQuery<T>(path: string) {
-  const [data, setData] = useState<T | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const query = useQuery({
+    queryKey: ["admin", path],
+    queryFn: () => api<T>(path),
+  });
 
-  const reload = useCallback(async (options?: { silent?: boolean }) => {
-    if (!options?.silent) {
-      setLoading(true);
-      setError(null);
-    }
-    try {
-      setData(await api<T>(path));
-      if (options?.silent) setError(null);
-    } catch (err) {
-      if (!options?.silent) setData(null);
-      setError(err instanceof Error ? err.message : "Request failed");
-    } finally {
-      if (!options?.silent) setLoading(false);
-    }
-  }, [path]);
+  const reload = useCallback(
+    async (_options?: { silent?: boolean }) => {
+      await queryClient.refetchQueries({ queryKey: ["admin", path] });
+    },
+    [path, queryClient],
+  );
 
-  useEffect(() => {
-    void reload();
-  }, [reload]);
-
-  return { data, error, loading, reload };
+  return {
+    data: query.data ?? null,
+    error: query.error
+      ? query.error instanceof Error
+        ? query.error.message
+        : "Request failed"
+      : null,
+    loading: query.isLoading,
+    reload,
+  };
 }
 
 export function AdminStatus({

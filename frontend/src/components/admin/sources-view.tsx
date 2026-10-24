@@ -113,7 +113,10 @@ export function SourcesView() {
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const busyRef = useRef(busy);
-  busyRef.current = busy;
+
+  useEffect(() => {
+    busyRef.current = busy;
+  }, [busy]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {

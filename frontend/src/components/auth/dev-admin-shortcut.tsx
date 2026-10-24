@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 
@@ -8,18 +8,22 @@ import { useSession } from "@/components/providers/session-provider";
 import { routes } from "@/config/routes";
 import { api } from "@/lib/api";
 
+function subscribe() {
+  return () => {};
+}
+
+function useIsClient() {
+  return useSyncExternalStore(subscribe, () => true, () => false);
+}
+
 export function DevAdminShortcut() {
   const router = useRouter();
   const { refresh } = useSession();
+  const isClient = useIsClient();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (process.env.NODE_ENV === "production" || !mounted) return null;
+  if (process.env.NODE_ENV === "production" || !isClient) return null;
 
   async function openAdmin() {
     setPending(true);

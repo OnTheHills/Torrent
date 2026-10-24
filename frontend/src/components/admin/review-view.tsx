@@ -144,7 +144,6 @@ export function ReviewView() {
   useEffect(() => {
     if (updatePhase !== "updating") return;
     const started = Date.now();
-    setUpdateProgress(0.06);
     const timer = window.setInterval(() => {
       const elapsed = (Date.now() - started) / 1000;
       // Ease toward ~92% while the request is in flight (no server progress stream).
