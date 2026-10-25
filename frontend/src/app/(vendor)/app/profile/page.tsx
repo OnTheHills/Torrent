@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   Cancel01Icon,
   PlusSignIcon,
@@ -11,6 +11,13 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { TOR_CATEGORIES } from "@/components/tor/tor-filters";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { api } from "@/lib/api";
 import { getMe } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -26,7 +33,7 @@ const fieldClass =
   "h-8 rounded-[6px] border-0 bg-white px-3.5 text-sm shadow-none ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_32%,transparent)] md:text-sm focus-visible:border-transparent focus-visible:ring-[color-mix(in_srgb,var(--palette-teal-400)_45%,transparent)]";
 
 function fitTextBox(element: HTMLTextAreaElement) {
-  element.style.height = "auto";
+  element.style.height = "0px";
   element.style.height = `${element.scrollHeight}px`;
 }
 
@@ -100,6 +107,10 @@ const frostPillOn =
 const frostPillDanger =
   "bg-[color-mix(in_srgb,var(--palette-red-400)_32%,transparent)] text-[var(--palette-red-800)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_80%,transparent)] ring-[color-mix(in_srgb,var(--palette-red-400)_48%,transparent)] hover:bg-[color-mix(in_srgb,var(--palette-red-400)_44%,transparent)]";
 
+/** Same neutral frost fill as Add pills, sized for form controls. */
+const frostField =
+  "h-8! w-full rounded-full border-0 bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))] px-3.5 text-sm text-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] backdrop-blur-md backdrop-saturate-150 focus-visible:border-transparent focus-visible:ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)]";
+
 const frostButton =
   "border-0 bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))] text-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] backdrop-blur-md backdrop-saturate-150 hover:bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))]";
 
@@ -109,6 +120,7 @@ type PastProject = {
   budget: number | null;
   isGovernment: boolean | null;
   completedAt: string | null;
+  urls?: string[];
 };
 
 type ProjectRow = {
@@ -117,11 +129,72 @@ type ProjectRow = {
   budget: string;
   isGovernment: string;
   completedAt: string;
+  urls: string[];
 };
 
 const emptyProject = (): ProjectRow => ({
-  name: "", description: "", budget: "", isGovernment: "", completedAt: "",
+  name: "",
+  description: "",
+  budget: "",
+  isGovernment: "",
+  completedAt: "",
+  urls: [],
 });
+
+/** ISO yyyy-mm-dd → dd/mm/yyyy for the frost date field. */
+function isoToDisplayDate(iso: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso.trim());
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : "";
+}
+
+/** dd/mm/yyyy → ISO yyyy-mm-dd, or "" if empty/invalid. */
+function displayToIsoDate(display: string) {
+  const trimmed = display.trim();
+  if (!trimmed) return "";
+  const match = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(trimmed);
+  if (!match) return "";
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return "";
+  const iso = `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  const parsed = new Date(`${iso}T00:00:00`);
+  if (
+    Number.isNaN(parsed.getTime()) ||
+    parsed.getFullYear() !== year ||
+    parsed.getMonth() + 1 !== month ||
+    parsed.getDate() !== day
+  ) {
+    return "";
+  }
+  return iso;
+}
+
+function toProjectRow(project: PastProject | string): ProjectRow {
+  if (typeof project === "string") {
+    return { ...emptyProject(), name: project };
+  }
+  return {
+    name: project.name ?? "",
+    description: project.description ?? "",
+    budget: project.budget == null ? "" : String(project.budget),
+    isGovernment:
+      project.isGovernment == null ? "" : String(project.isGovernment),
+    completedAt: isoToDisplayDate(project.completedAt?.slice(0, 10) ?? ""),
+    urls: (project.urls ?? []).map((url) => url.trim()).filter(Boolean),
+  };
+}
+
+function projectHasContent(project: ProjectRow) {
+  return Boolean(
+    project.name.trim() ||
+      project.description.trim() ||
+      project.budget.trim() ||
+      project.isGovernment.trim() ||
+      project.completedAt.trim() ||
+      project.urls.length,
+  );
+}
 
 type SavedProfile = {
   companyName?: string;
@@ -143,11 +216,14 @@ const initialProfile = {
   teamSize: "",
   vendorCapDescription: "",
   techSkills: "",
-  pastProjects: [] as ProjectRow[],
+  pastProjects: [emptyProject()] as ProjectRow[],
   website: "",
   location: "",
   bio: "",
 };
+
+const projectFrostCard =
+  "relative w-full rounded-xl bg-[color-mix(in_srgb,white_78%,transparent)] p-5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_36%,transparent)] backdrop-blur-md backdrop-saturate-150 md:p-6";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState(initialProfile);
@@ -160,11 +236,20 @@ export default function ProfilePage() {
   const [addingTechnology, setAddingTechnology] = useState(false);
   const [customTechnology, setCustomTechnology] = useState("");
   const techCommitted = useRef(false);
+  const [addingUrlIndex, setAddingUrlIndex] = useState<number | null>(null);
+  const [draftUrl, setDraftUrl] = useState("");
+  const urlCommitted = useRef(false);
   const bioRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (bioRef.current) fitTextBox(bioRef.current);
   }, [profile.bio]);
+
+  useLayoutEffect(() => {
+    document
+      .querySelectorAll<HTMLTextAreaElement>("[data-project-description]")
+      .forEach(fitTextBox);
+  }, [profile.pastProjects]);
 
   useEffect(() => {
     let cancelled = false;
@@ -183,15 +268,10 @@ export default function ProfilePage() {
           teamSize: saved.teamSize ?? "",
           vendorCapDescription: saved.vendorCapDescription ?? "",
           techSkills: (saved.techSkills ?? []).join(", "),
-          pastProjects: (saved.pastProjects ?? []).map((project) =>
-            typeof project === "string" ? { ...emptyProject(), name: project } : {
-              name: project.name ?? "",
-              description: project.description ?? "",
-              budget: project.budget == null ? "" : String(project.budget),
-              isGovernment: project.isGovernment == null ? "" : String(project.isGovernment),
-              completedAt: project.completedAt?.slice(0, 10) ?? "",
-            },
-          ),
+          pastProjects: (() => {
+            const rows = (saved.pastProjects ?? []).map(toProjectRow);
+            return rows.length ? rows : [emptyProject()];
+          })(),
           website: saved.website ?? "",
           location: saved.location ?? "",
           bio: saved.bio ?? "",
@@ -210,11 +290,51 @@ export default function ProfilePage() {
     setProfile((current) => ({ ...current, [field]: value }));
   }
 
-  function updateProject(index: number, field: keyof ProjectRow, value: string) {
+  function updateProject(
+    index: number,
+    field: Exclude<keyof ProjectRow, "urls">,
+    value: string,
+  ) {
     setProfile((current) => ({
       ...current,
       pastProjects: current.pastProjects.map((project, row) =>
         row === index ? { ...project, [field]: value } : project,
+      ),
+    }));
+  }
+
+  function addProjectUrl(index: number, raw = draftUrl) {
+    if (urlCommitted.current) return;
+    urlCommitted.current = true;
+    const url = raw.trim();
+    if (url) {
+      setProfile((current) => ({
+        ...current,
+        pastProjects: current.pastProjects.map((project, row) => {
+          if (row !== index) return project;
+          if (project.urls.some((item) => item.toLowerCase() === url.toLowerCase())) {
+            return project;
+          }
+          return { ...project, urls: [...project.urls, url] };
+        }),
+      }));
+    }
+    setDraftUrl("");
+    setAddingUrlIndex(null);
+  }
+
+  function removeProjectUrl(index: number, url: string) {
+    setProfile((current) => ({
+      ...current,
+      pastProjects: current.pastProjects.map((project, row) =>
+        row === index
+          ? {
+              ...project,
+              urls: project.urls.filter(
+                (item) => item.toLowerCase() !== url.toLowerCase(),
+              ),
+            }
+          : project,
       ),
     }));
   }
@@ -284,14 +404,17 @@ export default function ProfilePage() {
     setSaveFailed(false);
 
     try {
-      const projects = profile.pastProjects.filter((project) =>
-        Object.values(project).some((value) => value.trim() !== ""),
-      );
+      const projects = profile.pastProjects.filter(projectHasContent);
       for (const [index, project] of projects.entries()) {
         if (!project.name.trim() || !project.description.trim() ||
             project.budget.trim() === "" || !Number.isFinite(Number(project.budget)) ||
             Number(project.budget) < 0 || !["true", "false"].includes(project.isGovernment)) {
-          throw new Error(`Past project row ${index + 1}: enter a name, description, non-negative budget, and government status.`);
+          throw new Error(`Past project row ${index + 1}: enter a name, description, non-negative budget, and project sector.`);
+        }
+        if (project.completedAt.trim() && !displayToIsoDate(project.completedAt)) {
+          throw new Error(
+            `Past project row ${index + 1}: completed date must be dd/mm/yyyy.`,
+          );
         }
       }
       const currentUser = await getMe();
@@ -329,7 +452,8 @@ export default function ProfilePage() {
           description: project.description.trim(),
           budget: Number(project.budget),
           isGovernment: project.isGovernment === "true",
-          completedAt: project.completedAt || null,
+          completedAt: displayToIsoDate(project.completedAt) || null,
+          urls: project.urls,
         })),
         website: profile.website,
         companyPhone: profile.companyPhone,
@@ -804,46 +928,271 @@ export default function ProfilePage() {
                     )}
                   </div>
                 </div>
-                <div className="flex flex-col gap-2.5 sm:col-span-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <h3 className="text-base font-medium leading-snug">Similar past work</h3>
+                <div className="flex flex-col gap-3 sm:col-span-2">
+                  <h3 className="text-base font-medium leading-snug">
+                    Similar past work
+                  </h3>
+                  <div className="flex flex-col gap-4">
+                    {profile.pastProjects.map((project, index) => (
+                      <div key={index} className={projectFrostCard}>
+                        {profile.pastProjects.length > 1 ? (
+                          <button
+                            type="button"
+                            aria-label={`Remove project ${index + 1}`}
+                            className={cn(
+                              frostPill,
+                              frostPillDanger,
+                              "absolute top-3 right-3 size-7 shrink-0 px-0 md:top-4 md:right-4",
+                            )}
+                            onClick={() =>
+                              setProfile((current) => ({
+                                ...current,
+                                pastProjects: current.pastProjects.filter(
+                                  (_, row) => row !== index,
+                                ),
+                              }))
+                            }
+                          >
+                            <HugeiconsIcon
+                              icon={Cancel01Icon}
+                              className="size-3.5"
+                            />
+                          </button>
+                        ) : null}
+                        <div className="grid gap-4 md:grid-cols-3">
+                          <div className="mt-4 flex flex-col gap-1.5 md:col-span-3">
+                            <label
+                              htmlFor={`project-name-${index}`}
+                              className="text-sm font-medium"
+                            >
+                              Project name
+                            </label>
+                            <Input
+                              id={`project-name-${index}`}
+                              aria-label={`Project ${index + 1} name`}
+                              className={fieldClass}
+                              value={project.name}
+                              onChange={(event) =>
+                                updateProject(index, "name", event.target.value)
+                              }
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1.5 md:col-span-3">
+                            <label
+                              htmlFor={`project-description-${index}`}
+                              className="text-sm font-medium"
+                            >
+                              Short description
+                            </label>
+                            <textarea
+                              id={`project-description-${index}`}
+                              data-project-description=""
+                              aria-label={`Project ${index + 1} short description`}
+                              rows={2}
+                              className={cn(
+                                "w-full min-h-[2.75rem] rounded-[6px] border-0 bg-white px-3.5 py-2 text-sm shadow-none ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_32%,transparent)] outline-none resize-y overflow-hidden focus-visible:ring-[color-mix(in_srgb,var(--palette-teal-400)_45%,transparent)]",
+                              )}
+                              value={project.description}
+                              onChange={(event) => {
+                                const node = event.currentTarget;
+                                updateProject(
+                                  index,
+                                  "description",
+                                  event.target.value,
+                                );
+                                fitTextBox(node);
+                              }}
+                              onInput={(event) =>
+                                fitTextBox(event.currentTarget)
+                              }
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <label
+                              htmlFor={`project-budget-${index}`}
+                              className="text-sm font-medium"
+                            >
+                              Budget (THB)
+                            </label>
+                            <Input
+                              id={`project-budget-${index}`}
+                              aria-label={`Project ${index + 1} budget in THB`}
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              className={cn(
+                                frostField,
+                                "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+                              )}
+                              value={project.budget}
+                              onChange={(event) =>
+                                updateProject(
+                                  index,
+                                  "budget",
+                                  event.target.value,
+                                )
+                              }
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <span className="text-sm font-medium">
+                              Project sector
+                            </span>
+                            <Select
+                              value={project.isGovernment || undefined}
+                              onValueChange={(value) =>
+                                updateProject(index, "isGovernment", value)
+                              }
+                            >
+                              <SelectTrigger
+                                aria-label={`Project ${index + 1} sector`}
+                                className={cn(frostField, "justify-between", "text-md")}
+                              >
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="true">Government</SelectItem>
+                                <SelectItem value="false">Private</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <label
+                              htmlFor={`project-completed-${index}`}
+                              className="text-sm font-medium"
+                            >
+                              Completed date (optional)
+                            </label>
+                            <Input
+                              id={`project-completed-${index}`}
+                              aria-label={`Project ${index + 1} completed date (optional)`}
+                              type="text"
+                              inputMode="numeric"
+                              placeholder="dd/mm/yyyy"
+                              autoComplete="off"
+                              className={frostField}
+                              value={project.completedAt}
+                              onChange={(event) =>
+                                updateProject(
+                                  index,
+                                  "completedAt",
+                                  event.target.value,
+                                )
+                              }
+                              onBlur={(event) => {
+                                const raw = event.target.value.trim();
+                                if (!raw) return;
+                                const iso = displayToIsoDate(raw);
+                                if (iso) {
+                                  updateProject(
+                                    index,
+                                    "completedAt",
+                                    isoToDisplayDate(iso),
+                                  );
+                                }
+                              }}
+                            />
+                          </div>
+                          <div className="flex flex-col gap-2 md:col-span-3">
+                            <span className="text-sm font-medium">
+                              Project URLs
+                            </span>
+                            <div className="flex flex-wrap gap-2">
+                              {project.urls.map((url) => (
+                                <button
+                                  key={url}
+                                  type="button"
+                                  aria-label={`Remove ${url}`}
+                                  onClick={() => removeProjectUrl(index, url)}
+                                  className={cn(frostPill, frostPillIdle, "gap-1.5")}
+                                >
+                                  <span className="max-w-[14rem] truncate">
+                                    {url}
+                                  </span>
+                                  <HugeiconsIcon
+                                    icon={Cancel01Icon}
+                                    strokeWidth={2}
+                                    className="size-3.5 shrink-0"
+                                  />
+                                </button>
+                              ))}
+                              {addingUrlIndex === index ? (
+                                <input
+                                  autoFocus
+                                  aria-label={`Project ${index + 1} URL`}
+                                  value={draftUrl}
+                                  placeholder="https://"
+                                  onChange={(event) =>
+                                    setDraftUrl(event.target.value)
+                                  }
+                                  onBlur={(event) =>
+                                    addProjectUrl(index, event.currentTarget.value)
+                                  }
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Enter") {
+                                      event.preventDefault();
+                                      addProjectUrl(
+                                        index,
+                                        event.currentTarget.value,
+                                      );
+                                    }
+                                    if (event.key === "Escape") {
+                                      urlCommitted.current = true;
+                                      setDraftUrl("");
+                                      setAddingUrlIndex(null);
+                                    }
+                                  }}
+                                  className={cn(fieldClass, "w-56")}
+                                />
+                              ) : (
+                                <button
+                                  type="button"
+                                  aria-label={`Add URL for project ${index + 1}`}
+                                  onClick={() => {
+                                    urlCommitted.current = false;
+                                    setDraftUrl("");
+                                    setAddingUrlIndex(index);
+                                  }}
+                                  className={cn(
+                                    frostPill,
+                                    frostPillIdle,
+                                    "gap-1.5 px-3",
+                                  )}
+                                >
+                                  <HugeiconsIcon
+                                    icon={PlusSignIcon}
+                                    strokeWidth={2}
+                                    className="size-3.5"
+                                  />
+                                  Add
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="overflow-x-auto rounded-lg border border-border/50">
-                    <table className="w-full min-w-[850px] text-left text-sm">
-                      <caption className="sr-only">Past projects used to assess procurement fit</caption>
-                      <thead className="bg-white/50">
-                        <tr>
-                          {["Project name", "Short description", "Budget (THB)", "Government project?", "Completed date (optional)", "Actions"].map((heading) =>
-                            <th key={heading} scope="col" className="p-3 font-medium">{heading}</th>,
-                          )}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {profile.pastProjects.length === 0 && <tr><td colSpan={6} className="p-4 text-muted-foreground">No projects added. Add a project to describe your past work.</td></tr>}
-                        {profile.pastProjects.map((project, index) => (
-                          <tr key={index} className="border-t border-border/50">
-                            <td className="p-3 align-top"><Input aria-label={`Project ${index + 1} name`} className={cn(fieldClass, "min-w-36")} value={project.name} onChange={(event) => updateProject(index, "name", event.target.value)} /></td>
-                            <td className="p-3 align-top"><textarea aria-label={`Project ${index + 1} short description`} rows={2} className={cn(fieldClass, "h-auto min-w-48 resize-y py-2")} value={project.description} onChange={(event) => updateProject(index, "description", event.target.value)} /></td>
-                            <td className="p-3 align-top"><Input aria-label={`Project ${index + 1} budget in THB`} type="number" min="0" step="0.01" className={cn(fieldClass, "min-w-28")} value={project.budget} onChange={(event) => updateProject(index, "budget", event.target.value)} /></td>
-                            <td className="p-3 align-top"><select aria-label={`Project ${index + 1} government status`} className={cn(fieldClass, "min-w-28")} value={project.isGovernment} onChange={(event) => updateProject(index, "isGovernment", event.target.value)}><option value="">Select</option><option value="true">Yes</option><option value="false">No</option></select></td>
-                            <td className="p-3 align-top"><Input aria-label={`Project ${index + 1} completed date (optional)`} type="date" className={fieldClass} value={project.completedAt} onChange={(event) => updateProject(index, "completedAt", event.target.value)} /></td>
-                            <td className="p-3 align-top"><button type="button" aria-label={`Remove project ${index + 1}`} className={cn(frostPill, frostPillDanger)} onClick={() => setProfile((current) => ({ ...current, pastProjects: current.pastProjects.filter((_, row) => row !== index) }))}><HugeiconsIcon icon={Cancel01Icon} className="size-4" /></button></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  <div className="flex justify-end">
+                  <div className="mt-2 flex justify-center">
                     <Button
                       type="button"
                       size="sm"
-                      className="h-7 gap-1.5 bg-emerald-600 px-2.5 text-xs text-white hover:bg-emerald-700"
-                      onClick={() => setProfile((current) => ({
-                        ...current,
-                        pastProjects: [...current.pastProjects, emptyProject()],
-                      }))}
+                      className={cn(frostButton, "h-8 gap-1.5 px-3 text-xs")}
+                      onClick={() =>
+                        setProfile((current) => ({
+                          ...current,
+                          pastProjects: [
+                            ...current.pastProjects,
+                            emptyProject(),
+                          ],
+                        }))
+                      }
                     >
-                      <HugeiconsIcon icon={PlusSignIcon} className="size-3.5" /> Add project
+                      <HugeiconsIcon
+                        icon={PlusSignIcon}
+                        className="size-3.5"
+                      />
+                      Add project
                     </Button>
                   </div>
                 </div>

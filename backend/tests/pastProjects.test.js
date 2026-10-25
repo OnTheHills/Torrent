@@ -11,7 +11,7 @@ test("structured past projects retain types and optional completion date", async
   await profile.validate();
   assert.deepEqual(profile.pastProjects[0].toObject(), {
     name: "Portal", description: "Public service portal", budget: 1500000,
-    isGovernment: true, completedAt: null,
+    isGovernment: true, completedAt: null, urls: [],
   });
   profile.pastProjects[0].budget = -1;
   await assert.rejects(profile.validate(), (error) => Boolean(error.errors["pastProjects.0.budget"]));
@@ -35,6 +35,7 @@ test("matching preserves project metadata and TOR budget, including zero and fal
   assert.deepEqual(vendor.pastProjects[0], {
     name: "Portal", description: "Built a portal", budget: 0,
     budgetCurrency: "THB", isGovernment: false, completedAt: "2025-04-01",
+    urls: [],
   });
   assert.deepEqual(vendor.pastProjects[1], { name: "Legacy project" });
   assert.equal(tor.budget, 2000000);

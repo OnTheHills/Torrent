@@ -94,6 +94,8 @@
   --color-surface: var(--surface);
   --color-surface-elevated: var(--surface-elevated);
   --color-surface-frost: var(--surface-frost);
+  --color-surface-clear-frost-ring: var(--surface-clear-frost-ring);
+  --color-surface-clear-frost-highlight: var(--surface-clear-frost-highlight);
   --color-pattern-line: var(--pattern-line);
   --color-band-paper: var(--band-paper);
 

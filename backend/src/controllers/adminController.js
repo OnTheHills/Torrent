@@ -38,6 +38,7 @@ module.exports = {
   settings: send(() => admin.settings()),
   sources: send(() => admin.sources()),
   updateTor: send((request) => admin.updateTor(request.params.id, request.user, request.body)),
+  getUser: send((request) => admin.getUser(request.params.id)),
   updateUser: send((request) => admin.updateUser(request.params.id, request.user, request.body)),
   users: send(() => admin.users()),
 };

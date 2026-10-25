@@ -32,6 +32,7 @@ export const routes = {
     tor: (id: string) => `/admin/tors/${id}`,
     audit: "/admin/audit",
     users: "/admin/users",
+    user: (id: string) => `/admin/users/${id}`,
     matches: "/admin/matches",
     settings: "/admin/settings",
   },

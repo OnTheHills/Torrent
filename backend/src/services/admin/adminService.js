@@ -851,6 +851,46 @@ async function users() {
   };
 }
 
+async function getUser(id) {
+  const person = await User.findById(id).select("-passwordHash").lean();
+  if (!person) {
+    const error = new Error("User not found.");
+    error.statusCode = 404;
+    throw error;
+  }
+  const profile = await VendorProfile.findOne({ userId: person._id }).lean();
+  return {
+    id: person._id,
+    email: person.email,
+    name: [person.firstname, person.lastname].filter(Boolean).join(" "),
+    firstname: person.firstname || "",
+    lastname: person.lastname || "",
+    role: person.role,
+    provider: person.provider,
+    picture: person.picture || "",
+    disabled: Boolean(person.disabled),
+    emailVerified: Boolean(person.emailVerified),
+    createdAt: person.createdAt,
+    completeness: completeness(profile),
+    profileId: profile?._id || null,
+    profile: profile
+      ? {
+          companyName: profile.companyName || "",
+          companyEmail: profile.companyEmail || "",
+          companyPhone: profile.companyPhone || "",
+          website: profile.website || "",
+          location: profile.location || "",
+          teamSize: profile.teamSize || "",
+          bio: profile.bio || "",
+          vendorCapDescription: profile.vendorCapDescription || "",
+          techSkills: profile.techSkills || [],
+          pastProjects: profile.pastProjects || [],
+          certificates: profile.certificates || [],
+        }
+      : null,
+  };
+}
+
 async function updateUser(id, actor, body) {
   const reason = requireReason(body.reason);
   const current = await User.findById(id);
@@ -899,15 +939,27 @@ async function reviewCertificate(actor, body) {
       error.statusCode = 404;
       throw error;
     }
-    const before = certificate.status;
+    const before = {
+      name: certificate.name || "",
+      issuer: certificate.issuer || "",
+      status: certificate.status || "pending",
+    };
+    if (body.name !== undefined) certificate.name = String(body.name).trim();
+    if (body.issuer !== undefined) certificate.issuer = String(body.issuer || "").trim();
     if (body.status) certificate.status = body.status;
-    certificate.note = reason;
+    if (body.note !== undefined) certificate.note = String(body.note || "").trim();
+    else certificate.note = reason;
+    const after = {
+      name: certificate.name || "",
+      issuer: certificate.issuer || "",
+      status: certificate.status || "pending",
+    };
     await record(actor, {
       action: "certificate.review",
       targetType: "vendor",
       targetId: profile.userId,
       reason,
-      changes: [{ field: certificate.name || "certificate", before, after: certificate.status }],
+      changes: changesFor(before, after, ["name", "issuer", "status"]),
     });
   }
   await profile.save();
@@ -1051,6 +1103,7 @@ module.exports = {
   settings,
   sources,
   updateTor,
+  getUser,
   updateUser,
   users,
 };

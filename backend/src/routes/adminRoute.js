@@ -19,6 +19,7 @@ adminRouter.get("/tors/:id/pdf", admin.streamTorPdf);
 adminRouter.patch("/tors/:id", admin.updateTor);
 adminRouter.get("/audit", admin.auditLog);
 adminRouter.get("/users", admin.users);
+adminRouter.get("/users/:id", admin.getUser);
 adminRouter.patch("/users/:id", admin.updateUser);
 adminRouter.post("/certificates", admin.reviewCertificate);
 adminRouter.get("/matches", admin.matchJobs);

@@ -12,6 +12,7 @@ const pastProjectSchema = new mongoose.Schema({
   budget: { type: Number, min: 0, default: null },
   isGovernment: { type: Boolean, default: null },
   completedAt: { type: Date, default: null },
+  urls: { type: [String], default: undefined },
 }, { _id: false });
 
 const vendorProfileSchema = new mongoose.Schema(
