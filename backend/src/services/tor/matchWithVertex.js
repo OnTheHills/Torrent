@@ -38,6 +38,7 @@ function matchPrompt(profile, tor) {
           budgetCurrency: "THB",
           isGovernment: project.isGovernment ?? null,
           completedAt: project.completedAt ?? null,
+          urls: compactList(project.urls, 8, 300),
         }),
     teamSize: compact(profile.teamSize, 100),
     location: compact(profile.location, 100),

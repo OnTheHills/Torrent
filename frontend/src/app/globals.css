@@ -62,4 +62,15 @@
       ),
       var(--background-body);
   }
+
+  /* Chrome date segments ignore Tailwind text-* without !important. */
+  .date-frost-text,
+  .date-frost-text::-webkit-datetime-edit,
+  .date-frost-text::-webkit-datetime-edit-fields-wrapper,
+  .date-frost-text::-webkit-datetime-edit-text,
+  .date-frost-text::-webkit-datetime-edit-month-field,
+  .date-frost-text::-webkit-datetime-edit-day-field,
+  .date-frost-text::-webkit-datetime-edit-year-field {
+    color: var(--palette-gray-800) !important;
+  }
 }

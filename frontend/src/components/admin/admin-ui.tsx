@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Badge } from "@/components/ui/badge";
@@ -34,13 +34,53 @@ export function AdminHero({
   title,
   description,
   actions,
+  leading,
   className,
 }: {
   title: string;
-  description: string;
+  description?: React.ReactNode;
   actions?: React.ReactNode;
+  /** Optional left media (e.g. profile photo) as a square matching the copy block height. */
+  leading?: React.ReactNode;
   className?: string;
 }) {
+  const copyRef = useRef<HTMLDivElement>(null);
+  const [side, setSide] = useState(0);
+
+  useLayoutEffect(() => {
+    if (!leading) return;
+    const node = copyRef.current;
+    if (!node) return;
+
+    const observer = new ResizeObserver((entries) => {
+      const next = Math.round(entries[0]?.contentRect.height ?? 0);
+      if (next <= 0) return;
+      setSide((current) => (current === next ? current : next));
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [leading, title, description, actions]);
+
+  const copy = (
+    <div ref={copyRef} className="w-full max-w-3xl">
+      <h1 className="text-3xl font-semibold tracking-tight md:text-5xl md:leading-[1.1]">
+        {title}
+      </h1>
+      {description ? (
+        typeof description === "string" ? (
+          <p className="mt-5 text-base leading-[1.7] text-hero-muted md:text-lg">
+            {description}
+          </p>
+        ) : (
+          <div className="mt-5">{description}</div>
+        )
+      ) : null}
+      {actions ? (
+        <div className="mt-9 flex flex-wrap gap-3">{actions}</div>
+      ) : null}
+    </div>
+  );
+
   return (
     <section className="relative -mt-[144px] overflow-hidden hero-atmosphere text-hero-foreground">
       <div
@@ -49,13 +89,23 @@ export function AdminHero({
           className,
         )}
       >
-        <div className="w-full max-w-3xl">
-          <h1 className="text-3xl font-semibold tracking-tight md:text-5xl md:leading-[1.1]">
-            {title}
-          </h1>
-          <p className="mt-5 text-base leading-[1.7] text-hero-muted md:text-lg">{description}</p>
-        </div>
-        {actions ? <div className="mt-9 flex flex-wrap gap-3">{actions}</div> : null}
+        {leading ? (
+          <div className="flex items-start gap-5 md:gap-8">
+            <div
+              className="shrink-0 overflow-hidden"
+              style={
+                side > 0
+                  ? { width: side, height: side }
+                  : { width: 144, height: 144 }
+              }
+            >
+              {leading}
+            </div>
+            <div className="min-w-0 flex-1">{copy}</div>
+          </div>
+        ) : (
+          copy
+        )}
       </div>
       <div aria-hidden className="h-px bg-border" />
     </section>
@@ -109,22 +159,29 @@ export function AdminPanel({
   children,
   action,
 }: {
-  title: string;
+  title?: string;
   description?: string;
   children: React.ReactNode;
   action?: React.ReactNode;
 }) {
+  const hasHeader = Boolean(title || description || action);
   return (
     <section className={cn(sectionCard, "p-4 md:p-6")}>
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
-          {description ? (
-            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{description}</p>
-          ) : null}
+      {hasHeader ? (
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            {title ? (
+              <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+            ) : null}
+            {description ? (
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                {description}
+              </p>
+            ) : null}
+          </div>
+          {action}
         </div>
-        {action}
-      </div>
+      ) : null}
       {children}
     </section>
   );

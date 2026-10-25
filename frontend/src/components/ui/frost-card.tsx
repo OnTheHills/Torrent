@@ -4,6 +4,17 @@ import { Surface } from "@/components/ui/surface"
 import { cn } from "@/lib/utils"
 
 /**
+ * Clear frost — whiter, lighter fill than neutral filter frost.
+ * Use for compact controls on pale panels (profile fields, soft cards).
+ */
+export const clearFrost =
+  "border-0 bg-[image:var(--surface-clear-frost)] shadow-[inset_0_1px_0_0_var(--surface-clear-frost-highlight)] ring-1 ring-[var(--surface-clear-frost-ring)] backdrop-blur-md backdrop-saturate-150"
+
+/** Thin clear-frost control (h-8 pill). */
+export const clearFrostField =
+  "h-8! w-full rounded-full border-0 bg-[image:var(--surface-clear-frost)] px-3.5 text-sm shadow-[inset_0_1px_0_0_var(--surface-clear-frost-highlight)] ring-1 ring-[var(--surface-clear-frost-ring)] backdrop-blur-md backdrop-saturate-150 focus-visible:border-transparent focus-visible:ring-[var(--surface-clear-frost-ring)]"
+
+/**
  * Frosted glass panel. Sit it on a photographed or tinted field
  * (hero, dark band) so the blur has chroma to sample.
  */

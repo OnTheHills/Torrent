@@ -197,6 +197,14 @@
   --surface-frost: color-mix(in srgb, var(--palette-white) 48%, transparent);
   --surface-frost-ring: color-mix(in srgb, var(--palette-white) 70%, transparent);
   --surface-frost-highlight: color-mix(in srgb, var(--palette-white) 88%, transparent);
+  /* Whiter, lighter frost for compact controls on pale panels. */
+  --surface-clear-frost: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--palette-gray-100) 55%, white),
+    white
+  );
+  --surface-clear-frost-ring: color-mix(in srgb, var(--palette-gray-300) 42%, transparent);
+  --surface-clear-frost-highlight: color-mix(in srgb, var(--palette-white) 96%, transparent);
   --toggle-thumb: color-mix(in srgb, var(--palette-white) 28%, transparent);
   --pattern-line: color-mix(in srgb, var(--palette-teal-800) 18%, transparent);
   --band-paper: var(--palette-gray-50);
