@@ -10,7 +10,7 @@ const API_URL = isServer
   : process.env.NEXT_PUBLIC_API_URL || "http://localhost:5175/api";
 
 // Accept both "/auth/me" and "/api/auth/me" callers without producing "/api/api".
-function apiUrl(path: string) {
+export function apiUrl(path: string) {
   const base = API_URL.replace(/\/+$/, "");
   let normalizedPath = path.startsWith("/") ? path : `/${path}`;
 
@@ -35,7 +35,7 @@ export async function api<T>(
     ...options,
     credentials: "include",
     headers: {
-      "Content-Type": "application/json",
+      ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
       ...(options.headers ?? {}),
     },
   });

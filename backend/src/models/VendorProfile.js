@@ -80,6 +80,9 @@ const vendorProfileSchema = new mongoose.Schema(
       ],
       default: undefined,
     },
+    securityCertificates: { type: [String], default: [] },
+    aiCertificates: { type: [String], default: [] },
+    otherCertificates: { type: [String], default: [] },
   },
   {
     collection: "vendor_profiles",

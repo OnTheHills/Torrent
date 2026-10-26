@@ -5,9 +5,6 @@ services:
     restart: unless-stopped
     ports:
       - "5175:5175"
-    dns:
-      - 1.1.1.1
-      - 8.8.8.8
 
     volumes:
       - ./backend:/app
