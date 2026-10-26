@@ -13,9 +13,9 @@ const CERTIFICATES = ["security", "ai", "other"].map((category) => ({ category, 
 const VALID_SCORE = {
   budgetCapacityScore: 20,
   requirementsFitScore: 40,
-  securityCertificateBonus: 3,
-  aiCertificateBonus: 3,
-  otherCertificateBonus: 4,
+  securityCertificateBonus: 2,
+  aiCertificateBonus: 2,
+  otherCertificateBonus: 3,
   matchReason: "งบประมาณเหมาะกับทีม มีผลงานตรงกับข้อกำหนดและมีใบรับรองสนับสนุน",
 };
 
@@ -45,6 +45,12 @@ test("prompt separates 30/70 scoring, tier priorities, and the ordered certifica
   assert.match(prompt, /budgetCapacityScore \(0-30, 30%\)/);
   assert.match(prompt, /requirementsFitScore \(0-70, 70%\)/);
   assert.match(prompt, /Tier 1 \(highest, equal priority\): requirement satisfaction AND relevant past projects/);
+  assert.match(prompt, /if they claim they can do it, but do not have past skill related/);
+  assert.match(prompt, /if a relevant project to claim skill/);
+  assert.match(prompt, /securityCertificateBonus is an integer 0-2/);
+  assert.match(prompt, /aiCertificateBonus is an integer 0-2/);
+  assert.match(prompt, /otherCertificateBonus is an integer 0-3/);
+  assert.doesNotMatch(prompt, /up to 3 total for this category/);
   assert.match(prompt, /Tier 2: technical skill coverage/);
   assert.match(prompt, /Tier 3: other relevant profile information/);
   assert.match(prompt, /Direct relevance to the TOR is the top priority/);
@@ -63,7 +69,7 @@ test("matching sends PNG bytes and category labels with a structured component s
   const { matchWithVertex, calls } = loadMatching({ certificates: CERTIFICATES });
   const result = await matchWithVertex({ userId: USER }, { title: "Portal" });
   assert.equal(result.ok, true);
-  assert.equal(result.matchPercent, 70);
+  assert.equal(result.matchPercent, 67);
   const request = calls[0];
   assert.equal(request.parts.length, 7);
   for (const [index, category] of ["security", "ai", "other"].entries()) {
@@ -73,13 +79,16 @@ test("matching sends PNG bytes and category labels with a structured component s
   }
   assert.equal(request.responseJsonSchema.properties.budgetCapacityScore.maximum, 30);
   assert.equal(request.responseJsonSchema.properties.requirementsFitScore.maximum, 70);
+  assert.equal(request.responseJsonSchema.properties.securityCertificateBonus.maximum, 2);
+  assert.equal(request.responseJsonSchema.properties.aiCertificateBonus.maximum, 2);
+  assert.equal(request.responseJsonSchema.properties.otherCertificateBonus.maximum, 3);
   assert.equal(request.timeoutMs, 60000);
 });
 
-test("backend caps certificate bonuses at 10 points and final matches at 100", async () => {
+test("backend enforces 2/2/3 certificate limits and caps final matches at 100", async () => {
   const oversizedBonus = { securityCertificateBonus: 50, aiCertificateBonus: 50, otherCertificateBonus: 50 };
   let matching = loadMatching({ certificates: CERTIFICATES, score: { ...VALID_SCORE, ...oversizedBonus } });
-  assert.equal((await matching.matchWithVertex({}, {})).matchPercent, 70);
+  assert.equal((await matching.matchWithVertex({}, {})).matchPercent, 67);
   matching = loadMatching({ certificates: CERTIFICATES, score: { ...VALID_SCORE, budgetCapacityScore: 30, requirementsFitScore: 70, ...oversizedBonus } });
   assert.equal((await matching.matchWithVertex({}, {})).matchPercent, 100);
   matching = loadMatching({ score: { ...VALID_SCORE, budgetCapacityScore: 1000, requirementsFitScore: 0 } });
@@ -92,7 +101,7 @@ test("a category without an attached image earns no bonus even if Vertex claims 
   let matching = loadMatching();
   assert.equal((await matching.matchWithVertex({}, {})).matchPercent, 60);
   matching = loadMatching({ certificates: [CERTIFICATES[1]] });
-  assert.equal((await matching.matchWithVertex({}, {})).matchPercent, 63);
+  assert.equal((await matching.matchWithVertex({}, {})).matchPercent, 62);
 });
 
 test("invalid components are rejected and Vertex failures keep the existing failure contract", async () => {

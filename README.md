@@ -276,8 +276,9 @@ past-project budgets, and 70 points for requirements fit. Within requirements fi
 requirement coverage and relevant past projects are Tier 1, technical skills are
 Tier 2, and other relevant profile details are Tier 3. Matching sends the vendor's
 registered certificate PNGs to Vertex, checking the filename category and user ID.
-Certificate bonuses are capped at 3 points for Security, 3 for AI, and 4 for Other;
-the combined bonus is at most 10 points and the final match is at most 100.
+Certificate bonuses are capped at 2 points for Security, 2 for AI, and 3 for Other;
+these limits allow at most 7 combined points within the overall 10-point bonus
+ceiling, and the final match is at most 100.
 Other certificates are assessed for TOR relevance first, then the preference order
 defined in `backend/src/services/tor/matchWithVertex.js`. The backend calculates
 the final percentage from Vertex's component scores and prevents bonuses for
