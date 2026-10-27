@@ -9,6 +9,8 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import { TOR_CATEGORIES } from "@/components/tor/tor-filters";
+import { CertificateUploads, emptyCertificates, savedCertificateSelections } from "@/components/profile/certificate-uploads";
+import type { CertificateField } from "@/components/profile/certificate-uploads";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -197,6 +199,9 @@ function projectHasContent(project: ProjectRow) {
 }
 
 type SavedProfile = {
+  securityCertificates?: string[];
+  aiCertificates?: string[];
+  otherCertificates?: string[];
   companyName?: string;
   companyEmail?: string;
   companyPhone?: string;
@@ -227,6 +232,10 @@ const projectFrostCard =
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState(initialProfile);
+  const [certificates, setCertificates] = useState(emptyCertificates);
+  const [checkingCertificates, setCheckingCertificates] = useState<Partial<Record<CertificateField, boolean>>>({});
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [profileLoadFailed, setProfileLoadFailed] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
   const [saveFailed, setSaveFailed] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -261,6 +270,7 @@ export default function ProfilePage() {
           `/vendor-profiles/get/${currentUser._id}`,
         );
         if (cancelled || !saved) return;
+        setCertificates(savedCertificateSelections(saved));
         setProfile({
           companyName: saved.companyName ?? "",
           companyEmail: saved.companyEmail ?? "",
@@ -276,8 +286,16 @@ export default function ProfilePage() {
           location: saved.location ?? "",
           bio: saved.bio ?? "",
         });
-      } catch {
-        // No saved profile yet, or signed out: keep the empty form.
+      } catch (error) {
+        // A missing profile is expected for new vendors. Other failures must
+        // not allow an empty certificate selection to overwrite saved paths.
+        if (!cancelled && (error as { status?: number }).status !== 404) {
+          setProfileLoadFailed(true);
+          setSaveFailed(true);
+          setSaveMessage("Unable to load your profile. Refresh the page before saving.");
+        }
+      } finally {
+        if (!cancelled) setIsProfileLoading(false);
       }
     })();
 
@@ -399,6 +417,7 @@ export default function ProfilePage() {
   }
 
   async function handleSubmit() {
+    if (isSaving || isProfileLoading || profileLoadFailed || Object.values(checkingCertificates).some(Boolean)) return;
     setIsSaving(true);
     setSaveMessage("");
     setSaveFailed(false);
@@ -463,15 +482,26 @@ export default function ProfilePage() {
 
       const hasExistingProfile = Boolean(existingProfile?._id);
 
-      await api(
+      const form = new FormData();
+      const retainedPaths = Object.fromEntries(Object.entries(certificates).map(([field, entries]) => [
+        field, entries.flatMap((entry) => entry.path ? [entry.path] : []),
+      ]));
+      form.append("profile", JSON.stringify({ ...submittedProfile, ...retainedPaths }));
+      for (const [field, entries] of Object.entries(certificates)) {
+        for (const entry of entries) {
+          if (entry.file) form.append(field, entry.file, entry.file.name);
+        }
+      }
+      const saved = await api<NonNullable<SavedProfile>>(
         hasExistingProfile
           ? `/vendor-profiles/${existingProfile?._id}`
           : "/vendor-profiles",
         {
           method: hasExistingProfile ? "PATCH" : "POST",
-          body: JSON.stringify(submittedProfile),
+          body: form,
         },
       );
+      setCertificates(savedCertificateSelections(saved));
 
       console.log(
         "Vendor profile submitted to backend:\n",
@@ -508,7 +538,7 @@ export default function ProfilePage() {
       </section>
 
       <div className="mx-auto max-w-6xl space-y-6 px-4 py-12 sm:px-6 md:py-16">
-        <form className="space-y-6">
+        <form className="space-y-6" onSubmit={(event) => { event.preventDefault(); void handleSubmit(); }}>
           <Card className={profileCard}>
             <CardHeader>
               <CardTitle className="text-xl font-semibold leading-snug tracking-tight">
@@ -1200,6 +1230,25 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
+          <Card className={profileCard}>
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold leading-snug tracking-tight">
+                Certificates
+              </CardTitle>
+              <CardDescription>
+                Add your credentials in the relevant category. Choose up to 5 PNG images for each certificate type.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CertificateUploads
+                value={certificates}
+                disabled={isSaving || isProfileLoading || profileLoadFailed}
+                onChange={(category, entries) => setCertificates((current) => ({ ...current, [category]: entries }))}
+                onBusyChange={(category, busy) => setCheckingCertificates((current) => ({ ...current, [category]: busy }))}
+              />
+            </CardContent>
+          </Card>
+
           <div className="flex items-center justify-end gap-3">
             {saveMessage ? (
               <p
@@ -1212,10 +1261,9 @@ export default function ProfilePage() {
               </p>
             ) : null}
             <Button
-              type="button"
+              type="submit"
               className={frostButton}
-              onClick={handleSubmit}
-              disabled={isSaving}
+              disabled={isSaving || isProfileLoading || profileLoadFailed || Object.values(checkingCertificates).some(Boolean)}
             >
               {isSaving ? "Saving…" : "Save profile"}
             </Button>

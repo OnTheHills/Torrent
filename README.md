@@ -239,6 +239,51 @@ The backend provides JSON CRUD routes for:
 
 Each collection supports `POST /`, `GET /`, `GET /:id`, `PATCH /:id`, and `DELETE /:id`. Basic checks are available at `/` and `/api/hello`.
 
+### Vendor profile certificates
+
+Saving `/app/profile` submits profile details and selected certificate images together.
+The vendor profile stores only relative image paths in three string arrays:
+`securityCertificates`, `aiCertificates`, and `otherCertificates` (empty by default).
+Files are stored locally in `backend/upload/` as
+`<unix-time-in-milliseconds>_<security|ai|other>_<user-id>.png`.
+The backend creates the upload folder automatically when saving the first image.
+The existing Compose backend bind mount preserves these files on the host.
+Uploaded files are ignored by Git and excluded from Docker build contexts.
+
+`POST /api/vendor-profiles` and `PATCH /api/vendor-profiles/:id` accept either JSON
+for profile-only updates or multipart form data containing a `profile` JSON field
+and files under the three array names above. Include existing paths in the JSON
+arrays to retain selected images; omitted arrays preserve their existing values.
+An empty array removes that category's saved images. New uploads are appended.
+Only paths already belonging to the profile can be retained.
+
+Uploads require a signed-in session and profile ownership (or an admin for updates).
+Each category accepts up to 5 PNGs, each at most 5 MiB, with dimensions capped at
+10,000 pixels per side and 16 megapixels. The server validates the PNG signature,
+chunk checksums, and compressed scanline data before writing any images. Failed
+database writes clean up new files; removed images are deleted after a successful
+save. Images are served through the owner/admin-protected endpoint
+`GET /api/vendor-profiles/certificates/:filename`.
+
+Run certificate integration checks with
+`cd backend && node --require module-alias/register --test tests/certificateUploads.test.js`.
+The tests use a temporary upload folder and a mocked database. They do not change
+development profiles. `CERTIFICATE_UPLOAD_DIR` can override the storage directory
+for tests or deployments; database paths retain the `upload/` prefix.
+
+Vendor–TOR matching uses 30 points for the TOR budget compared with team size and
+past-project budgets, and 70 points for requirements fit. Within requirements fit,
+requirement coverage and relevant past projects are Tier 1, technical skills are
+Tier 2, and other relevant profile details are Tier 3. Matching sends the vendor's
+registered certificate PNGs to Vertex, checking the filename category and user ID.
+Certificate bonuses are capped at 2 points for Security, 2 for AI, and 3 for Other;
+these limits allow at most 7 combined points within the overall 10-point bonus
+ceiling, and the final match is at most 100.
+Other certificates are assessed for TOR relevance first, then the preference order
+defined in `backend/src/services/tor/matchWithVertex.js`. The backend calculates
+the final percentage from Vertex's component scores and prevents bonuses for
+categories with no attached images. Existing matches change on the next matching run.
+
 ## Troubleshooting
 
 - **Backend says `MONGO_URI is required`:** create `backend/.env` and set both variables shown above.
