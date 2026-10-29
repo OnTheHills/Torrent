@@ -60,6 +60,8 @@ type UserDetail = {
   role: "public" | "vendor" | "admin";
   picture?: string;
   disabled: boolean;
+  lineLinked?: boolean;
+  lineDigestEnabled?: boolean;
   completeness: number;
   profileId: string | null;
   profile: {
@@ -602,6 +604,16 @@ export function UserDetailView({ id }: { id: string }) {
                 <div className="flex flex-wrap items-center gap-2">
                   <AccountTypeBadge role={data.role} />
                   <AccountStatusBadge disabled={data.disabled} />
+                  {data.lineLinked ? (
+                    <span
+                      className={cn(
+                        accountBadgeBase,
+                        "px-2.5 text-[var(--palette-teal-800)]",
+                      )}
+                    >
+                      LINE{data.lineDigestEnabled ? " · digest" : ""}
+                    </span>
+                  ) : null}
                 </div>
               ) : null}
               <h1 className="text-3xl font-semibold tracking-tight md:text-4xl md:leading-[1.15]">

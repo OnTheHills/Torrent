@@ -5,6 +5,7 @@ const app = require("@/app");
 const { connectDatabase } = require("@/utils/connectDatabase");
 const { startSyncScheduler } = require("@/scheduler/syncScheduler");
 const { startMatchScheduler } = require("@/scheduler/matchScheduler");
+const { startLineDigestScheduler } = require("@/scheduler/lineDigestScheduler");
 const PORT = process.env.PORT;
 
 async function startServer() {
@@ -21,6 +22,8 @@ async function startServer() {
     await startMatchScheduler();
     // Sync can save data only after the database and indexes are ready.
     await startSyncScheduler();
+    // Start LINE digest scheduler
+    await startLineDigestScheduler();
   } catch (error) {
     console.error("Backend startup failed:", error);
     process.exit(1);

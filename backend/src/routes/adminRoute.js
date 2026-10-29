@@ -2,6 +2,7 @@ const express = require("express");
 const admin = require("@/controllers/adminController");
 const { requireAuth } = require("@/middleware/requireAuth");
 const { requireRole } = require("@/middleware/requireRole");
+const { runLineWeeklyDigest } = require("@/jobs/lineWeeklyDigest");
 
 const adminRouter = express.Router();
 
@@ -27,5 +28,16 @@ adminRouter.post("/matches/retry", admin.retryMatches);
 adminRouter.get("/settings", admin.settings);
 adminRouter.post("/settings/preview", admin.previewRules);
 adminRouter.post("/settings/apply", admin.applyRules);
+
+// Temporary: run LINE weekly digest on demand (practice / QA)
+adminRouter.post("/line-digest/run", async (_req, res) => {
+  try {
+    const result = await runLineWeeklyDigest();
+    res.json(result);
+  } catch (err) {
+    console.error("line-digest/run failed", err);
+    res.status(500).json({ message: err.message || "Digest failed" });
+  }
+});
 
 module.exports = adminRouter;
