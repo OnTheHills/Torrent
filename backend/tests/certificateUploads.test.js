@@ -26,7 +26,6 @@ test("certificate uploads persist with their profile and enforce ownership and P
   const { signUserToken } = require("../src/utils/session");
   let stored = null;
   let failSave = false;
-  let failQueue = false;
   async function persist(data) {
     if (failSave) throw new Error("Database unavailable");
     if (stored && data._create) throw Object.assign(new Error("Duplicate profile"), { code: 11000 });
@@ -40,7 +39,8 @@ test("certificate uploads persist with their profile and enforce ownership and P
   t.mock.method(repository, "update", (_id, data) => persist({ ...stored, ...data }));
   t.mock.method(repository, "findById", async (id) => id === PROFILE ? stored : null);
   t.mock.method(repository, "findByUserId", async (id) => stored?.userId === id ? stored : null);
-  t.mock.method(matching, "enqueueEligibleTors", async () => { if (failQueue) throw new Error("Queue unavailable"); });
+  const enqueueTor = t.mock.method(matching, "enqueueTor", async () => 0);
+  const enqueueTors = t.mock.method(matching, "enqueueTors", async () => 0);
 
   const app = express();
   app.use(cookieParser());
@@ -119,6 +119,8 @@ test("certificate uploads persist with their profile and enforce ownership and P
       }
     }
     assert.equal((await listFiles()).length, 4);
+    assert.equal(enqueueTor.mock.callCount(), 0);
+    assert.equal(enqueueTors.mock.callCount(), 0);
   });
 
   await t.test("saved certificates reload and can be viewed only by their owner or an admin", async () => {
@@ -177,11 +179,11 @@ test("certificate uploads persist with their profile and enforce ownership and P
     assert.deepEqual(await listFiles(), before);
   });
 
-  await t.test("a matching queue failure does not undo a successful profile save", async () => {
-    failQueue = true;
-    const response = await send("PATCH", `/${PROFILE}`, upload({ companyName: "Saved even if queue fails" }));
-    failQueue = false;
+  await t.test("profile updates save without queuing matching", async () => {
+    const response = await send("PATCH", `/${PROFILE}`, upload({ companyName: "Saved without matching" }));
     assert.equal(response.status, 200);
-    assert.equal(stored.companyName, "Saved even if queue fails");
+    assert.equal(stored.companyName, "Saved without matching");
+    assert.equal(enqueueTor.mock.callCount(), 0);
+    assert.equal(enqueueTors.mock.callCount(), 0);
   });
 });

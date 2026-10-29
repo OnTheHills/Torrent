@@ -284,6 +284,11 @@ defined in `backend/src/services/tor/matchWithVertex.js`. The backend calculates
 the final percentage from Vertex's component scores and prevents bonuses for
 categories with no attached images. Existing matches change on the next matching run.
 
+Matching is queued when an eligible TOR is created or changed, including updates
+from the daily midnight Bangkok sync or optional startup sync. Backend restarts
+resume unfinished matching jobs. Creating or updating a vendor profile does not
+queue matching; its latest details are used when a TOR is next processed.
+
 ## Troubleshooting
 
 - **Backend says `MONGO_URI is required`:** create `backend/.env` and set both variables shown above.
