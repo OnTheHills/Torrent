@@ -24,8 +24,8 @@ function queuedTorStatus() {
 
 function isQueuedTorStatus(status) {
   const configured = queuedTorStatus();
-  // Older imported records may not have a lifecycle status. Treat those as
-  // eligible so a profile save does not silently skip the legacy catalog.
+  // Older imported records may not have a lifecycle status. Keep those eligible
+  // when a TOR update queues them for matching.
   return !status || configured === "any" || String(status).trim().toLowerCase() === configured;
 }
 
@@ -103,14 +103,6 @@ async function enqueueTors(torIds = []) {
   );
   kick();
   return eligibleIds.length;
-}
-
-// Jobs are TOR-centric: one job evaluates a TOR against every vendor profile.
-// A profile save must therefore requeue the currently eligible TORs instead of
-// waiting for a future source sync to update one of them.
-async function enqueueEligibleTors() {
-  const tors = await findScoreableTors();
-  return enqueueTors(tors.map((tor) => tor._id));
 }
 
 async function retireIneligibleJobs() {
@@ -400,7 +392,6 @@ module.exports = {
   drain,
   enqueueTor,
   enqueueTors,
-  enqueueEligibleTors,
   fitScoreApplies,
   kick,
   nextPacificMidnight,

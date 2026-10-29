@@ -1,21 +1,9 @@
 const vendorProfileRepository = require("@/repositories/vendorProfileRepository");
 const TORMatch = require("@/models/TORMatch");
-const torMatching = require("@/jobs/matchTors");
 const { saveCertificates } = require("./certificateStorage");
 
-async function queueMatching() {
-  try {
-    await torMatching.enqueueEligibleTors();
-  } catch (error) {
-    // The profile and files have already committed; do not report a failed save.
-    console.error("Unable to queue matching after profile save:", error.message);
-  }
-}
-
 async function createVendorProfile(data, files) {
-  const profile = await saveCertificates({ data, files, userId: data.userId, persist: vendorProfileRepository.create });
-  await queueMatching();
-  return profile;
+  return saveCertificates({ data, files, userId: data.userId, persist: vendorProfileRepository.create });
 }
 
 async function getAllVendorProfiles() {
@@ -33,12 +21,10 @@ async function getVendorProfileByUserId(userId) {
 async function updateVendorProfile(id, data, files, existing) {
   existing ||= await vendorProfileRepository.findById(id);
   if (!existing) return null;
-  const profile = await saveCertificates({
+  return saveCertificates({
     data, files, existing, userId: existing.userId,
     persist: (values) => vendorProfileRepository.update(id, values),
   });
-  await queueMatching();
-  return profile;
 }
 
 async function deleteVendorProfile(id) {
