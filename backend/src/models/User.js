@@ -40,6 +40,31 @@ const userSchema = new mongoose.Schema(
       sparse: true,
       trim: true,
     },
+    lineUserId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+    },
+    lineDigestEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    lineLinkedAt: {
+      type: Date,
+      default: null,
+    },
+    lineLinkCode: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      index: true,
+      sparse: true,
+    },
+    lineLinkCodeExpiresAt: {
+      type: Date,
+      default: null,
+    },
     picture: { type: String, trim: true },
     emailVerified: { type: Boolean, default: false },
     disabled: { type: Boolean, default: false },
@@ -49,7 +74,6 @@ const userSchema = new mongoose.Schema(
   },
 );
 
-userSchema.index({ email: 1 }, { unique: true });
-userSchema.index({ googleId: 1 }, { unique: true, sparse: true });
+userSchema.index({ lineDigestEnabled: 1, lineUserId: 1 });
 
 module.exports = mongoose.model("User", userSchema);

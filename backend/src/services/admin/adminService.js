@@ -871,6 +871,9 @@ async function getUser(id) {
     disabled: Boolean(person.disabled),
     emailVerified: Boolean(person.emailVerified),
     createdAt: person.createdAt,
+    lineLinked: Boolean(person.lineUserId),
+    lineDigestEnabled: Boolean(person.lineDigestEnabled),
+    lineLinkedAt: person.lineLinkedAt || null,
     completeness: completeness(profile),
     profileId: profile?._id || null,
     profile: profile

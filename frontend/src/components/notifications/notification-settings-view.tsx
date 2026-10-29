@@ -14,11 +14,19 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import {
+  getLineStatus,
+  setLineDigest,
+  startLineLink,
+  unlinkLine,
+  type LineStatus,
+} from "@/lib/line";
 import { cn } from "@/lib/utils";
 import type { TorCategory } from "@/types/tor";
 
@@ -42,6 +50,9 @@ export function NotificationSettingsView() {
   const { prefs, setPrefs, ready } = useNotificationPrefs();
   const [draft, setDraft] = useState<NotificationPrefs>(prefs);
   const [savedFlash, setSavedFlash] = useState(false);
+  const [lineStatus, setLineStatus] = useState<LineStatus | null>(null);
+  const [lineBusy, setLineBusy] = useState(false);
+  const [lineError, setLineError] = useState("");
 
   useEffect(() => {
     if (!ready) return;
@@ -52,6 +63,20 @@ export function NotificationSettingsView() {
 
     return () => window.clearTimeout(timer);
   }, [ready, prefs]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getLineStatus()
+      .then((status) => {
+        if (!cancelled) setLineStatus(status);
+      })
+      .catch(() => {
+        if (!cancelled) setLineStatus(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const update = (patch: Partial<NotificationPrefs>) => {
     setDraft((prev) => ({ ...prev, ...patch }));
@@ -68,6 +93,21 @@ export function NotificationSettingsView() {
     setPrefs(draft);
     setSavedFlash(true);
     window.setTimeout(() => setSavedFlash(false), 2000);
+  };
+
+  const runLineAction = async (action: () => Promise<LineStatus>) => {
+    setLineBusy(true);
+    setLineError("");
+    try {
+      const status = await action();
+      setLineStatus(status);
+    } catch (error) {
+      setLineError(
+        error instanceof Error ? error.message : "LINE request failed",
+      );
+    } finally {
+      setLineBusy(false);
+    }
   };
 
   return (
@@ -87,6 +127,89 @@ export function NotificationSettingsView() {
       </section>
 
       <div className="mx-auto max-w-6xl space-y-5 px-4 py-12 sm:px-6 md:py-16">
+      <Card className={FROST_PANEL}>
+        <CardHeader className="border-b border-border pb-5">
+          <CardTitle className="text-lg">{t("lineNotifications")}</CardTitle>
+          <CardDescription className="pt-2 text-sm leading-relaxed">
+            {t("lineNotificationsHint")}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm font-medium">
+              {lineStatus?.linked ? t("lineConnected") : t("lineNotConnected")}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {lineStatus?.linked ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={lineBusy}
+                  onClick={() => void runLineAction(unlinkLine)}
+                >
+                  {lineBusy ? t("lineBusy") : t("lineDisconnect")}
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={lineBusy}
+                  onClick={() => void runLineAction(startLineLink)}
+                >
+                  {lineBusy ? t("lineBusy") : t("lineConnect")}
+                </Button>
+              )}
+              {lineStatus?.oaAddUrl ? (
+                <Button type="button" variant="outline" size="sm" asChild>
+                  <a
+                    href={lineStatus.oaAddUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {t("lineOpenOa")}
+                  </a>
+                </Button>
+              ) : null}
+            </div>
+          </div>
+
+          {!lineStatus?.linked && lineStatus?.pendingCode ? (
+            <div className="rounded-md bg-[color-mix(in_srgb,white_72%,transparent)] px-4 py-3 ring-1 ring-[color-mix(in_srgb,var(--palette-gray-900)_8%,transparent)]">
+              <p className="text-sm text-muted-foreground">{t("lineCodeHint")}</p>
+              <p className="mt-2 font-mono text-2xl font-semibold tracking-[0.2em]">
+                {lineStatus.pendingCode}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t("lineCodeExpires")}
+              </p>
+            </div>
+          ) : null}
+
+          {lineStatus?.linked ? (
+            <div className="flex items-center justify-between gap-4 border-t border-border pt-4">
+              <label htmlFor="lineDigest" className="text-sm leading-snug">
+                {t("lineDigestLabel")}
+              </label>
+              <Switch
+                id="lineDigest"
+                checked={Boolean(lineStatus.digestEnabled)}
+                disabled={lineBusy}
+                onCheckedChange={(checked) =>
+                  void runLineAction(() => setLineDigest(checked))
+                }
+              />
+            </div>
+          ) : null}
+
+          {lineError ? (
+            <p className="text-sm text-destructive" role="alert">
+              {lineError}
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
+
       <div className="grid gap-5 lg:grid-cols-2">
         <Card className={FROST_PANEL}>
           <CardHeader className="border-b border-border pb-5">
