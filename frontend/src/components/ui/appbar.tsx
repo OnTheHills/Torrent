@@ -4,22 +4,23 @@ import { cn } from "@/lib/utils";
 
 /**
  * Compound App Bar layout — slots only. Product controls (search, toggles,
- * account) are composed in by the shell, matching the Mint / Omise pattern.
+ * account) are composed in by the shell. Same full-bleed 72px chrome as before,
+ * with the liquid-glass material shared with the sidebar.
  */
 
 export const appBarRootStyles =
-  "absolute inset-x-0 top-0 z-30 flex h-[72px] w-full items-center bg-appbar text-appbar-foreground";
+  "liquid-glass absolute inset-x-0 top-0 z-30 flex h-[72px] w-full items-center overflow-hidden rounded-none border-x-0 border-t-0 text-appbar-foreground shadow-[inset_0_-1px_0_0_rgb(255_255_255_/_0.28),0_8px_24px_var(--sidebar-glass-shadow)]";
 
-/** Frost bar for controls on the dark chrome — the page gray bar, tuned for a dark field. */
+/** Neutral frost control on the light liquid-glass app bar. */
 export const chromeFrostBar =
-  "border-0 bg-[linear-gradient(180deg,var(--palette-gray-700),var(--palette-gray-800))] text-[var(--palette-teal-50)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_14%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-600)_80%,transparent)] backdrop-blur-md backdrop-saturate-150";
+  "border-0 bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))] text-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] backdrop-blur-md backdrop-saturate-150";
 
-/** Selected / primary frost on the dark chrome. */
+/** Selected / primary frost on the light glass chrome. */
 export const chromeFrostTeal =
-  "border-0 bg-[color-mix(in_srgb,var(--palette-teal-400)_32%,transparent)] text-[var(--palette-teal-50)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_28%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--palette-teal-300)_45%,transparent)] backdrop-blur-md backdrop-saturate-150";
+  "border-0 bg-[color-mix(in_srgb,var(--palette-teal-400)_32%,transparent)] text-[var(--palette-teal-800)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_80%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--palette-teal-400)_48%,transparent)] backdrop-blur-md backdrop-saturate-150";
 
 export const appBarPrimaryStyles =
-  "flex h-full w-full items-center justify-between gap-3 px-4 md:gap-4";
+  "relative flex h-full w-full items-center justify-between gap-3 px-4 md:gap-4";
 
 export const appBarClusterStyles = "flex items-center gap-3";
 
@@ -32,10 +33,19 @@ export const appBarLogoStyles =
   "inline-flex h-[18px] shrink-0 items-center rounded-sm bg-sidebar-primary px-1.5 font-heading text-[9px] font-semibold tracking-[0.1em] text-sidebar-primary-foreground md:h-5 md:px-2 md:text-[11px] md:tracking-[0.12em]";
 
 export const appBarWorkspaceNameStyles =
-  "mt-0.5 flex h-12 items-center font-heading text-lg uppercase leading-none tracking-wide text-appbar-accent-foreground md:h-16 md:text-3xl";
+  "inline-flex h-7 items-center rounded-full px-3.5 text-sm font-medium leading-none tracking-tight md:h-8 md:px-4 md:text-base";
+
+export const appBarWorkspaceTone = {
+  public:
+    "bg-[color-mix(in_srgb,var(--palette-teal-400)_32%,transparent)] text-[var(--palette-teal-800)]",
+  vendor:
+    "bg-[color-mix(in_srgb,var(--palette-orange-400)_32%,transparent)] text-[var(--palette-orange-800)]",
+  admin:
+    "bg-[color-mix(in_srgb,var(--palette-red-400)_32%,transparent)] text-[var(--palette-red-800)]",
+} as const;
 
 export const appBarMobileDividerStyles =
-  "h-8 w-px shrink-0 bg-appbar-border md:hidden";
+  "h-8 w-px shrink-0 bg-[color-mix(in_srgb,var(--palette-gray-400)_45%,transparent)] md:hidden";
 
 const AppBarRoot = React.forwardRef<
   HTMLElement,

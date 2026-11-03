@@ -4,10 +4,13 @@ import type { CSSProperties } from "react";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
+  ArchiveRestoreIcon,
   CancelCircleIcon,
   ExpandIcon,
   GuestHouseIcon,
+  MoreVerticalIcon,
   SparklesIcon,
+  ThumbsDownIcon,
 } from "@hugeicons/core-free-icons";
 
 import { useAudience } from "@/components/providers/audience-provider";
@@ -15,6 +18,13 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { CategoryBadge, StageBadge } from "@/components/tor/listing-badges";
 import { MatchBadge } from "@/components/tor/match-badge";
 import { SaveTorButton } from "@/components/tor/save-tor-button";
+import {
+  FrostPopup,
+  FrostPopupContent,
+  FrostPopupItem,
+  FrostPopupTrigger,
+  frostCircleControl,
+} from "@/components/ui/frost-popup";
 import { FrostCard } from "@/components/ui/frost-card";
 import { listingHref } from "@/config/routes";
 import { fitScoreApplies, listingStage } from "@/lib/listing-stage";
@@ -47,12 +57,14 @@ export function ListingFrostCard({
   tor,
   matchInsight,
   onDismiss,
+  onBadResult,
   dismissed = false,
   returnTo,
 }: {
   tor: Tor;
   matchInsight?: string;
   onDismiss?: () => void;
+  onBadResult?: () => void;
   dismissed?: boolean;
   returnTo?: "matches";
 }) {
@@ -86,10 +98,7 @@ export function ListingFrostCard({
           ) : null}
         </div>
       </div>
-      <Link
-        href={href}
-        className="flex min-w-0 flex-1 flex-col"
-      >
+      <Link href={href} className="flex min-w-0 flex-1 flex-col">
         {organization ? (
           <p className="flex min-w-0 items-center gap-1.5 px-5 pt-4 text-xs text-muted-foreground">
             <HugeiconsIcon
@@ -110,10 +119,10 @@ export function ListingFrostCard({
         </div>
       </Link>
       {matchInsight ? (
-        <div className="relative mx-5 mb-4 mt-2 overflow-hidden rounded-lg">
+        <div className="relative isolate mx-5 mb-4 mt-2 overflow-hidden rounded-lg">
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0"
+            className="pointer-events-none absolute inset-0 rounded-lg"
             style={
               {
                 background: [
@@ -128,9 +137,9 @@ export function ListingFrostCard({
           />
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 bg-[color-mix(in_srgb,var(--palette-black)_14%,transparent)]"
+            className="pointer-events-none absolute inset-0 rounded-lg bg-[color-mix(in_srgb,var(--palette-black)_14%,transparent)]"
           />
-          <div className="relative bg-[color-mix(in_srgb,white_40%,transparent)] p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.55)] backdrop-blur-3xl backdrop-saturate-150">
+          <div className="relative overflow-hidden rounded-lg bg-[color-mix(in_srgb,white_40%,transparent)] p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.55)] backdrop-blur-3xl backdrop-saturate-150">
             <div className="flex items-center gap-2.5">
               <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,white_18%,transparent)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.55)] ring-1 ring-white/35 backdrop-blur-md backdrop-saturate-150">
                 <HugeiconsIcon
@@ -185,24 +194,46 @@ export function ListingFrostCard({
             </span>
           ) : null}
           <div className="flex items-center gap-2">
-            {onDismiss ? (
-              <button
-                type="button"
-                onClick={onDismiss}
-                className={cn(
-                  "inline-flex h-7 items-center justify-center rounded-full border-0 px-3 text-xs font-medium ring-1 backdrop-blur-md backdrop-saturate-150 transition-[transform,background-color] duration-200 ease-out hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:transform-none",
-                  dismissed
-                    ? "bg-[color-mix(in_srgb,var(--palette-gray-200)_90%,transparent)] text-[var(--palette-gray-800)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_88%,transparent)] ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)]"
-                    : "bg-[color-mix(in_srgb,var(--palette-red-400)_32%,transparent)] text-[var(--palette-red-800)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_80%,transparent)] ring-[color-mix(in_srgb,var(--palette-red-400)_48%,transparent)] hover:bg-[color-mix(in_srgb,var(--palette-red-400)_44%,transparent)]",
-                )}
-              >
-                {dismissed ? t("inboxRestore") : t("inboxDismiss")}
-              </button>
+            {onDismiss || onBadResult ? (
+              <FrostPopup>
+                <FrostPopupTrigger
+                  variant="circle"
+                  aria-label={t("inboxMatchActions")}
+                >
+                  <HugeiconsIcon
+                    icon={MoreVerticalIcon}
+                    strokeWidth={1.75}
+                    className="size-4"
+                  />
+                </FrostPopupTrigger>
+                <FrostPopupContent>
+                  {onDismiss ? (
+                    <FrostPopupItem onSelect={() => onDismiss()}>
+                      <HugeiconsIcon
+                        icon={dismissed ? ArchiveRestoreIcon : CancelCircleIcon}
+                        strokeWidth={1.75}
+                        className="size-3.5"
+                      />
+                      {dismissed ? t("inboxRestore") : t("inboxDismiss")}
+                    </FrostPopupItem>
+                  ) : null}
+                  {onBadResult ? (
+                    <FrostPopupItem onSelect={() => onBadResult()}>
+                      <HugeiconsIcon
+                        icon={ThumbsDownIcon}
+                        strokeWidth={1.75}
+                        className="size-3.5"
+                      />
+                      {t("inboxBadResult")}
+                    </FrostPopupItem>
+                  ) : null}
+                </FrostPopupContent>
+              </FrostPopup>
             ) : null}
             <Link
               href={href}
               aria-label={t("viewTor")}
-              className="inline-flex size-7 shrink-0 items-center justify-center rounded-full border-0 bg-[color-mix(in_srgb,var(--palette-gray-200)_90%,transparent)] text-[var(--palette-gray-800)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_88%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] backdrop-blur-md backdrop-saturate-150 transition-[transform,background-color,color] duration-200 ease-out hover:-translate-y-0.5 hover:scale-110 motion-reduce:transition-none motion-reduce:hover:transform-none"
+              className={frostCircleControl}
             >
               <HugeiconsIcon
                 icon={ExpandIcon}

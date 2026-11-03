@@ -1,5 +1,6 @@
 "use client";
 
+import { ShellContent } from "@/components/layout/shell-content";
 import { useLocale } from "@/components/providers/locale-provider";
 import { TorBrowse } from "@/components/tor/tor-browse";
 import type { SourceFilter } from "@/components/tor/tor-filters";
@@ -37,33 +38,37 @@ export function ListingsView({
   return (
     <div>
       <section className="relative -mt-[144px] overflow-hidden hero-atmosphere text-hero-foreground">
-        <div className="relative mx-auto max-w-screen-2xl px-4 pb-8 pt-[calc(144px+2rem)] sm:px-6 md:pb-12 md:pt-[calc(144px+3rem)]">
-          <div className="w-full max-w-2xl md:max-w-3xl lg:max-w-4xl">
-            <h1 className="whitespace-pre-line text-3xl font-semibold tracking-tight md:text-5xl md:leading-[1.1]">
-              {t("opportunitiesTitle")}
-            </h1>
-            <p className="mt-5 text-base leading-[1.7] text-hero-muted md:text-lg">
-              {t("opportunitiesDescription")}
-            </p>
+        <ShellContent>
+          <div className="relative mx-auto max-w-screen-2xl px-4 pb-8 pt-[calc(144px+2rem)] sm:px-6 md:pb-12 md:pt-[calc(144px+3rem)]">
+            <div className="w-full max-w-2xl md:max-w-3xl lg:max-w-4xl">
+              <h1 className="whitespace-pre-line text-3xl font-semibold tracking-tight md:text-5xl md:leading-[1.1]">
+                {t("opportunitiesTitle")}
+              </h1>
+              <p className="mt-5 text-base leading-[1.7] text-hero-muted md:text-lg">
+                {t("opportunitiesDescription")}
+              </p>
+            </div>
           </div>
-        </div>
+        </ShellContent>
         <div aria-hidden className="h-px bg-border" />
       </section>
 
-      <div className="mx-auto max-w-screen-2xl space-y-10 px-4 py-12 sm:px-6 md:space-y-12 md:py-16">
-        <TorBrowse
-          tors={tors}
-          initialQuery={initialQuery}
-          initialAgencies={initialAgencies}
-          initialCategories={initialCategories}
-          initialSources={initialSources}
-          initialSort={initialSort}
-          initialStages={initialStages}
-          initialBudgetYears={initialBudgetYears}
-          initialIntegrities={initialIntegrities}
-          showHeader={false}
-        />
-      </div>
+      <ShellContent>
+        <div className="mx-auto max-w-screen-2xl space-y-10 px-4 py-12 sm:px-6 md:space-y-12 md:py-16">
+          <TorBrowse
+            tors={tors}
+            initialQuery={initialQuery}
+            initialAgencies={initialAgencies}
+            initialCategories={initialCategories}
+            initialSources={initialSources}
+            initialSort={initialSort}
+            initialStages={initialStages}
+            initialBudgetYears={initialBudgetYears}
+            initialIntegrities={initialIntegrities}
+            showHeader={false}
+          />
+        </div>
+      </ShellContent>
     </div>
   );
 }

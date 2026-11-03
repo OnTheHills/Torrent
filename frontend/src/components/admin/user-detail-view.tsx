@@ -1,5 +1,7 @@
 "use client";
 
+
+import { ShellContent } from "@/components/layout/shell-content";
 import Link from "next/link";
 import { useLayoutEffect, useRef, useState } from "react";
 import {
@@ -585,6 +587,7 @@ export function UserDetailView({ id }: { id: string }) {
   return (
     <div>
       <section className="relative -mt-[144px] overflow-hidden bg-surface text-foreground">
+        <ShellContent>
         <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-[calc(144px+2rem)] sm:px-6 md:pb-12 md:pt-[calc(144px+3rem)]">
           <Button asChild size="lg" className={frostButton}>
             <Link href={routes.admin.users}>
@@ -646,6 +649,7 @@ export function UserDetailView({ id }: { id: string }) {
             </div>
           </div>
         </div>
+        </ShellContent>
         <div aria-hidden className="h-px bg-border" />
       </section>
       <AdminBody className="space-y-8">

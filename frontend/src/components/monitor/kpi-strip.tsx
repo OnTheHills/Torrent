@@ -13,8 +13,8 @@ import { MonitorSection } from "@/components/monitor/monitor-section";
 import { useLocale } from "@/components/providers/locale-provider";
 import { FrostCard } from "@/components/ui/frost-card";
 import { isPublishedWithinDays } from "@/data/mock";
-import { fetchTors } from "@/lib/api";
 import type { DictionaryKey } from "@/lib/i18n/dictionary";
+import { torsQueryOptions } from "@/lib/tors-query";
 import { cn } from "@/lib/utils";
 
 const CARDS: {
@@ -72,10 +72,7 @@ const TONE = {
 
 export function KpiStrip({ className }: { className?: string }) {
   const { t } = useLocale();
-  const { data: tors = [], isPending } = useQuery({
-    queryKey: ["tors"],
-    queryFn: fetchTors,
-  });
+  const { data: tors = [], isPending } = useQuery(torsQueryOptions);
 
   const todayIso = new Date().toISOString().slice(0, 10);
   const values = {

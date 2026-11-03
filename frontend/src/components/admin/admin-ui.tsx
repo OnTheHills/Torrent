@@ -3,6 +3,7 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { ShellContent } from "@/components/layout/shell-content";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
@@ -83,30 +84,32 @@ export function AdminHero({
 
   return (
     <section className="relative -mt-[144px] overflow-hidden hero-atmosphere text-hero-foreground">
-      <div
-        className={cn(
-          "relative mx-auto max-w-6xl px-4 pb-8 pt-[calc(144px+2rem)] sm:px-6 md:pb-12 md:pt-[calc(144px+3rem)]",
-          className,
-        )}
-      >
-        {leading ? (
-          <div className="flex items-start gap-5 md:gap-8">
-            <div
-              className="shrink-0 overflow-hidden"
-              style={
-                side > 0
-                  ? { width: side, height: side }
-                  : { width: 144, height: 144 }
-              }
-            >
-              {leading}
+      <ShellContent>
+        <div
+          className={cn(
+            "relative mx-auto max-w-6xl px-4 pb-8 pt-[calc(144px+2rem)] sm:px-6 md:pb-12 md:pt-[calc(144px+3rem)]",
+            className,
+          )}
+        >
+          {leading ? (
+            <div className="flex items-start gap-5 md:gap-8">
+              <div
+                className="shrink-0 overflow-hidden"
+                style={
+                  side > 0
+                    ? { width: side, height: side }
+                    : { width: 144, height: 144 }
+                }
+              >
+                {leading}
+              </div>
+              <div className="min-w-0 flex-1">{copy}</div>
             </div>
-            <div className="min-w-0 flex-1">{copy}</div>
-          </div>
-        ) : (
-          copy
-        )}
-      </div>
+          ) : (
+            copy
+          )}
+        </div>
+      </ShellContent>
       <div aria-hidden className="h-px bg-border" />
     </section>
   );
@@ -120,14 +123,16 @@ export function AdminBody({
   className?: string;
 }) {
   return (
-    <div
-      className={cn(
-        "mx-auto max-w-6xl space-y-8 px-4 py-12 sm:px-6 md:py-16",
-        className,
-      )}
-    >
-      {children}
-    </div>
+    <ShellContent>
+      <div
+        className={cn(
+          "mx-auto max-w-6xl space-y-8 px-4 py-12 sm:px-6 md:py-16",
+          className,
+        )}
+      >
+        {children}
+      </div>
+    </ShellContent>
   );
 }
 

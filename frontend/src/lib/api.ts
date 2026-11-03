@@ -109,6 +109,7 @@ export type StoredMatch = {
   matchPercent: number | string | { $numberDecimal?: string };
   matchReason: string;
   dismissedAt?: string | null;
+  badResultAt?: string | null;
   updatedAt: string;
 };
 
@@ -122,6 +123,13 @@ export async function setMatchDismissed(id: string, dismissed: boolean) {
   return api<StoredMatch>(`/tor-matches/mine/${id}`, {
     method: "PATCH",
     body: JSON.stringify({ dismissed }),
+  });
+}
+
+export async function setMatchBadResult(id: string) {
+  return api<StoredMatch>(`/tor-matches/mine/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ badResult: true }),
   });
 }
 

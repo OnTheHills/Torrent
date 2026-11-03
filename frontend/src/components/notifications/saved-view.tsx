@@ -1,5 +1,7 @@
 "use client";
 
+
+import { ShellContent } from "@/components/layout/shell-content";
 import Link from "next/link";
 import { HeartIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -12,15 +14,12 @@ import { TorFetchStatus } from "@/components/tor/tor-loading";
 import { useTorsWithMatches } from "@/components/tor/use-match-scores";
 import { Button } from "@/components/ui/button";
 import { routes } from "@/config/routes";
-import { fetchTorsForQuery } from "@/lib/api";
+import { torsQueryOptions } from "@/lib/tors-query";
 
 export function SavedView() {
   const { t } = useLocale();
   const { savedIds, ready } = useSaved();
-  const { data: sourceTors = [], isPending } = useQuery({
-    queryKey: ["tors"],
-    queryFn: fetchTorsForQuery,
-  });
+  const { data: sourceTors = [], isPending } = useQuery(torsQueryOptions);
   const tors = useTorsWithMatches(sourceTors, true);
 
   const savedTors = tors
@@ -31,6 +30,7 @@ export function SavedView() {
   return (
     <div>
       <section className="relative -mt-[144px] overflow-hidden hero-atmosphere text-hero-foreground">
+        <ShellContent>
         <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-[calc(144px+2rem)] sm:px-6 md:pb-12 md:pt-[calc(144px+3rem)]">
           <div className="w-full max-w-2xl md:max-w-3xl lg:max-w-4xl">
             <h1 className="text-3xl font-semibold tracking-tight md:text-5xl md:leading-[1.1]">
@@ -41,9 +41,11 @@ export function SavedView() {
             </p>
           </div>
         </div>
+        </ShellContent>
         <div aria-hidden className="h-px bg-border" />
       </section>
 
+      <ShellContent>
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-12 sm:px-6 md:py-16">
         {!loading && savedTors.length > 0 ? (
           <p className="text-sm text-muted-foreground">
@@ -87,6 +89,7 @@ export function SavedView() {
           </div>
         )}
       </div>
+      </ShellContent>
     </div>
   );
 }

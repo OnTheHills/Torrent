@@ -1,7 +1,7 @@
 import type { ComponentProps, ReactNode } from "react";
 
+import { ShellContent } from "@/components/layout/shell-content";
 import { Surface } from "@/components/ui/surface";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 /** One column for the landing hero and every HomeBand / HomeRule. */
@@ -13,21 +13,23 @@ export function HomeFrame({
   ...props
 }: ComponentProps<"div">) {
   return (
-    <div className={cn(homeFrameClass, className)} {...props}>
-      {children}
-    </div>
+    <ShellContent>
+      <div className={cn(homeFrameClass, className)} {...props}>
+        {children}
+      </div>
+    </ShellContent>
   );
 }
 
 export function HomeSection({
-  eyebrow,
   title,
   description,
   children,
   className,
   onDark = false,
 }: {
-  eyebrow: string;
+  /** @deprecated Eyebrow pills removed from home sections. */
+  eyebrow?: string;
   title: string;
   description?: string;
   children?: ReactNode;
@@ -37,17 +39,6 @@ export function HomeSection({
   return (
     <section className={cn("space-y-10", className)}>
       <div className="max-w-3xl space-y-4">
-        <p
-          className={cn(
-            "flex items-center gap-3 text-[0.7rem] font-semibold uppercase tracking-[0.18em]",
-            onDark ? "text-[var(--palette-teal-200)]" : "text-primary"
-          )}
-        >
-        <Badge 
-        className="h-auto px-2.5 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.18em]">
-          {eyebrow}
-        </Badge>
-        </p>
         <h2
           className={cn(
             "text-2xl font-semibold tracking-tight md:text-[2rem] md:leading-[1.2]",
@@ -96,9 +87,5 @@ export function HomeBand({
 }
 
 export function HomeRule() {
-  return (
-    <HomeFrame aria-hidden>
-      <hr className="border-0 border-t border-border" />
-    </HomeFrame>
-  );
+  return <hr aria-hidden className="w-full border-0 border-t border-border" />;
 }

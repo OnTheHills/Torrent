@@ -2,17 +2,19 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Logout03Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 import { useSession } from "@/components/providers/session-provider";
 import { useLocale } from "@/components/providers/locale-provider";
 import { chromeFrostBar, chromeFrostTeal } from "@/components/ui/appbar";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  FrostPopup,
+  FrostPopupContent,
+  FrostPopupItem,
+  FrostPopupTrigger,
+} from "@/components/ui/frost-popup";
 import { routes } from "@/config/routes";
 import type { SessionUser } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -35,14 +37,17 @@ export function AccountControl() {
   const router = useRouter();
 
   if (loading) {
-    return <div className="h-8 w-28 shrink-0" aria-hidden />;
+    return <div className="h-9 w-28 shrink-0" aria-hidden />;
   }
 
   if (!user) {
     return (
       <Button
         asChild
-        className={cn(chromeFrostTeal, "hover:bg-[color-mix(in_srgb,var(--palette-teal-400)_44%,transparent)]")}
+        className={cn(
+          chromeFrostTeal,
+          "hover:bg-[color-mix(in_srgb,var(--palette-teal-400)_44%,transparent)]",
+        )}
       >
         <Link href={routes.login}>{t("signUpLogin")}</Link>
       </Button>
@@ -52,39 +57,44 @@ export function AccountControl() {
   const name = displayName(user);
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
+    <FrostPopup>
+      <FrostPopupTrigger
         className={cn(
-          "inline-flex max-w-52 shrink-0 items-center gap-0.5 rounded-full p-0.5 outline-none hover:brightness-125 focus-visible:ring-2 focus-visible:ring-ring/30",
           chromeFrostBar,
+          "inline-flex h-9 max-w-52 shrink-0 items-center gap-0.5 rounded-full p-0.5 outline-none hover:brightness-[1.02] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] data-[state=open]:bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))] data-[state=open]:ring-1 data-[state=open]:ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] data-[state=open]:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)]",
         )}
         aria-label={name}
       >
-        <span className="min-w-0 truncate px-2 text-xs font-medium">{name}</span>
+        <span className="min-w-0 truncate px-2.5 text-xs font-medium">{name}</span>
         {user.picture ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={user.picture}
             alt=""
-            className="size-7 shrink-0 rounded-full object-cover"
+            className="size-8 shrink-0 rounded-full object-cover"
             referrerPolicy="no-referrer"
           />
         ) : (
-          <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-white/20 text-[10px] font-semibold text-white">
+          <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--palette-gray-400)_28%,transparent)] text-[10px] font-semibold text-foreground">
             {initials(user)}
           </span>
         )}
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-40">
-        <DropdownMenuItem
+      </FrostPopupTrigger>
+      <FrostPopupContent>
+        <FrostPopupItem
           onSelect={async () => {
             await logout();
             router.push(routes.login);
           }}
         >
+          <HugeiconsIcon
+            icon={Logout03Icon}
+            strokeWidth={1.75}
+            className="size-3.5"
+          />
           {t("logOut")}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </FrostPopupItem>
+      </FrostPopupContent>
+    </FrostPopup>
   );
 }

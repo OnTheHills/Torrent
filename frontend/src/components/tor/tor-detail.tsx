@@ -1,5 +1,7 @@
 "use client";
 
+
+import { ShellContent } from "@/components/layout/shell-content";
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
@@ -475,7 +477,8 @@ export function TorDetail({
     return (
       <div>
         <section className="relative -mt-[144px] overflow-hidden bg-surface text-foreground">
-          <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-[calc(144px+2rem)] sm:px-6 md:pb-12 md:pt-[calc(144px+3rem)]">
+          <ShellContent>
+        <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-[calc(144px+2rem)] sm:px-6 md:pb-12 md:pt-[calc(144px+3rem)]">
             <Button asChild size="lg" className={frostButton}>
               <Link href={backHref}>
                 <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} />
@@ -523,15 +526,18 @@ export function TorDetail({
               {actions}
             </div>
           </div>
+        </ShellContent>
         </section>
 
-        <div className="mx-auto max-w-6xl space-y-10 px-4 py-12 sm:px-6 md:space-y-12 md:py-16">
+        <ShellContent>
+      <div className="mx-auto max-w-6xl space-y-10 px-4 py-12 sm:px-6 md:space-y-12 md:py-16">
           {matchInsight}
           {facts}
           {brief}
           {requirements}
           {vendorExtras}
         </div>
+      </ShellContent>
       </div>
     );
   }
@@ -539,6 +545,7 @@ export function TorDetail({
   return (
     <div>
       <section className="relative -mt-[144px] overflow-hidden hero-atmosphere text-hero-foreground">
+        <ShellContent>
         <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-[calc(144px+2rem)] sm:px-6 md:pb-12 md:pt-[calc(144px+3rem)]">
           <Button asChild size="lg" className={frostButton}>
             <Link href={catalog}>
@@ -589,15 +596,18 @@ export function TorDetail({
           ) : null}
           <div className="mt-9 pt-2">{actions}</div>
         </div>
+        </ShellContent>
         <div aria-hidden className="h-px bg-border" />
       </section>
 
+      <ShellContent>
       <div className="mx-auto max-w-6xl space-y-10 px-4 py-12 sm:px-6 md:space-y-12 md:py-16">
         {facts}
         {brief}
         {requirements}
         {vendorExtras}
       </div>
+      </ShellContent>
     </div>
   );
 }

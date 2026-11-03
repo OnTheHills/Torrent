@@ -9,12 +9,13 @@ import { BudgetChart } from "@/components/dashboard/budget-chart";
 import { BudgetKpiStrip } from "@/components/dashboard/budget-kpi-strip";
 import { DashboardFetchStatus } from "@/components/dashboard/dashboard-loading";
 import { HistoricalPriceTable } from "@/components/dashboard/historical-price-table";
+import { ShellContent } from "@/components/layout/shell-content";
 import { MonitorSection } from "@/components/monitor/monitor-section";
 import { useAudience } from "@/components/providers/audience-provider";
 import { useLocale } from "@/components/providers/locale-provider";
 import { Button } from "@/components/ui/button";
 import { routes } from "@/config/routes";
-import { fetchTorsForQuery } from "@/lib/api";
+import { torsQueryOptions } from "@/lib/tors-query";
 import { buildBudgetBenchmarks } from "@/lib/budget";
 
 export function DashboardView() {
@@ -22,10 +23,7 @@ export function DashboardView() {
   const audience = useAudience();
   const vendor = audience === "vendor";
   const { data: tors = [], isFetching, isPending } = useQuery({
-    queryKey: ["tors"],
-    queryFn: fetchTorsForQuery,
-    retry: 30,
-    retryDelay: (attempt) => Math.min(1_000 * 2 ** attempt, 5_000),
+    ...torsQueryOptions,
     refetchInterval: (query) =>
       Array.isArray(query.state.data) && query.state.data.length === 0
         ? 2_000
@@ -45,32 +43,35 @@ export function DashboardView() {
   return (
     <div>
       <section className="relative -mt-[144px] overflow-hidden hero-atmosphere text-hero-foreground">
-        <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-[calc(144px+2rem)] sm:px-6 md:pb-12 md:pt-[calc(144px+3rem)]">
-          <div className="w-full max-w-2xl md:max-w-3xl lg:max-w-4xl">
-            <h1 className="whitespace-pre-line text-3xl font-semibold tracking-tight md:text-5xl md:leading-[1.1]">
-              {t("dashboardTitle")}
-            </h1>
-            <p className="mt-5 text-base leading-[1.7] text-hero-muted md:text-lg">
-              {t("dashboardDescription")}
-            </p>
-          </div>
-          <div className="mt-9 flex flex-wrap gap-3 pt-2">
-            <Button asChild size="lg" variant="orange">
-              <Link href={vendor ? routes.app.tors : routes.tors}>
-                {t("browseTors")}
-                <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
-              </Link>
-            </Button>
-            {vendor ? null : (
-              <Button asChild size="lg" variant="outline">
-                <Link href={routes.monitor}>{t("openMonitor")}</Link>
+        <ShellContent>
+          <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-[calc(144px+2rem)] sm:px-6 md:pb-12 md:pt-[calc(144px+3rem)]">
+            <div className="w-full max-w-2xl md:max-w-3xl lg:max-w-4xl">
+              <h1 className="whitespace-pre-line text-3xl font-semibold tracking-tight md:text-5xl md:leading-[1.1]">
+                {t("dashboardTitle")}
+              </h1>
+              <p className="mt-5 text-base leading-[1.7] text-hero-muted md:text-lg">
+                {t("dashboardDescription")}
+              </p>
+            </div>
+            <div className="mt-9 flex flex-wrap gap-3 pt-2">
+              <Button asChild size="lg" variant="orange">
+                <Link href={vendor ? routes.app.tors : routes.tors}>
+                  {t("browseTors")}
+                  <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
+                </Link>
               </Button>
-            )}
+              {vendor ? null : (
+                <Button asChild size="lg" variant="outline">
+                  <Link href={routes.monitor}>{t("openMonitor")}</Link>
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
+        </ShellContent>
         <div aria-hidden className="h-px bg-border" />
       </section>
 
+      <ShellContent>
       <div className="mx-auto max-w-6xl space-y-10 px-4 py-12 sm:px-6 md:space-y-12 md:py-16">
         {isFetching ? <DashboardFetchStatus /> : null}
 
@@ -106,6 +107,7 @@ export function DashboardView() {
           )}
         </MonitorSection>
       </div>
+      </ShellContent>
     </div>
   );
 }

@@ -1,97 +1,108 @@
 "use client";
 
-import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
   Database01Icon,
+  FilterIcon,
   Notification01Icon,
-  SparklesIcon,
   Task01Icon,
 } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 
 import { HomeSection } from "@/components/home/home-section";
 import { useLocale } from "@/components/providers/locale-provider";
-import { FrostCard } from "@/components/ui/frost-card";
-import { Surface } from "@/components/ui/surface";
 import type { DictionaryKey } from "@/lib/i18n/dictionary";
+import { cn } from "@/lib/utils";
 
-const STAGES = [
+const frostBase =
+  "shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_80%,transparent),0_10px_28px_rgb(0_0_0_/_0.06)] ring-1 backdrop-blur-xl backdrop-saturate-150";
+
+const STAGES: {
+  title: DictionaryKey;
+  body: DictionaryKey;
+  icon: IconSvgElement;
+  fill: string;
+}[] = [
   {
     title: "workflowCollectTitle",
     body: "workflowCollectBody",
     icon: Database01Icon,
-    iconBg: "bg-[var(--palette-blue-75)]",
-    iconFg: "text-[var(--palette-blue-800)]",
+    fill: "bg-[color-mix(in_srgb,var(--palette-orange-300)_52%,transparent)] ring-[color-mix(in_srgb,var(--palette-orange-400)_55%,transparent)]",
   },
   {
     title: "workflowClassifyTitle",
     body: "workflowClassifyBody",
-    icon: SparklesIcon,
-    iconBg: "bg-[var(--palette-purple-75)]",
-    iconFg: "text-[var(--palette-purple-700)]",
+    icon: FilterIcon,
+    fill: "bg-[color-mix(in_srgb,var(--palette-yellow-300)_58%,transparent)] ring-[color-mix(in_srgb,var(--palette-yellow-400)_55%,transparent)]",
   },
   {
     title: "workflowEnrichTitle",
     body: "workflowEnrichBody",
     icon: Task01Icon,
-    iconBg: "bg-[var(--palette-teal-75)]",
-    iconFg: "text-[var(--palette-teal-700)]",
+    fill: "bg-[color-mix(in_srgb,var(--palette-green-600)_36%,transparent)] ring-[color-mix(in_srgb,var(--palette-green-600)_42%,transparent)]",
   },
   {
     title: "workflowDeliverTitle",
     body: "workflowDeliverBody",
     icon: Notification01Icon,
-    iconBg: "bg-[var(--palette-orange-75)]",
-    iconFg: "text-[var(--palette-orange-700)]",
+    fill: "bg-[color-mix(in_srgb,var(--palette-teal-300)_52%,transparent)] ring-[color-mix(in_srgb,var(--palette-teal-400)_55%,transparent)]",
   },
-] as const satisfies {
-  title: DictionaryKey;
-  body: DictionaryKey;
-  icon: IconSvgElement;
-  iconBg: string;
-  iconFg: string;
-}[];
+];
 
 export function HomeWorkflow() {
   const { t } = useLocale();
 
   return (
-    <HomeSection
-      eyebrow={t("workflowEyebrow")}
-      title={t("workflowTitle")}
-      description={t("workflowSubtitle")}
-    >
-      <Surface className="space-y-4 bg-surface p-5 ring-transparent md:p-6">
-        <ol className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          {STAGES.map((stage, index) => (
-            <FrostCard
-              as="li"
-              key={stage.title}
-              className="flex h-full flex-col gap-3 rounded-lg p-6 md:p-5"
+    <HomeSection title={t("workflowTitle")} description={t("workflowSubtitle")}>
+      <style>{`
+        .workflow-chevron {
+          clip-path: polygon(
+            0 0,
+            100% 0,
+            100% calc(100% - 1rem),
+            50% 100%,
+            0 calc(100% - 1rem),
+            50% 1rem
+          );
+        }
+        @media (min-width: 768px) {
+          .workflow-chevron {
+            clip-path: polygon(
+              0 0,
+              calc(100% - 1.75rem) 0,
+              100% 50%,
+              calc(100% - 1.75rem) 100%,
+              0 100%,
+              1.75rem 50%
+            );
+          }
+        }
+      `}</style>
+
+      <ol className="grid grid-cols-1 gap-x-1.5 gap-y-3 md:grid-cols-4">
+        {STAGES.map((stage) => (
+          <li key={stage.title} className="flex flex-col gap-3">
+            <div
+              className={cn(
+                "workflow-chevron flex h-20 items-center justify-center px-8 text-foreground md:h-24 md:px-10",
+                frostBase,
+                stage.fill,
+              )}
             >
-              <div className="flex items-center gap-3">
-                <span
-                  className={`flex size-10 shrink-0 items-center justify-center rounded-[8px] ${stage.iconBg}`}
-                >
-                  <HugeiconsIcon
-                    icon={stage.icon}
-                    strokeWidth={2}
-                    className={`size-5 ${stage.iconFg}`}
-                  />
-                </span>
-                <h3 className="min-w-0 flex-1 text-xl font-semibold tracking-tight">
-                  {t(stage.title)}
-                </h3>
-                <span className="font-heading text-sm tabular-nums text-muted-foreground">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-              </div>
-              <p className="text-sm leading-[1.7] text-muted-foreground">
-                {t(stage.body)}
-              </p>
-            </FrostCard>
-          ))}
-        </ol>
-      </Surface>
+              <h3 className="flex items-center justify-center gap-2.5 text-center text-xl font-semibold tracking-tight md:gap-3 md:text-2xl">
+                <HugeiconsIcon
+                  icon={stage.icon}
+                  strokeWidth={2}
+                  className="size-5 shrink-0 md:size-6"
+                />
+                {t(stage.title)}
+              </h3>
+            </div>
+            <p className="px-1 text-sm leading-[1.65] text-muted-foreground md:pr-4">
+              {t(stage.body)}
+            </p>
+          </li>
+        ))}
+      </ol>
     </HomeSection>
   );
 }

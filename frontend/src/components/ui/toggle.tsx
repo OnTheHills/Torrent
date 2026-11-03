@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { chromeFrostBar, chromeFrostTeal } from "@/components/ui/appbar";
+import { chromeFrostBar } from "@/components/ui/appbar";
 import { cn } from "@/lib/utils";
 
 export type ToggleOption<T extends string = string> = {
@@ -19,7 +19,7 @@ type ToggleProps<T extends string> = {
   "aria-label": string;
   className?: string;
   size?: "sm" | "default";
-  /** `chrome` reads on the app bar / sidebar surfaces. */
+  /** `chrome` reads on the liquid-glass app bar pill. */
   tone?: "default" | "chrome";
 };
 
@@ -34,7 +34,9 @@ const chromeFrostTrack = chromeFrostBar;
 const pageFrostThumb =
   "bg-[var(--toggle-thumb)] shadow-none ring-0 backdrop-blur-md";
 
-const chromeFrostThumb = chromeFrostTeal;
+/** Flat dim selected fill — same recipe as sidebar / frost popup active. */
+const chromeFrostThumb =
+  "bg-sidebar-accent text-sidebar-accent-foreground shadow-none ring-0";
 
 /**
  * Frosted segmented toggle. Track and thumb stay translucent + blurred
@@ -77,9 +79,7 @@ function Toggle<T extends string>({
                 ? tone === "chrome"
                   ? chromeFrostThumb
                   : cn(pageFrostThumb, "text-foreground")
-                : tone === "chrome"
-                  ? "text-[var(--palette-teal-100)]/60 hover:text-[var(--palette-teal-50)]"
-                  : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground"
             )}
           >
             {option.label}

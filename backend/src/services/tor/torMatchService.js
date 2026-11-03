@@ -49,6 +49,10 @@ async function setMyMatchDismissed(id, userId, dismissed) {
   return torMatchRepository.setDismissedForUser(id, userId, dismissed);
 }
 
+async function setMyMatchBadResult(id, userId) {
+  return torMatchRepository.setBadResultForUser(id, userId);
+}
+
 async function deleteTorMatch(id) {
   return torMatchRepository.remove(id);
 }
@@ -60,6 +64,7 @@ module.exports = {
   getPendingTorIds,
   getTorMatchesByUserId,
   setMyMatchDismissed,
+  setMyMatchBadResult,
   getTorMatchById,
   updateTorMatch,
 };

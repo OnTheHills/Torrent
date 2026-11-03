@@ -1,5 +1,5 @@
 import Script from "next/script";
-import { IBM_Plex_Sans_Thai, Prompt } from "next/font/google";
+import { IBM_Plex_Sans_Thai, Inter, Prompt } from "next/font/google";
 
 import type { Metadata } from "next";
 
@@ -15,6 +15,12 @@ const prompt = Prompt({
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
   style: ["normal", "italic"],
   variable: "--font-prompt",
+  display: "swap",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
   display: "swap",
 });
 
@@ -42,7 +48,7 @@ export default function RootLayout({
       lang="th"
       data-scroll-behavior="smooth"
       suppressHydrationWarning
-      className={`${prompt.variable} ${ibmPlexSansThai.variable}`}
+      className={`${prompt.variable} ${inter.variable} ${ibmPlexSansThai.variable}`}
     >
       <body>
         <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
