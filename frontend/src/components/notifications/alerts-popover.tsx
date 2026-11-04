@@ -185,9 +185,9 @@ export function AlertsPopover({
         className={cn(
           tone === "chrome" &&
             cn(
-              "relative hover:bg-[linear-gradient(180deg,var(--palette-gray-700),var(--palette-gray-800))] hover:brightness-125",
+              "relative hover:brightness-[1.02]",
               chromeFrostBar,
-              "aria-expanded:bg-[color-mix(in_srgb,var(--palette-teal-400)_32%,transparent)] aria-expanded:ring-[color-mix(in_srgb,var(--palette-teal-300)_45%,transparent)]",
+              "aria-expanded:bg-[color-mix(in_srgb,var(--palette-teal-400)_32%,transparent)] aria-expanded:text-[var(--palette-teal-800)] aria-expanded:ring-[color-mix(in_srgb,var(--palette-teal-400)_48%,transparent)]",
             )
         )}
       >

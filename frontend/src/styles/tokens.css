@@ -1,8 +1,11 @@
 :root {
   color-scheme: light;
 
-  --font-sans: var(--font-ibm-plex-sans-thai), var(--font-prompt), ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-ibm-plex-sans-thai), var(--font-prompt), ui-sans-serif, system-ui, sans-serif;
+  /* Inter for Latin in both locales; Thai glyphs fall through to Plex/Prompt. */
+  --font-sans: var(--font-inter), var(--font-ibm-plex-sans-thai), var(--font-prompt),
+    ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-inter), var(--font-ibm-plex-sans-thai), var(--font-prompt),
+    ui-sans-serif, system-ui, sans-serif;
 
   --palette-black: #05080d;
   --palette-white: #ffffff;
@@ -141,28 +144,36 @@
   --background-body: var(--palette-teal-50);
 
   /* Chrome stays one dark surface. A live blur samples the peach page in the bar and the plain wallpaper in the sidebar, so the two pieces never match. */
-  --appbar: var(--palette-gray-900);
-  --appbar-foreground: var(--palette-teal-50);
-  --appbar-muted-foreground: var(--palette-teal-300);
-  --appbar-hover: var(--palette-teal-800);
-  --appbar-active: color-mix(in srgb, var(--palette-white) 16%, transparent);
-  --appbar-accent-foreground: var(--palette-teal-300);
-  --appbar-border: var(--palette-gray-700);
-  --appbar-input: color-mix(in srgb, var(--palette-white) 10%, transparent);
+  /* Light liquid-glass app bar (matches sidebar capsule). */
+  --appbar: rgb(255 255 255 / 0.1);
+  --appbar-foreground: var(--palette-gray-900);
+  --appbar-muted-foreground: color-mix(in srgb, var(--palette-gray-700) 72%, transparent);
+  --appbar-hover: rgb(255 255 255 / 0.22);
+  --appbar-active: rgb(0 0 0 / 0.1);
+  --appbar-accent-foreground: var(--palette-teal-700);
+  --appbar-border: rgb(255 255 255 / 0.32);
+  --appbar-input: rgb(255 255 255 / 0.42);
 
-  --sidebar: var(--palette-gray-900);
-  --sidebar-foreground: var(--palette-teal-100);
-  --sidebar-muted-foreground: var(--palette-teal-300);
-  --sidebar-primary: var(--palette-teal-400);
-  --sidebar-primary-foreground: var(--palette-teal-900);
-  --sidebar-hover: var(--palette-teal-800);
-  --sidebar-accent: var(--palette-teal-800);
-  --sidebar-accent-foreground: var(--palette-teal-200);
-  --sidebar-border: var(--palette-gray-900);
-  --sidebar-divider: var(--palette-gray-700);
-  --sidebar-ring: var(--palette-orange-400);
-  --sidebar-popup: var(--palette-gray-900);
-  --sidebar-popup-foreground: var(--palette-white);
+  /*
+   * Liquid Glass (WWDC25): light translucent tint + vibrancy, not dark frost.
+   * Regular variant ≈ white ~18% so content behind stays visible and saturated.
+   */
+  --sidebar: rgb(255 255 255 / 0.1);
+  --sidebar-foreground: var(--palette-gray-900);
+  --sidebar-muted-foreground: color-mix(in srgb, var(--palette-gray-700) 72%, transparent);
+  --sidebar-primary: var(--palette-teal-500);
+  --sidebar-primary-foreground: var(--palette-teal-50);
+  --sidebar-hover: rgb(255 255 255 / 0.22);
+  /* Selected: slightly dimmer lens than the clear panel (soft dark glass, not gray tint) */
+  --sidebar-accent: rgb(0 0 0 / 0.1);
+  --sidebar-accent-foreground: var(--palette-gray-900);
+  --sidebar-border: rgb(255 255 255 / 0.42);
+  --sidebar-divider: rgb(255 255 255 / 0.28);
+  --sidebar-ring: rgb(255 255 255 / 0.55);
+  --sidebar-popup: rgb(255 255 255 / 0.55);
+  --sidebar-popup-foreground: var(--palette-gray-900);
+  --sidebar-glass-highlight: rgb(255 255 255 / 0.55);
+  --sidebar-glass-shadow: rgb(0 0 0 / 0.18);
 
   --lifecycle-draft: var(--palette-yellow-400);
   --lifecycle-draft-foreground: var(--palette-yellow-900);
@@ -187,11 +198,11 @@
   --hero-via2: var(--palette-orange-200);
   --hero-to: var(--palette-teal-150);
   --hero-glow: color-mix(in srgb, var(--palette-teal-300) 46%, transparent);
-  --hero-stripe-a: var(--palette-orange-300);
-  --hero-stripe-b: var(--palette-orange-150);
-  --hero-stripe-c: var(--palette-orange-25);
-  --hero-foreground: var(--palette-teal-900);
-  --hero-muted: var(--palette-teal-800);
+  --hero-stripe-a: var(--palette-gray-200);
+  --hero-stripe-b: var(--palette-gray-100);
+  --hero-stripe-c: var(--palette-gray-50);
+  --hero-foreground: var(--palette-gray-900);
+  --hero-muted: var(--palette-gray-600);
   --surface: var(--palette-gray-50);
   --surface-elevated: color-mix(in srgb, var(--palette-white) 78%, transparent);
   --surface-frost: color-mix(in srgb, var(--palette-white) 48%, transparent);
@@ -210,14 +221,9 @@
   --band-paper: var(--palette-gray-50);
 }
 
-html[data-locale="en"] {
-  --font-sans: var(--font-prompt), ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-prompt), ui-sans-serif, system-ui, sans-serif;
-}
-
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   :root {
-    --appbar: var(--palette-teal-900);
-    --sidebar: var(--palette-teal-900);
+    --appbar: color-mix(in srgb, var(--palette-gray-50) 92%, white);
+    --sidebar: color-mix(in srgb, var(--palette-gray-50) 92%, white);
   }
 }

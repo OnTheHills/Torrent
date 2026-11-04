@@ -13,10 +13,10 @@ export default function VendorLayout({
       <AppShell
         nav={VENDOR_NAV}
         workspace="audienceVendor"
-        showBackToSite
         inset
         fullBleedPaths={[
           routes.app.home,
+          routes.app.landing,
           routes.app.tors,
           routes.app.saved,
           routes.app.profile,

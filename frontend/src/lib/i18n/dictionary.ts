@@ -55,61 +55,69 @@ export const dictionary = {
     forVendors: "Vendor workspace",
     forOperators: "Operations desk",
     workspaces: "Workspaces",
-    vendorSignIn: "Vendor sign in",
+    vendorSignIn: "Sign in with Vendor account",
     viewToggle: "Preview as",
     viewPublic: "Public",
     viewVendor: "Vendor",
     viewAdmin: "Admin",
     coverageEyebrow: "Coverage",
-    coverageTitle: "Official procurement data, unified",
+    coverageTitle: "Official feeds, expanding coverage",
     coverageBody:
-      "TORRENT retrieves published procurement records from the organizations below, normalizes them into one catalog, and keeps every listing tied to the record it came from.",
-    coverageTrust: "Every listing links back to its official source.",
-    capabilitiesEyebrow: "Platform",
-    capabilitiesTitle: "Procurement intelligence in one workspace",
-    capabilitiesBody:
-      "Four capabilities turn scattered procurement notices into a record a team can act on.",
-    capDiscoveryTitle: "Unified discovery",
-    capDiscoveryBody:
-      "Search software TORs across every covered organization from a single catalog, with filters for department, category, and budget.",
-    capLifecycleTitle: "Lifecycle visibility",
-    capLifecycleBody:
-      "Active opportunities stay separate from awarded history, so teams know what can still be pursued.",
-    capBudgetTitle: "Budget context",
-    capBudgetBody:
-      "Each budget is shown against the median for comparable software projects, so outliers are visible.",
-    capIntegrityTitle: "Integrity signals",
-    capIntegrityBody:
-      "Incomplete or unusual records are surfaced for review before they reach the public catalog.",
+      "TORRENT consolidates official e-GP and agency feeds into one catalog of curated departments. Every listing links to its official source.",
+    coverageHubCaption: "One catalog",
+    coverageFeedOcdsTitle: "BMA Open Contracting",
+    coverageFeedOcdsBody:
+      "Official OCDS JSON releases from Bangkok Metropolitan Administration.",
+    coverageFeedEgp2Title: "BMA e-GP2",
+    coverageFeedEgp2Body:
+      "Bangkok e-GP2 project search for published software TOR announcements.",
+    coverageFeedRssTitle: "e-GP RSS",
+    coverageFeedRssBody:
+      "Draft TOR and bid notices from selected departments on the national e-GP feed.",
+    coverageFeedDataGoTitle: "data.go & SME-GP",
+    coverageFeedDataGoBody:
+      "National open-data and SME procurement listings enriched into the same catalog.",
+    coverageDeptsHeading: "Departments in scope",
+    coverageDeptsBody:
+      "The current allowlist covers selected e-GP departments and may expand without affecting browse behavior. Every listing links to its official source.",
     rolesEyebrow: "Who it serves",
-    rolesTitle: "Built for transparency and opportunity",
+    rolesTitle: "Open for everyone. Tuned for vendors.",
     rolesSubtitle:
-      "Reading the public record needs no account. Vendor matching and operations tools sit behind sign-in.",
-    rolePublicTitle: "Public and researchers",
-    rolePublicBody:
-      "Follow government software spending and inspect the official record behind every listing.",
-    roleVendorTitle: "Software vendors",
+      "Everyone can read the live catalog. A vendor account adds matching, saved opportunities, and alerts.",
+    rolePublicEyebrow: "For citizens, journalists, and researchers",
+    rolePublicTitle: "Public, no account needed",
+    rolePublicBody: "",
+    rolePublicFeature1: "Browse software TORs from official agency feeds",
+    rolePublicFeature2: "Follow live procurement signals and integrity flags",
+    rolePublicFeature3: "Compare software spend across departments",
+    roleVendorEyebrow: "For software companies bidding on TORs",
+    roleVendorTitle: "Vendor account",
     roleVendorBody:
-      "Discover relevant TORs, assess fit against your capability profile, save opportunities, and receive alerts.",
+      "Everything in the public catalog, plus tools that score fit to your profile.",
+    roleVendorFeature1: "Ranked opportunities scored to your capability profile",
+    roleVendorFeature2: "Save TORs and track deadlines in one place",
+    roleVendorFeature3: "Email notifications when TORs match your profile",
+    roleVendorLineTitle: "LINE Notify",
+    roleVendorFeature4: "Weekly incoming new TORs via LINE Official Account",
     roleOperatorTitle: "Platform operators",
     roleOperatorBody:
       "Maintain source health and review uncertain classifications before they reach the catalog.",
     workflowEyebrow: "How it works",
     workflowTitle: "From official data to actionable insight",
     workflowSubtitle:
-      "Four stages run on a schedule, so the catalog stays current without manual entry.",
+      "A scheduled sync turns official procurement records into a live catalog and vendor matches.",
     workflowCollectTitle: "Collect",
     workflowCollectBody:
-      "Published procurement records are retrieved from official sources on a schedule.",
-    workflowClassifyTitle: "Classify",
+      "Official e-GP and partner feeds are pulled on a schedule, with extra sources available on demand.",
+    workflowClassifyTitle: "Filter",
     workflowClassifyBody:
-      "Software-related records are identified by keyword rules and AI, with low-confidence cases queued for review.",
+      "Keyword rules keep software-related TORs in the pipeline.",
     workflowEnrichTitle: "Enrich",
     workflowEnrichBody:
-      "Each record gains lifecycle, budget context, required skills, and integrity signals.",
+      "OCR and source fields add budget, skills, lifecycle, and integrity signals for review.",
     workflowDeliverTitle: "Deliver",
     workflowDeliverBody:
-      "Records reach the public catalog, and vendors with a matching profile receive alerts.",
+      "Records land in the public catalog; vendors get AI matches in-inbox and optional LINE weekly new TORs.",
     trustEyebrow: "Governance",
     trustTitle: "Transparent by design",
     trustSubtitle:
@@ -138,6 +146,16 @@ export const dictionary = {
     homeTitle: "Find, understand, and monitor public software TORs",
     homeDescription:
       "TORRENT brings software procurement records from Thai government organizations into one searchable platform, enriched with budget, and integrity context.",
+    heroCardListingsTitle: "Listings",
+    heroCardListingsBody:
+      "Browse software TORs from official feeds and selected departments in one catalog.",
+    heroCardMonitorTitle: "Monitor",
+    heroCardMonitorBody:
+      "Follow live procurement signals and integrity flags as records land.",
+    heroCardBudgetsTitle: "Budgets",
+    heroCardBudgetsBody:
+      "Compare software budgets across departments, categories, and listings.",
+    seeMore: "See more",
     heroStatOrganizations: "Government organizations",
     heroStatSources: "Official data sources",
     heroStatAccess: "Public access",
@@ -340,12 +358,14 @@ export const dictionary = {
     inboxNeedsReview: "Needs review",
     inboxDismiss: "Dismiss",
     inboxRestore: "Restore",
+    inboxBadResult: "Bad result",
+    inboxMatchActions: "Match actions",
     inboxLoadMore: "Load more",
     inboxFilterEmpty: "Nothing in this view.",
     inboxTitle: "AI Matches",
     inboxDescription:
       "Vertex AI compares your studio profile with open TORs and writes why each one fits. Start with the strongest matches. Closing listings rise first, and weaker fits stay under Possible until you open them.",
-    matchesLoading: "Checking your profile against current TORs.",
+    matchesLoading: "Loading matches…",
     matchesEmpty:
       "No matches yet. Matching runs in the background against open e-GP listings; only fits of 60% or higher show here.",
     matchesError: "Matches could not be loaded.",
@@ -483,61 +503,68 @@ export const dictionary = {
     forVendors: "พื้นที่ผู้ประกอบการ",
     forOperators: "โต๊ะปฏิบัติการ",
     workspaces: "พื้นที่ทำงาน",
-    vendorSignIn: "เข้าสู่ระบบผู้ประกอบการ",
+    vendorSignIn: "เข้าสู่ระบบด้วยบัญชีผู้ประกอบการ",
     viewToggle: "ดูเป็น",
     viewPublic: "สาธารณะ",
     viewVendor: "ผู้ขาย",
     viewAdmin: "แอดมิน",
     coverageEyebrow: "ขอบเขตข้อมูล",
-    coverageTitle: "ข้อมูลจัดซื้อจัดจ้างทางการ รวมไว้ที่เดียว",
+    coverageTitle: "ฟีดทางการ ครอบคลุมแบบขยายได้",
     coverageBody:
-      "TORRENT ดึงประกาศจัดซื้อจัดจ้างที่เผยแพร่แล้วจากหน่วยงานด้านล่าง จัดรูปแบบให้เป็นแคตตาล็อกเดียว และคงลิงก์ไปยังต้นทางของทุกรายการ",
-    coverageTrust: "ทุกรายการเชื่อมกลับไปยังแหล่งข้อมูลทางการ",
-    capabilitiesEyebrow: "แพลตฟอร์ม",
-    capabilitiesTitle: "ข้อมูลเชิงลึกด้านการจัดซื้อในที่เดียว",
-    capabilitiesBody:
-      "สี่ความสามารถที่เปลี่ยนประกาศกระจัดกระจายให้เป็นข้อมูลที่ทีมนำไปใช้งานได้",
-    capDiscoveryTitle: "ค้นหาแบบรวมศูนย์",
-    capDiscoveryBody:
-      "ค้นหา TOR ซอฟต์แวร์จากทุกหน่วยงานที่ครอบคลุมในแคตตาล็อกเดียว พร้อมตัวกรองตามหน่วยงาน หมวดหมู่ และงบประมาณ",
-    capLifecycleTitle: "เห็นสถานะตลอดวงจร",
-    capLifecycleBody:
-      "แยกงานที่ยังเปิดอยู่ออกจากงานที่ทำสัญญาไปแล้ว ทีมจึงรู้ว่ารายการใดยังยื่นได้",
-    capBudgetTitle: "บริบทของงบประมาณ",
-    capBudgetBody:
-      "แสดงงบของแต่ละรายการเทียบกับมัธยฐานของโครงการซอฟต์แวร์ที่เทียบเคียงได้ ทำให้เห็นรายการที่ผิดปกติ",
-    capIntegrityTitle: "สัญญาณความน่าเชื่อถือ",
-    capIntegrityBody:
-      "รายการที่ข้อมูลไม่ครบหรือผิดปกติจะถูกยกขึ้นให้ตรวจก่อนเข้าสู่แคตตาล็อกสาธารณะ",
+      "TORRENT รวมฟีด e-GP และแหล่งหน่วยงานอย่างเป็นทางการเป็นแคตตาล็อกเดียวของหน่วยงานที่คัดเลือกไว้ ทุกรายการลิงก์กลับสู่แหล่งข้อมูลต้นทาง",
+    coverageHubCaption: "แคตตาล็อกเดียว",
+    coverageFeedOcdsTitle: "สัญญาเปิด กทม.",
+    coverageFeedOcdsBody: "ชุดข้อมูล OCDS JSON อย่างเป็นทางการจากกรุงเทพมหานคร",
+    coverageFeedEgp2Title: "e-GP2 กทม.",
+    coverageFeedEgp2Body:
+      "ค้นหาโครงการ e-GP2 ของ กทม. สำหรับประกาศ TOR ซอฟต์แวร์ที่เผยแพร่แล้ว",
+    coverageFeedRssTitle: "RSS e-GP",
+    coverageFeedRssBody:
+      "ร่าง TOR และประกาศประกวดราคาจากหน่วยงานที่เลือกในฟีด e-GP ระดับชาติ",
+    coverageFeedDataGoTitle: "data.go และ SME-GP",
+    coverageFeedDataGoBody:
+      "รายการจัดซื้อจากข้อมูลเปิดภาครัฐและ SME ที่ถูกรวมเข้าแคตตาล็อกเดียวกัน",
+    coverageDeptsHeading: "หน่วยงานที่อยู่ในขอบเขต",
+    coverageDeptsBody:
+      "รายการอนุญาตปัจจุบันครอบคลุมหน่วยงาน e-GP ที่คัดเลือกไว้ และสามารถขยายได้โดยไม่กระทบการค้นหา ทุกรายการลิงก์กลับสู่แหล่งข้อมูลอย่างเป็นทางการ",
     rolesEyebrow: "ใครได้ใช้",
-    rolesTitle: "เพื่อความโปร่งใสและโอกาสทางธุรกิจ",
+    rolesTitle: "เปิดให้ทุกคน ปรับให้เหมาะกับผู้ประกอบการ",
     rolesSubtitle:
-      "การอ่านบันทึกสาธารณะไม่ต้องมีบัญชี การจับคู่ผู้ประกอบการและเครื่องมือปฏิบัติการอยู่หลังการเข้าสู่ระบบ",
-    rolePublicTitle: "ประชาชนและนักวิจัย",
-    rolePublicBody:
-      "ติดตามการใช้งบซอฟต์แวร์ภาครัฐ และตรวจสอบเอกสารทางการที่อยู่เบื้องหลังทุกรายการ",
-    roleVendorTitle: "ผู้ประกอบการซอฟต์แวร์",
+      "ทุกคนอ่านแคตตาล็อกสดได้ บัญชีผู้ประกอบการเพิ่มการจับคู่ โอกาสที่บันทึกไว้ และการแจ้งเตือน",
+    rolePublicEyebrow: "สำหรับประชาชน สื่อ และนักวิจัย",
+    rolePublicTitle: "สาธารณะ ไม่ต้องมีบัญชี",
+    rolePublicBody: "",
+    rolePublicFeature1: "ค้นหา TOR ซอฟต์แวร์จากฟีดหน่วยงานทางการ",
+    rolePublicFeature2: "ติดตามสัญญาณจัดซื้อและธงความน่าเชื่อถือแบบสด",
+    rolePublicFeature3: "เปรียบเทียบงบซอฟต์แวร์ข้ามหน่วยงาน",
+    roleVendorEyebrow: "สำหรับบริษัทซอฟต์แวร์ที่สนใจ TOR",
+    roleVendorTitle: "บัญชีผู้ประกอบการ",
     roleVendorBody:
-      "ค้นหา TOR ที่เกี่ยวข้อง ประเมินความสอดคล้องกับโปรไฟล์ความสามารถ บันทึกโอกาส และรับการแจ้งเตือน",
+      "ได้ทุกอย่างในแคตตาล็อกสาธารณะ พร้อมเครื่องมือที่ประเมินความสอดคล้องกับโปรไฟล์ของคุณ",
+    roleVendorFeature1: "โอกาสจัดอันดับตามโปรไฟล์ความสามารถของคุณ",
+    roleVendorFeature2: "บันทึก TOR และติดตามกำหนดส่งในที่เดียว",
+    roleVendorFeature3: "แจ้งเตือนทางอีเมลเมื่อมี TOR ที่ตรงโปรไฟล์",
+    roleVendorLineTitle: "LINE Notify",
+    roleVendorFeature4: "รับ TOR ใหม่รายสัปดาห์ผ่าน LINE Official Account",
     roleOperatorTitle: "ทีมปฏิบัติการแพลตฟอร์ม",
     roleOperatorBody:
       "ดูแลสุขภาพแหล่งข้อมูลและตรวจรายการที่ระบบยังไม่มั่นใจก่อนเข้าสู่แคตตาล็อก",
     workflowEyebrow: "ทำงานอย่างไร",
     workflowTitle: "จากข้อมูลทางการสู่ข้อมูลที่ใช้ตัดสินใจได้",
     workflowSubtitle:
-      "สี่ขั้นตอนทำงานตามรอบเวลา แคตตาล็อกจึงเป็นปัจจุบันโดยไม่ต้องกรอกข้อมูลเอง",
+      "การซิงก์ตามรอบเวลาเปลี่ยนบันทึกจัดซื้อทางการเป็นแคตตาล็อกสดและการจับคู่ผู้ประกอบการ",
     workflowCollectTitle: "รวบรวม",
     workflowCollectBody:
-      "ดึงประกาศจัดซื้อจัดจ้างที่เผยแพร่แล้วจากแหล่งทางการตามรอบเวลา",
-    workflowClassifyTitle: "จัดหมวด",
+      "ดึงฟีด e-GP และแหล่งพันธมิตรตามรอบเวลา พร้อมแหล่งเพิ่มเติมเมื่อเรียกใช้",
+    workflowClassifyTitle: "กรอง",
     workflowClassifyBody:
-      "ระบุรายการที่เกี่ยวกับซอฟต์แวร์ด้วยคำสำคัญและ AI โดยรายการที่ความมั่นใจต่ำจะเข้าคิวให้คนตรวจ",
+      "กฎคำสำคัญคัดเฉพาะ TOR ที่เกี่ยวกับซอฟต์แวร์ให้อยู่ในไปป์ไลน์",
     workflowEnrichTitle: "เติมบริบท",
     workflowEnrichBody:
-      "แต่ละรายการได้รับสถานะวงจร บริบทงบประมาณ ทักษะที่ต้องใช้ และสัญญาณความน่าเชื่อถือ",
+      "OCR และฟิลด์จากแหล่งต้นทางเติมงบ ทักษะ วงจรชีวิต และสัญญาณความน่าเชื่อถือเพื่อตรวจทาน",
     workflowDeliverTitle: "ส่งต่อ",
     workflowDeliverBody:
-      "รายการเข้าสู่แคตตาล็อกสาธารณะ และผู้ประกอบการที่โปรไฟล์ตรงกันจะได้รับการแจ้งเตือน",
+      "รายการเข้าสู่แคตตาล็อกสาธารณะ ผู้ประกอบการได้การจับคู่ AI ในกล่องจดหมาย และ LINE รายสัปดาห์สำหรับ TOR ใหม่",
     trustEyebrow: "ธรรมาภิบาล",
     trustTitle: "โปร่งใสตั้งแต่การออกแบบ",
     trustSubtitle:
@@ -565,6 +592,16 @@ export const dictionary = {
     homeTitle: "ค้นหา เจาะลึก และติดตาม \nTOR ซอฟต์แวร์หน่วยงานรัฐ",
     homeDescription:
       "TORRENT รวมประกาศจัดซื้อซอฟต์แวร์จากหลายหน่วยงานรัฐไว้ในแพลตฟอร์มเดียวที่สามารถสืบค้นได้ พร้อมข้อมูลวิเคราะห์ด้านงบประมาณ และความน่าเชื่อถือ",
+    heroCardListingsTitle: "รายการ",
+    heroCardListingsBody:
+      "ค้นหา TOR ซอฟต์แวร์จากฟีดทางการและหน่วยงานที่เลือกในแคตตาล็อกเดียว",
+    heroCardMonitorTitle: "จอติดตาม",
+    heroCardMonitorBody:
+      "ติดตามสัญญาณจัดซื้อและความน่าเชื่อถือแบบสดเมื่อมีรายการใหม่",
+    heroCardBudgetsTitle: "งบประมาณ",
+    heroCardBudgetsBody:
+      "เปรียบเทียบงบซอฟต์แวร์ข้ามหน่วยงาน หมวดหมู่ และรายการ",
+    seeMore: "ดูเพิ่ม",
     heroStatOrganizations: "หน่วยงานภาครัฐ",
     heroStatSources: "แหล่งข้อมูลทางการ",
     heroStatAccess: "การเข้าถึงสาธารณะ",
@@ -764,12 +801,14 @@ export const dictionary = {
     inboxNeedsReview: "รอตรวจ",
     inboxDismiss: "ปิดรายการ",
     inboxRestore: "นำกลับ",
+    inboxBadResult: "ผลลัพธ์ไม่ดี",
+    inboxMatchActions: "การจัดการการจับคู่",
     inboxLoadMore: "โหลดเพิ่ม",
     inboxFilterEmpty: "ไม่มีรายการในมุมนี้",
     inboxTitle: "จับคู่ด้วย AI",
     inboxDescription:
       "Vertex AI เทียบโปรไฟล์สตูดิโอของคุณกับ TOR ที่เปิดรับ และเขียนเหตุผลว่าทำไมแต่ละรายการจึงเข้ากัน เริ่มจากรายการที่เข้ากันมากที่สุด รายการใกล้ปิดรับจะขึ้นก่อน และรายการที่เข้ากันน้อยจะอยู่ใต้ “อาจเข้ากัน” จนกว่าคุณจะเปิดดู",
-    matchesLoading: "กำลังเทียบโปรไฟล์กับ TOR ปัจจุบัน",
+    matchesLoading: "กำลังโหลดผลการจับคู่…",
     matchesEmpty:
       "ยังไม่มีการจับคู่ ระบบจับคู่ทำงานเบื้องหลังกับประกาศ e-GP ที่เปิดอยู่ และแสดงเฉพาะที่คะแนนตั้งแต่ 60% ขึ้นไป",
     matchesError: "โหลดผลการจับคู่ไม่สำเร็จ",

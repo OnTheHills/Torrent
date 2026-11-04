@@ -16,15 +16,14 @@ const SIZE = {
 } as const;
 
 /**
- * Official ThaiTORRENT lockup from /public.
- * `logo_dark` is light-on-dark; `logo_light` is dark-on-light.
- * `onDark` uses the light-on-dark mark (app bar / sidebar chrome).
+ * Official TORRENT lockup from /public/torrent_logo_v2.png.
+ * `onDark` kept for callers; both modes use the same mark.
  */
 export function BrandLockup({
   className,
   size = "sm",
   priority = false,
-  onDark = false,
+  onDark: _onDark = false,
 }: {
   className?: string;
   size?: keyof typeof SIZE;
@@ -36,7 +35,7 @@ export function BrandLockup({
 
   return (
     <Image
-      src={onDark ? "/logo_dark.png" : "/logo_light.png"}
+      src="/torrent_logo_v2.png"
       alt={t("brand")}
       width={dim.width}
       height={dim.height}

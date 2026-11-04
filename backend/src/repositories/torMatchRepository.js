@@ -34,6 +34,15 @@ async function setDismissedForUser(id, userId, dismissed) {
   );
 }
 
+async function setBadResultForUser(id, userId) {
+  const now = new Date();
+  return TORMatch.findOneAndUpdate(
+    { _id: id, userId },
+    { $set: { badResultAt: now, dismissedAt: now } },
+    { returnDocument: "after" },
+  );
+}
+
 async function update(id, data) {
   return TORMatch.findByIdAndUpdate(id, data, {
     returnDocument: "after",
@@ -52,6 +61,7 @@ module.exports = {
   findByUserId,
   findPendingTorIds,
   setDismissedForUser,
+  setBadResultForUser,
   remove,
   update,
 };

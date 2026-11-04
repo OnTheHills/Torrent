@@ -4,7 +4,6 @@ import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Alert02Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons";
 import { useQuery } from "@tanstack/react-query";
-import { fetchTors } from "@/lib/api";
 
 import { MonitorSection } from "@/components/monitor/monitor-section";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -13,6 +12,7 @@ import { IntegrityBadge } from "@/components/tor/integrity-badge";
 import { Button } from "@/components/ui/button";
 import { FrostCard } from "@/components/ui/frost-card";
 import { routes } from "@/config/routes";
+import { torsQueryOptions } from "@/lib/tors-query";
 
 const frostTealButton =
   "border-0 bg-[color-mix(in_srgb,var(--palette-teal-400)_32%,transparent)] text-[var(--palette-teal-800)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_80%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--palette-teal-400)_48%,transparent)] backdrop-blur-md backdrop-saturate-150 hover:bg-[color-mix(in_srgb,var(--palette-teal-400)_44%,transparent)]";
@@ -25,7 +25,7 @@ import {
 
 export function SuspiciousPanel() {
   const { locale, t } = useLocale();
-  const { data: tors = [] } = useQuery({ queryKey: ["tors"], queryFn: fetchTors });
+  const { data: tors = [] } = useQuery(torsQueryOptions);
 
   const flagged = tors
     .filter((tor) => tor.integrity === "suspicious")

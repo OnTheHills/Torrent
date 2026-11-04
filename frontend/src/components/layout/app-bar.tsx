@@ -12,16 +12,20 @@ import { AlertsPopover } from "@/components/notifications/alerts-popover";
 import { useAudience } from "@/components/providers/audience-provider";
 import { useLocale } from "@/components/providers/locale-provider";
 import { useSession } from "@/components/providers/session-provider";
-import { AppBar, chromeFrostBar } from "@/components/ui/appbar";
+import {
+  AppBar,
+  appBarWorkspaceTone,
+  chromeFrostBar,
+} from "@/components/ui/appbar";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";
 import { routes } from "@/config/routes";
-import { dictionary, type DictionaryKey } from "@/lib/i18n/dictionary";
+import type { DictionaryKey } from "@/lib/i18n/dictionary";
 import { cn } from "@/lib/utils";
 
 /**
- * Full-width chrome above the sidebar + content canvas.
- * Left: product logo. Right: account-level controls.
+ * Full-bleed 72px chrome above the sidebar + content canvas, with liquid-glass
+ * fill. Left: product logo. Right: account-level controls.
  * Mobile gets a menu button that opens the navigation drawer.
  */
 export function ShellAppBar({
@@ -47,7 +51,7 @@ export function ShellAppBar({
             onClick={toggleSidebar}
             className={cn(
               chromeFrostBar,
-              "hover:bg-[linear-gradient(180deg,var(--palette-gray-700),var(--palette-gray-800))] hover:brightness-125 md:hidden",
+              "hover:brightness-[1.02] md:hidden",
             )}
           >
             <HugeiconsIcon icon={Menu01Icon} strokeWidth={1.75} />
@@ -59,11 +63,20 @@ export function ShellAppBar({
               href={audience === "vendor" ? routes.app.home : routes.home}
               className="inline-flex h-12 items-center md:h-16"
             >
-              <BrandLockup size="lg" priority onDark />
+              <BrandLockup size="xl" priority />
             </Link>
             {workspace ? (
-              <AppBar.WorkspaceName className="hidden sm:flex">
-                {dictionary.en[workspace]}
+              <AppBar.WorkspaceName
+                className={cn(
+                  "ml-1 hidden sm:inline-flex",
+                  appBarWorkspaceTone[audience],
+                )}
+              >
+                {audience === "public"
+                  ? "Public"
+                  : audience === "vendor"
+                    ? "Vendor"
+                    : "Admin"}
               </AppBar.WorkspaceName>
             ) : null}
           </AppBar.BrandLockup>

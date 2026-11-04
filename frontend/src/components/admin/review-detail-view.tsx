@@ -1,5 +1,7 @@
 "use client";
 
+
+import { ShellContent } from "@/components/layout/shell-content";
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -229,6 +231,7 @@ export function ReviewDetailView({ id }: { id: string }) {
   return (
     <div>
       <section className="relative -mt-[144px] overflow-hidden bg-surface text-foreground">
+        <ShellContent>
         <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-[calc(144px+2rem)] sm:px-6 md:pb-12 md:pt-[calc(144px+3rem)]">
           <Button asChild size="lg" className={frostButton}>
             <Link href={routes.admin.review}>
@@ -308,6 +311,7 @@ export function ReviewDetailView({ id }: { id: string }) {
             ) : null}
           </div>
         </div>
+        </ShellContent>
         <div aria-hidden className="h-px bg-border" />
       </section>
 

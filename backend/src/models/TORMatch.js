@@ -25,6 +25,10 @@ const torMatchSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    badResultAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     collection: "tor_matches",

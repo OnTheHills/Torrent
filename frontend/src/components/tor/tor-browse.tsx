@@ -30,8 +30,8 @@ import { Input } from "@/components/ui/input";
 import { Surface } from "@/components/ui/surface";
 import { torAgency, torDepartment, torTitle } from "@/data/mock";
 import { useTorsWithMatches } from "@/components/tor/use-match-scores";
-import { fetchTorsForQuery } from "@/lib/api";
 import { listingStage, type ListingStage } from "@/lib/listing-stage";
+import { torsQueryOptions } from "@/lib/tors-query";
 import {
   parseListingSort,
   type AgencyId,
@@ -110,14 +110,12 @@ export function TorBrowse({
   });
   const vendor = audience === "vendor";
 
-  const { data: sourceTors = [], isFetching, isPending } = useQuery({
-    queryKey: ["tors"],
-    queryFn: fetchTorsForQuery,
+  const { data: sourceTors = [], isPending } = useQuery({
+    ...torsQueryOptions,
     initialData: initialTors.length > 0 ? initialTors : undefined,
-    retry: 30,
-    retryDelay: (attempt) => Math.min(1_000 * 2 ** attempt, 5_000),
   });
   const tors = useTorsWithMatches(sourceTors, vendor);
+  const showListLoading = isPending && tors.length === 0;
 
   function applyFilters(next: TorFilterState, nextQuery = query) {
     setFilters(next);
@@ -290,9 +288,9 @@ export function TorBrowse({
         surfaceClassName="bg-transparent p-0 ring-0 shadow-none md:p-0"
       >
         <div className="flex flex-col gap-4">
-        {isPending || isFetching ? <TorFetchStatus /> : null}
+        {showListLoading ? <TorFetchStatus /> : null}
 
-        {(isPending || isFetching) && tors.length === 0 ? (
+        {showListLoading ? (
           <div className="grid gap-3">
             {Array.from({ length: 4 }, (_, index) => (
               <div

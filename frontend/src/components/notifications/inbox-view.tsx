@@ -1,8 +1,11 @@
 "use client";
 
+
+import { ShellContent } from "@/components/layout/shell-content";
 import type { CSSProperties } from "react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useLocale } from "@/components/providers/locale-provider";
 import { ListingFrostCard } from "@/components/tor/listing-frost-card";
@@ -11,7 +14,8 @@ import { FrostCard } from "@/components/ui/frost-card";
 import { routes } from "@/config/routes";
 import {
   api,
-  fetchTors,
+  fetchTorsForQuery,
+  setMatchBadResult,
   setMatchDismissed,
   storedMatchScore as matchScore,
   storedMatchTorId as matchTorId,
@@ -25,6 +29,7 @@ type InboxRow = { match: StoredMatch; tor: Tor };
 type InboxFilter = "inbox" | "strong" | "closing" | "possible" | "dismissed";
 
 const PAGE_SIZE = 8;
+const INBOX_QUERY_KEY = ["tor-matches", "inbox"] as const;
 const FILTERS: Array<{ id: InboxFilter; label: DictionaryKey }> = [
   { id: "inbox", label: "inboxFilterInbox" },
   { id: "strong", label: "inboxFilterStrong" },
@@ -44,8 +49,10 @@ function rowDismissed(row: InboxRow) {
 function compareInboxRows(a: InboxRow, b: InboxRow) {
   const aScore = rowScore(a);
   const bScore = rowScore(b);
-  const aPriority = aScore + (listingStage(a.tor) === "closing" && aScore >= 70 ? 15 : 0);
-  const bPriority = bScore + (listingStage(b.tor) === "closing" && bScore >= 70 ? 15 : 0);
+  const aPriority =
+    aScore + (listingStage(a.tor) === "closing" && aScore >= 70 ? 15 : 0);
+  const bPriority =
+    bScore + (listingStage(b.tor) === "closing" && bScore >= 70 ? 15 : 0);
   if (aPriority !== bPriority) return bPriority - aPriority;
   return (
     new Date(b.match.updatedAt || 0).getTime() -
@@ -61,11 +68,31 @@ function rowsForFilter(rows: InboxRow[], filter: InboxFilter) {
       if (filter === "dismissed") return dismissed;
       if (dismissed) return false;
       if (filter === "strong") return score >= 85;
-      if (filter === "closing") return score >= 70 && listingStage(row.tor) === "closing";
+      if (filter === "closing")
+        return score >= 70 && listingStage(row.tor) === "closing";
       if (filter === "possible") return score >= 60 && score < 70;
       return score >= 70;
     })
     .sort(compareInboxRows);
+}
+
+async function fetchInboxRows(): Promise<InboxRow[]> {
+  const [matches, tors] = await Promise.all([
+    api<StoredMatch[]>("/tor-matches/mine"),
+    fetchTorsForQuery(),
+  ]);
+  const byId = new Map(tors.map((tor) => [tor.id, tor]));
+  return matches
+    .map((match) => {
+      const tor = byId.get(matchTorId(match.torId));
+      return tor ? { match, tor } : null;
+    })
+    .filter((row): row is InboxRow => row !== null)
+    .filter((row) => fitScoreApplies(row.tor))
+    .sort(
+      (a, b) =>
+        matchScore(b.match.matchPercent) - matchScore(a.match.matchPercent),
+    );
 }
 
 const frostButton =
@@ -73,44 +100,30 @@ const frostButton =
 
 export function InboxView() {
   const { t } = useLocale();
-  const [rows, setRows] = useState<InboxRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<"auth" | "load" | null>(null);
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<InboxFilter>("inbox");
   const [visible, setVisible] = useState(PAGE_SIZE);
 
-  useEffect(() => {
-    let cancelled = false;
+  const inboxQuery = useQuery({
+    queryKey: INBOX_QUERY_KEY,
+    queryFn: fetchInboxRows,
+    staleTime: 60_000,
+  });
 
-    Promise.all([api<StoredMatch[]>("/tor-matches/mine"), fetchTors()])
-      .then(([matches, tors]) => {
-        if (cancelled) return;
-        const byId = new Map(tors.map((tor) => [tor.id, tor]));
-        const next = matches
-          .map((match) => {
-            const tor = byId.get(matchTorId(match.torId));
-            return tor ? { match, tor } : null;
-          })
-          .filter((row): row is InboxRow => row !== null)
-          .filter((row) => fitScoreApplies(row.tor))
-          .sort((a, b) => matchScore(b.match.matchPercent) - matchScore(a.match.matchPercent));
-        setRows(next);
-        setError(null);
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          const status = err instanceof Error && "status" in err ? err.status : undefined;
-          setError(status === 401 ? "auth" : "load");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const rows = inboxQuery.data ?? [];
+  // isPending = first load with no cache. Background refetch keeps the list visible.
+  const loading = inboxQuery.isPending;
+  const errorStatus =
+    inboxQuery.error &&
+    typeof inboxQuery.error === "object" &&
+    "status" in inboxQuery.error
+      ? Number((inboxQuery.error as { status?: number }).status)
+      : undefined;
+  const error: "auth" | "load" | null = inboxQuery.isError
+    ? errorStatus === 401
+      ? "auth"
+      : "load"
+    : null;
 
   const filtered = rowsForFilter(rows, filter);
   const topPicks = filter === "inbox" ? filtered.slice(0, 5) : [];
@@ -119,7 +132,9 @@ export function InboxView() {
 
   async function dismiss(row: InboxRow) {
     const nextDismissed = !rowDismissed(row);
-    setRows((current) =>
+    const previous = queryClient.getQueryData<InboxRow[]>(INBOX_QUERY_KEY);
+
+    queryClient.setQueryData<InboxRow[]>(INBOX_QUERY_KEY, (current = []) =>
       current.map((item) =>
         item.match._id === row.match._id
           ? {
@@ -132,14 +147,39 @@ export function InboxView() {
           : item,
       ),
     );
+
     try {
       await setMatchDismissed(row.match._id, nextDismissed);
+      void queryClient.invalidateQueries({ queryKey: ["tor-matches", "mine"] });
     } catch {
-      setRows((current) =>
-        current.map((item) =>
-          item.match._id === row.match._id ? row : item,
-        ),
-      );
+      if (previous) queryClient.setQueryData(INBOX_QUERY_KEY, previous);
+    }
+  }
+
+  async function markBadResult(row: InboxRow) {
+    const previous = queryClient.getQueryData<InboxRow[]>(INBOX_QUERY_KEY);
+    const now = new Date().toISOString();
+
+    queryClient.setQueryData<InboxRow[]>(INBOX_QUERY_KEY, (current = []) =>
+      current.map((item) =>
+        item.match._id === row.match._id
+          ? {
+              ...item,
+              match: {
+                ...item.match,
+                badResultAt: now,
+                dismissedAt: now,
+              },
+            }
+          : item,
+      ),
+    );
+
+    try {
+      await setMatchBadResult(row.match._id);
+      void queryClient.invalidateQueries({ queryKey: ["tor-matches", "mine"] });
+    } catch {
+      if (previous) queryClient.setQueryData(INBOX_QUERY_KEY, previous);
     }
   }
 
@@ -170,6 +210,7 @@ export function InboxView() {
           className="pointer-events-none absolute inset-0 bg-[color-mix(in_srgb,white_40%,transparent)]"
           style={{ boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.55)" }}
         />
+        <ShellContent>
         <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-[calc(144px+2rem)] sm:px-6 md:pb-12 md:pt-[calc(144px+3rem)]">
           <div className="w-full max-w-2xl md:max-w-3xl lg:max-w-4xl">
             <h1 className="text-3xl font-semibold tracking-tight md:text-5xl md:leading-[1.1]">
@@ -180,8 +221,10 @@ export function InboxView() {
             </p>
           </div>
         </div>
+        </ShellContent>
       </section>
 
+      <ShellContent>
       <div className="mx-auto max-w-6xl space-y-4 px-4 py-8 sm:px-6">
         {loading ? (
           <p className="text-sm text-muted-foreground">{t("matchesLoading")}</p>
@@ -191,7 +234,9 @@ export function InboxView() {
         ) : null}
         {!loading && error === "auth" ? (
           <FrostCard className="p-5 md:p-6">
-            <p className="text-sm leading-relaxed text-muted-foreground">{t("matchesEmpty")}</p>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {t("matchesEmpty")}
+            </p>
             <Button asChild className={`${frostButton} mt-4`}>
               <Link href={routes.login}>{t("signUpLogin")}</Link>
             </Button>
@@ -199,7 +244,9 @@ export function InboxView() {
         ) : null}
         {!loading && !error && rows.length === 0 ? (
           <FrostCard className="p-5 md:p-6">
-            <p className="text-sm leading-relaxed text-muted-foreground">{t("matchesEmpty")}</p>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {t("matchesEmpty")}
+            </p>
             <Button asChild className={`${frostButton} mt-4`}>
               <Link href={routes.app.profile}>{t("navProfile")}</Link>
             </Button>
@@ -227,20 +274,36 @@ export function InboxView() {
           </div>
         ) : null}
         {!loading && !error && rows.length && filtered.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t("inboxFilterEmpty")}</p>
+          <p className="text-sm text-muted-foreground">
+            {t("inboxFilterEmpty")}
+          </p>
         ) : null}
         {topPicks.length ? (
           <section className="space-y-4">
-            <h2 className="text-xl font-semibold tracking-tight">{t("inboxTopPicks")}</h2>
-            <InboxGrid rows={topPicks} onDismiss={dismiss} />
+            <h2 className="text-xl font-semibold tracking-tight">
+              {t("inboxTopPicks")}
+            </h2>
+            <InboxGrid
+              rows={topPicks}
+              onDismiss={dismiss}
+              onBadResult={markBadResult}
+            />
           </section>
         ) : null}
         {shownReview.length ? (
-          <section className={topPicks.length ? "space-y-4 pt-10" : "space-y-4"}>
+          <section
+            className={topPicks.length ? "space-y-4 pt-10" : "space-y-4"}
+          >
             {filter === "inbox" ? (
-              <h2 className="text-xl font-semibold tracking-tight">{t("inboxNeedsReview")}</h2>
+              <h2 className="text-xl font-semibold tracking-tight">
+                {t("inboxNeedsReview")}
+              </h2>
             ) : null}
-            <InboxGrid rows={shownReview} onDismiss={dismiss} />
+            <InboxGrid
+              rows={shownReview}
+              onDismiss={dismiss}
+              onBadResult={markBadResult}
+            />
             {visible < review.length ? (
               <button
                 type="button"
@@ -253,6 +316,7 @@ export function InboxView() {
           </section>
         ) : null}
       </div>
+      </ShellContent>
     </div>
   );
 }
@@ -260,9 +324,11 @@ export function InboxView() {
 function InboxGrid({
   rows,
   onDismiss,
+  onBadResult,
 }: {
   rows: InboxRow[];
   onDismiss: (row: InboxRow) => void;
+  onBadResult: (row: InboxRow) => void;
 }) {
   return (
     <div className="grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -274,6 +340,7 @@ function InboxGrid({
           dismissed={rowDismissed(row)}
           returnTo="matches"
           onDismiss={() => onDismiss(row)}
+          onBadResult={() => onBadResult(row)}
         />
       ))}
     </div>

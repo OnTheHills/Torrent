@@ -15,6 +15,7 @@ export const routes = {
   register: "/register",
   app: {
     home: "/app",
+    landing: "/app/landing",
     tors: "/app/tors",
     tor: (id: string) => `/app/tors/${id}`,
     matches: "/app/matches",

@@ -35,6 +35,17 @@
     );
   }
 
+  @keyframes hero-tile-in {
+    from {
+      opacity: 0;
+      transform: scale(0.86) translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
   .bma-stripes {
     background-image: repeating-linear-gradient(
       75deg,
@@ -47,20 +58,71 @@
     background: var(--band-paper);
   }
 
-  /* Wallpaper behind frosted AppBar / Sidebar so the blur has chroma. */
-  .shell-atmosphere {
+  /*
+   * Floating sidebar overlays the canvas. --sidebar-offset clears text/controls;
+   * full-bleed bands (hero, footer, rules) stay edge-to-edge behind the glass.
+   * --sidebar-width swaps between expanded and icon-rail via the provider.
+   */
+  .group\/sidebar-wrapper {
+    --sidebar-offset: 0px;
+  }
+
+  @media (min-width: 768px) {
+    .group\/sidebar-wrapper {
+      --sidebar-offset: calc(var(--sidebar-width) + 1.5rem);
+    }
+  }
+
+  /*
+   * Liquid Glass approximation (not frosted plastic):
+   * translucency + vibrancy + dual specular rim. True lensing needs SVG/WebGL;
+   * CSS delivers the Regular light variant Apple uses for sidebars/nav.
+   * Refs: WWDC25 “Meet Liquid Glass”, CSS-Tricks, html-in-canvas liquid glass.
+   */
+  .liquid-glass,
+  .sidebar-liquid-glass {
+    isolation: isolate;
+    background:
+      linear-gradient(
+        155deg,
+        rgb(255 255 255 / 0.28) 0%,
+        rgb(255 255 255 / 0.05) 28%,
+        transparent 52%
+      ),
+      linear-gradient(
+        335deg,
+        rgb(255 255 255 / 0.1) 0%,
+        transparent 36%
+      ),
+      var(--sidebar);
+    border: 1px solid rgb(255 255 255 / 0.32);
+    box-shadow:
+      /* Specular rim — upper-left catch light */
+      inset 1px 1px 0 0 rgb(255 255 255 / 0.48),
+      inset -1px -1px 0 0 rgb(255 255 255 / 0.1),
+      /* Soft depth under floating glass */
+      0 1px 0 0 rgb(255 255 255 / 0.28),
+      0 12px 40px var(--sidebar-glass-shadow),
+      0 4px 12px rgb(0 0 0 / 0.06);
+    -webkit-backdrop-filter: blur(22px) saturate(1.8) brightness(1.06);
+    backdrop-filter: blur(22px) saturate(1.8) brightness(1.06);
+  }
+
+  .liquid-glass::before,
+  .sidebar-liquid-glass::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
     background:
       radial-gradient(
-        ellipse 70% 50% at 8% 0%,
-        color-mix(in srgb, var(--palette-orange-400) 20%, transparent),
+        120% 60% at 12% 0%,
+        rgb(255 255 255 / 0.26),
         transparent 55%
-      ),
-      radial-gradient(
-        ellipse 55% 40% at 90% 110%,
-        color-mix(in srgb, var(--palette-teal-400) 18%, transparent),
-        transparent 50%
-      ),
-      var(--background-body);
+      );
+    opacity: 0.7;
+    mix-blend-mode: soft-light;
   }
 
   /* Chrome date segments ignore Tailwind text-* without !important. */

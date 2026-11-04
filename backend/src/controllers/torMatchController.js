@@ -38,12 +38,17 @@ async function getMyTorMatches(request, response) {
 
 async function setMyMatchDismissed(request, response) {
   try {
-    const dismissed = request.body?.dismissed !== false;
-    const torMatch = await torMatchService.setMyMatchDismissed(
-      request.params.id,
-      request.user.sub,
-      dismissed,
-    );
+    const torMatch =
+      request.body?.badResult === true
+        ? await torMatchService.setMyMatchBadResult(
+            request.params.id,
+            request.user.sub,
+          )
+        : await torMatchService.setMyMatchDismissed(
+            request.params.id,
+            request.user.sub,
+            request.body?.dismissed !== false,
+          );
 
     if (!torMatch) {
       return response.status(404).json({ message: "TOR match not found." });

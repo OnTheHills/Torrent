@@ -1,5 +1,7 @@
 "use client";
 
+
+import { ShellContent } from "@/components/layout/shell-content";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   Cancel01Icon,
@@ -523,6 +525,7 @@ export default function ProfilePage() {
   return (
     <div>
       <section className="relative -mt-[144px] overflow-hidden hero-atmosphere text-hero-foreground">
+        <ShellContent>
         <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-[calc(144px+2rem)] sm:px-6 md:pb-12 md:pt-[calc(144px+3rem)]">
           <div className="w-full max-w-2xl md:max-w-3xl lg:max-w-4xl">
             <h1 className="text-3xl font-semibold tracking-tight md:text-5xl md:leading-[1.1]">
@@ -534,9 +537,11 @@ export default function ProfilePage() {
             </p>
           </div>
         </div>
+        </ShellContent>
         <div aria-hidden className="h-px bg-border" />
       </section>
 
+      <ShellContent>
       <div className="mx-auto max-w-6xl space-y-6 px-4 py-12 sm:px-6 md:py-16">
         <form className="space-y-6" onSubmit={(event) => { event.preventDefault(); void handleSubmit(); }}>
           <Card className={profileCard}>
@@ -1270,6 +1275,7 @@ export default function ProfilePage() {
           </div>
         </form>
       </div>
+      </ShellContent>
     </div>
   );
 }

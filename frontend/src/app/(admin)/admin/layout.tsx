@@ -39,7 +39,7 @@ export default async function AdminLayout({
 
   return (
     <AudienceProvider audience="admin">
-      <AppShell nav={ADMIN_NAV} workspace="audienceAdmin" showBackToSite>
+      <AppShell nav={ADMIN_NAV} workspace="audienceAdmin">
         {children}
       </AppShell>
     </AudienceProvider>
