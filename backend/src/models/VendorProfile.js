@@ -29,11 +29,11 @@ const vendorProfileSchema = new mongoose.Schema(
       default: "company",
       required: true,
     },
-    companyName: {
+    vendorName: {
       type: String,
       trim: true,
     },
-    companyEmail: {
+    vendorEmail: {
       type: String,
       trim: true,
       
@@ -59,7 +59,7 @@ const vendorProfileSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    companyPhone: {
+    vendorPhone: {
       type: String,
       trim: true,
     },

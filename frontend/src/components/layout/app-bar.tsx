@@ -45,7 +45,7 @@ export function ShellAppBar({
     enabled: audience === "vendor" && Boolean(user),
     queryFn: async () => {
       try {
-        return await api<{ companyName?: string } | null>(
+        return await api<{ vendorName?: string } | null>(
           `/vendor-profiles/get/${user!._id}`,
         );
       } catch (error) {
@@ -56,7 +56,7 @@ export function ShellAppBar({
     retry: false,
   });
   const vendorName = audience === "vendor" && user
-    ? vendorProfile?.companyName?.trim()
+    ? vendorProfile?.vendorName?.trim()
     : undefined;
 
   return (

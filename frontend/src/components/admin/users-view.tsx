@@ -40,7 +40,7 @@ type Person = {
   name: string;
   role: "public" | "vendor" | "admin";
   disabled: boolean;
-  companyName: string;
+  vendorName: string;
   completeness: number;
   certificates: Certificate[];
   profileId: string | null;
@@ -112,7 +112,7 @@ function profileBucket(person: Person): ProfileFilter {
 
 function matchesQuery(person: Person, query: string) {
   if (!query) return true;
-  const haystack = [person.name, person.email, person.companyName, person.role]
+  const haystack = [person.name, person.email, person.vendorName, person.role]
     .join(" ")
     .toLowerCase();
   return haystack.includes(query.toLowerCase());
@@ -329,7 +329,7 @@ export function UsersView() {
               <Input
                 value={draftQuery}
                 onChange={(event) => setDraftQuery(event.target.value)}
-                placeholder="Search name, email, or company"
+                placeholder="Search name, email, or vendor"
                 className="relative h-10 rounded-full border-0 bg-transparent pr-4 pl-11 shadow-none ring-0 focus-visible:ring-0"
               />
             </form>
@@ -421,7 +421,7 @@ export function UsersView() {
                   <thead className="text-xs text-muted-foreground">
                     <tr className="border-b border-[color-mix(in_srgb,var(--palette-gray-300)_35%,transparent)]">
                       <th className="px-4 py-3 font-medium">User</th>
-                      <th className="px-3 py-3 font-medium">Company</th>
+                      <th className="px-3 py-3 font-medium">Vendor</th>
                       <th className="px-3 py-3 font-medium">Role</th>
                       <th className="py-3 pr-8 pl-3 text-right font-medium">
                         Profile
@@ -453,7 +453,7 @@ export function UsersView() {
                               </p>
                             </td>
                             <td className="truncate px-3 py-3 align-middle text-muted-foreground">
-                              {person.companyName || "—"}
+                              {person.vendorName || "—"}
                             </td>
                             <td className="px-3 py-3 align-middle">
                               <Select

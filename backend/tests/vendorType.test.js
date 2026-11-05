@@ -7,6 +7,16 @@ const { matchPrompt } = require("../src/services/tor/matchWithVertex");
 
 const USER = "507f1f77bcf86cd799439011";
 
+test("vendor contact fields survive model serialization and reach Vertex", async () => {
+  const contact = { vendorName: "Test vendor", vendorEmail: "vendor@example.com", vendorPhone: "0123456789" };
+  const profile = new VendorProfile({ userId: USER, ...contact });
+  await profile.validate();
+  const saved = profile.toObject();
+  for (const [field, value] of Object.entries(contact)) assert.equal(saved[field], value);
+  const vendor = JSON.parse(matchPrompt(saved, {}).split("\nVendor: ")[1].split("\nTOR: ")[0]);
+  assert.equal(vendor.vendorName, contact.vendorName);
+});
+
 test("Vertex receives company team size or individual one-person capacity", () => {
   const promptVendor = (profile) => JSON.parse(
     matchPrompt(profile, {}).split("\nVendor: ")[1].split("\nTOR: ")[0],
@@ -54,10 +64,13 @@ test("create and update controllers pass vendor type to persistence and return i
       await controller[method]({
         user: { sub: USER },
         params: { id: "507f1f77bcf86cd799439012" },
-        body: { vendorType },
+        body: { vendorType, vendorName: "Test vendor", vendorEmail: "vendor@example.com", vendorPhone: "0123456789" },
       }, response);
       assert.equal(response.statusCode, method === "createVendorProfile" ? 201 : 200);
       assert.equal(response.body.vendorType, vendorType);
+      assert.equal(response.body.vendorName, "Test vendor");
+      assert.equal(response.body.vendorEmail, "vendor@example.com");
+      assert.equal(response.body.vendorPhone, "0123456789");
     }
   }
 });

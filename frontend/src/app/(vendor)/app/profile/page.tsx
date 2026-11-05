@@ -206,9 +206,9 @@ type SavedProfile = {
   securityCertificates?: string[];
   aiCertificates?: string[];
   otherCertificates?: string[];
-  companyName?: string;
-  companyEmail?: string;
-  companyPhone?: string;
+  vendorName?: string;
+  vendorEmail?: string;
+  vendorPhone?: string;
   teamSize?: string;
   vendorCapDescription?: string;
   techSkills?: string[];
@@ -219,9 +219,9 @@ type SavedProfile = {
 } | null;
 
 const initialProfile = {
-  companyName: "",
-  companyEmail: "",
-  companyPhone: "",
+  vendorName: "",
+  vendorEmail: "",
+  vendorPhone: "",
   teamSize: "",
   vendorCapDescription: "",
   techSkills: "",
@@ -279,9 +279,9 @@ export default function ProfilePage() {
         setVendorType(saved.vendorType ?? "company");
         setCertificates(savedCertificateSelections(saved));
         setProfile({
-          companyName: saved.companyName ?? "",
-          companyEmail: saved.companyEmail ?? "",
-          companyPhone: saved.companyPhone ?? "",
+          vendorName: saved.vendorName ?? "",
+          vendorEmail: saved.vendorEmail ?? "",
+          vendorPhone: saved.vendorPhone ?? "",
           teamSize: saved.teamSize ?? "",
           vendorCapDescription: saved.vendorCapDescription ?? "",
           techSkills: (saved.techSkills ?? []).join(", "),
@@ -466,8 +466,8 @@ export default function ProfilePage() {
       const submittedProfile = {
         userId: currentUser._id,
         vendorType,
-        companyName: profile.companyName,
-        companyEmail: profile.companyEmail,
+        vendorName: profile.vendorName,
+        vendorEmail: profile.vendorEmail,
         vendorCapDescription: profile.vendorCapDescription,
         teamSize: vendorType === "company" ? profile.teamSize : "",
         techSkills: profile.techSkills
@@ -483,7 +483,7 @@ export default function ProfilePage() {
           urls: project.urls,
         })),
         website: profile.website,
-        companyPhone: profile.companyPhone,
+        vendorPhone: profile.vendorPhone,
         bio: profile.bio,
         location: profile.location,
       };
@@ -587,16 +587,16 @@ export default function ProfilePage() {
                 <div className="flex flex-col gap-2.5 sm:col-span-2">
                   <label
                     className="text-sm font-medium leading-snug"
-                    htmlFor="company"
+                    htmlFor="vendorName"
                   >
                     {vendorType === "individual" ? "Vendor name" : "Company name"}
                   </label>
                   <Input
                     className={fieldClass}
-                    id="company"
-                    value={profile.companyName}
+                    id="vendorName"
+                    value={profile.vendorName}
                     onChange={(event) =>
-                      updateProfile("companyName", event.target.value)
+                      updateProfile("vendorName", event.target.value)
                     }
                   />
                 </div>
@@ -640,34 +640,34 @@ export default function ProfilePage() {
                 <div className="flex flex-col gap-2.5">
                   <label
                     className="text-sm font-medium leading-snug"
-                    htmlFor="companyEmail"
+                    htmlFor="vendorEmail"
                   >
                     Email
                   </label>
                   <Input
                     className={fieldClass}
-                    id="companyEmail"
+                    id="vendorEmail"
                     type="email"
-                    value={profile.companyEmail}
+                    value={profile.vendorEmail}
                     onChange={(event) =>
-                      updateProfile("companyEmail", event.target.value)
+                      updateProfile("vendorEmail", event.target.value)
                     }
                   />
                 </div>
                 <div className="flex flex-col gap-2.5">
                   <label
                     className="text-sm font-medium leading-snug"
-                    htmlFor="companyPhone"
+                    htmlFor="vendorPhone"
                   >
                     Phone
                   </label>
                   <Input
                     className={fieldClass}
-                    id="companyPhone"
+                    id="vendorPhone"
                     type="tel"
-                    value={profile.companyPhone}
+                    value={profile.vendorPhone}
                     onChange={(event) =>
-                      updateProfile("companyPhone", event.target.value)
+                      updateProfile("vendorPhone", event.target.value)
                     }
                   />
                 </div>
