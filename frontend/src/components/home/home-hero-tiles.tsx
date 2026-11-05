@@ -109,9 +109,9 @@ function gridForSize(width: number, height: number) {
 
 const toneClass: Record<TileTone, string> = {
   teal:
-    "bg-[color-mix(in_srgb,var(--palette-teal-400)_38%,transparent)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_78%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--palette-teal-400)_52%,transparent)]",
+    "bg-[color-mix(in_srgb,var(--palette-teal-400)_62%,transparent)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_70%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--palette-teal-500)_68%,transparent)]",
   orange:
-    "bg-[color-mix(in_srgb,var(--palette-orange-400)_36%,transparent)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_78%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--palette-orange-400)_50%,transparent)]",
+    "bg-[color-mix(in_srgb,var(--palette-orange-400)_60%,transparent)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_70%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--palette-orange-500)_66%,transparent)]",
 };
 
 /** Night-sky glow: specular rim + colored bloom so tiles read as lit glass. */
