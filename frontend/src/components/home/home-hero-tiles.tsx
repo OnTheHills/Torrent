@@ -114,9 +114,31 @@ const toneClass: Record<TileTone, string> = {
     "bg-[color-mix(in_srgb,var(--palette-orange-400)_36%,transparent)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_78%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--palette-orange-400)_50%,transparent)]",
 };
 
-export function HomeHeroTiles({ className }: { className?: string }) {
+/** Night-sky glow: specular rim + colored bloom so tiles read as lit glass. */
+const toneClassGlow: Record<TileTone, string> = {
+  teal: [
+    "bg-[linear-gradient(152deg,color-mix(in_srgb,white_55%,var(--palette-teal-200))_0%,color-mix(in_srgb,var(--palette-teal-300)_72%,transparent)_38%,color-mix(in_srgb,var(--palette-teal-600)_55%,transparent)_100%)]",
+    "shadow-[inset_0_1.5px_0_0_rgb(255_255_255_/_0.85),inset_0_-10px_18px_0_color-mix(in_srgb,var(--palette-teal-800)_35%,transparent),0_0_22px_color-mix(in_srgb,var(--palette-teal-300)_58%,transparent),0_8px_28px_color-mix(in_srgb,var(--palette-teal-500)_42%,transparent)]",
+    "ring-1 ring-[color-mix(in_srgb,var(--palette-teal-100)_70%,transparent)]",
+  ].join(" "),
+  orange: [
+    "bg-[linear-gradient(152deg,color-mix(in_srgb,white_52%,var(--palette-orange-200))_0%,color-mix(in_srgb,var(--palette-orange-300)_74%,transparent)_38%,color-mix(in_srgb,var(--palette-orange-600)_52%,transparent)_100%)]",
+    "shadow-[inset_0_1.5px_0_0_rgb(255_255_255_/_0.85),inset_0_-10px_18px_0_color-mix(in_srgb,var(--palette-orange-800)_32%,transparent),0_0_22px_color-mix(in_srgb,var(--palette-orange-300)_55%,transparent),0_8px_28px_color-mix(in_srgb,var(--palette-orange-500)_40%,transparent)]",
+    "ring-1 ring-[color-mix(in_srgb,var(--palette-orange-100)_68%,transparent)]",
+  ].join(" "),
+};
+
+export function HomeHeroTiles({
+  className,
+  glow = false,
+}: {
+  className?: string;
+  /** Brighter specular + bloom for dark / night-sky backdrops. */
+  glow?: boolean;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const [grid, setGrid] = useState({ cols: 10, rows: 5 });
+  const tones = glow ? toneClassGlow : toneClass;
 
   useEffect(() => {
     const el = ref.current;
@@ -148,13 +170,17 @@ export function HomeHeroTiles({ className }: { className?: string }) {
       className={["overflow-hidden p-2.5 sm:p-3 md:p-4", className]
         .filter(Boolean)
         .join(" ")}
-      style={{
-        /* Soft left fade only — keep tiles readable behind copy on wide screens. */
-        maskImage:
-          "linear-gradient(90deg, rgb(0 0 0 / 0.55) 0%, rgb(0 0 0 / 0.78) 28%, black 48%)",
-        WebkitMaskImage:
-          "linear-gradient(90deg, rgb(0 0 0 / 0.55) 0%, rgb(0 0 0 / 0.78) 28%, black 48%)",
-      }}
+      style={
+        glow
+          ? undefined
+          : {
+              /* Soft left fade only — keep tiles readable behind copy on wide screens. */
+              maskImage:
+                "linear-gradient(90deg, rgb(0 0 0 / 0.55) 0%, rgb(0 0 0 / 0.78) 28%, black 48%)",
+              WebkitMaskImage:
+                "linear-gradient(90deg, rgb(0 0 0 / 0.55) 0%, rgb(0 0 0 / 0.78) 28%, black 48%)",
+            }
+      }
     >
       <div
         className="grid h-full w-full gap-2 sm:gap-2.5 md:gap-3"
@@ -169,7 +195,7 @@ export function HomeHeroTiles({ className }: { className?: string }) {
             className={[
               "min-h-0 min-w-0 rounded-lg backdrop-blur-md backdrop-saturate-150",
               "motion-safe:animate-[hero-tile-in_720ms_cubic-bezier(0.22,1,0.36,1)_both]",
-              toneClass[tile.tone],
+              tones[tile.tone],
             ].join(" ")}
             style={{
               gridColumn: `${tile.col} / span ${tile.size}`,

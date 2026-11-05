@@ -25,7 +25,7 @@ export function IntegrityBadge({
         className
       )}
     >
-      {flagged ? t("integritySuspicious") : t("integrityOk")}
+      {flagged ? t("watchOutFlagged") : t("watchOutClear")}
     </Badge>
   );
 }

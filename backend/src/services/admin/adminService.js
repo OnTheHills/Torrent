@@ -138,6 +138,22 @@ function present(tor) {
         : [],
     integrityReason: tor.integrityReason,
     integrityNote: tor.integrityNote,
+    mergeStatus: tor.mergeStatus || null,
+    mergeConflicts: Array.isArray(tor.mergeConflicts) ? tor.mergeConflicts : [],
+    sources: Array.isArray(tor.sources)
+      ? tor.sources.map((row) => ({
+          source: row.source,
+          refId: row.refId,
+          egpUrl: row.egpUrl || "",
+          documentUrl: row.documentUrl || "",
+          status: row.status || "",
+          budgetThb: row.budgetThb,
+          deadline: row.deadline,
+          publishedAt: row.publishedAt,
+          title: row.title || "",
+          lastSeenAt: row.lastSeenAt,
+        }))
+      : [],
   };
 }
 
@@ -478,6 +494,12 @@ async function reviewTor(id, user, body) {
     patch.hidden = true;
     patch.hiddenReason = "review";
   }
+  if (
+    (decision === "approve" || decision === "fix") &&
+    (before.mergeStatus === "conflicted" || (before.mergeConflicts || []).length)
+  ) {
+    patch.mergeStatus = "resolved";
+  }
   const updated = await TOR.findByIdAndUpdate(id, patch, { returnDocument: "after" });
   const changes = changesFor(before, updated.toObject(), [...REVIEW_FIELDS, "hidden", "reviewStatus"]);
   await record(user, {
@@ -508,12 +530,26 @@ async function searchTors(query) {
   const reviews = csv(query.review);
   const visibility = csv(query.visibility);
   const integrity = csv(query.integrity);
+  const budgetModes = csv(query.budget).filter(
+    (item) => item === "specified" || item === "missing",
+  );
   if (sources.length) extras.push({ source: { $in: sources } });
   if (years.length) extras.push({ budgetYear: { $in: years } });
   if (reviews.length) extras.push({ reviewStatus: { $in: reviews } });
   if (query.status) extras.push({ status: query.status });
   const stageFilter = stageClauses(stages);
   if (stageFilter) extras.push(stageFilter);
+  if (budgetModes.length === 1 && budgetModes[0] === "specified") {
+    extras.push({ budgetThb: { $gt: 0 } });
+  } else if (budgetModes.length === 1 && budgetModes[0] === "missing") {
+    extras.push({
+      $or: [
+        { budgetThb: { $exists: false } },
+        { budgetThb: null },
+        { budgetThb: 0 },
+      ],
+    });
+  }
 
   const wantVisible = visibility.includes("visible");
   const wantHidden = visibility.includes("hidden");

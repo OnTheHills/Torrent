@@ -3,6 +3,11 @@
 import { Tick02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
+import {
+  FilterPanelHeader,
+  FilterPanelStack,
+  toggleMany,
+} from "@/components/filters/filter-panel";
 import { useLocale } from "@/components/providers/locale-provider";
 import {
   Select,
@@ -30,11 +35,14 @@ export type SourceFilter = Extract<
   "egp-rss" | "sme-gp" | "bma-egp2" | "data-go"
 >;
 
+export type BudgetAvailability = "specified" | "missing";
+
 export type TorFilterState = {
   agencies: AgencyId[];
   categories: string[];
   sources: SourceFilter[];
   budgetYears: string[];
+  budgetAvailability: BudgetAvailability[];
   integrities: IntegrityStatus[];
   stages: ListingStage[];
   sort: ListingSort;
@@ -47,6 +55,7 @@ export const DEFAULT_FILTERS: TorFilterState = {
   categories: [],
   sources: [],
   budgetYears: [],
+  budgetAvailability: [],
   integrities: [],
   stages: [],
   sort: "newest",
@@ -54,9 +63,41 @@ export const DEFAULT_FILTERS: TorFilterState = {
   skills: [],
 };
 
-function toggleMany<T extends string>(current: T[], value: T, checked: boolean) {
-  if (!checked) return current.filter((item) => item !== value);
-  return current.includes(value) ? current : [...current, value];
+/** Neutral frost control — same recipe as admin frost buttons, sized for checkboxes. */
+export const frostCheckbox =
+  "flex size-4 shrink-0 items-center justify-center rounded-[5px] bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))] text-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] backdrop-blur-md backdrop-saturate-150 peer-focus-visible:ring-2 peer-focus-visible:ring-ring/40";
+
+export const frostCheckboxChecked = "text-foreground";
+
+/** Selected row/pill fill — matches sidebar active tab (flat dim lens, no frost). */
+export const frostSelectedItem =
+  "bg-sidebar-accent text-sidebar-accent-foreground shadow-none ring-0";
+
+export function FrostCheckbox({
+  checked,
+  className,
+}: {
+  checked: boolean;
+  className?: string;
+}) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        frostCheckbox,
+        checked && frostCheckboxChecked,
+        className,
+      )}
+    >
+      {checked ? (
+        <HugeiconsIcon
+          icon={Tick02Icon}
+          strokeWidth={2.5}
+          className="size-3 text-foreground"
+        />
+      ) : null}
+    </span>
+  );
 }
 
 export function FilterChecks<T extends string>({
@@ -64,46 +105,61 @@ export function FilterChecks<T extends string>({
   items,
   isChecked,
   onToggle,
+  isDisabled,
 }: {
   label: string;
   items: { value: T; label: string }[];
   isChecked: (value: T) => boolean;
   onToggle: (value: T, checked: boolean) => void;
+  isDisabled?: (value: T) => boolean;
 }) {
   return (
-    <fieldset className="flex flex-col gap-1.5">
+    <fieldset className="flex flex-col gap-0.5">
       {label ? (
-        <legend className="text-[0.65rem] uppercase tracking-[0.14em] text-muted-foreground">
+        <legend className="text-[0.6rem] uppercase tracking-[0.14em] text-muted-foreground">
           {label}
         </legend>
       ) : null}
-      <div className="flex flex-col">
+      <div className="flex flex-col gap-px">
         {items.map((item) => {
           const checked = isChecked(item.value);
+          const disabled = Boolean(isDisabled?.(item.value));
           return (
             <label
               key={item.value}
-              className="flex cursor-pointer items-center gap-2.5 rounded-lg px-1 py-1.5 text-sm leading-snug hover:bg-foreground/5"
+              className={cn(
+                // Flat rounded pill; selected stays flat (no glass hover). Slimmer than sidebar nav.
+                "flex h-8 cursor-pointer items-center gap-2 overflow-hidden rounded-full px-2.5 text-xs font-medium leading-snug text-sidebar-foreground outline-none transition-[background-color,box-shadow,color] duration-150 ease-out",
+                checked
+                  ? frostSelectedItem
+                  : "hover:bg-sidebar-hover hover:shadow-[inset_0_1px_0_0_rgb(255_255_255_/_0.5)]",
+                disabled &&
+                  "cursor-not-allowed opacity-45 hover:bg-transparent hover:shadow-none",
+              )}
             >
               <input
                 type="checkbox"
                 checked={checked}
+                disabled={disabled}
                 onChange={(event) => onToggle(item.value, event.target.checked)}
                 className="peer sr-only"
               />
               <span
                 aria-hidden
                 className={cn(
-                  "flex size-4 shrink-0 items-center justify-center rounded-[5px] bg-surface-frost shadow-[inset_0_1px_0_0_var(--surface-frost-highlight)] ring-1 ring-[var(--surface-frost-ring)] backdrop-blur-md backdrop-saturate-150 peer-focus-visible:ring-2 peer-focus-visible:ring-ring/40",
-                  checked &&
-                    "bg-[var(--palette-teal-75)] text-[var(--palette-teal-700)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,var(--palette-teal-50)_88%,transparent)] ring-[color-mix(in_srgb,var(--palette-teal-300)_70%,transparent)]",
+                  "flex size-3.5 shrink-0 items-center justify-center rounded-full ring-1 ring-foreground/30",
+                  checked && "bg-foreground ring-foreground",
                 )}
               >
                 {checked ? (
-                  <HugeiconsIcon icon={Tick02Icon} strokeWidth={2.5} className="size-3" />
+                  <HugeiconsIcon
+                    icon={Tick02Icon}
+                    strokeWidth={2.5}
+                    className="size-2 text-background"
+                  />
                 ) : null}
               </span>
-              <span>{item.label}</span>
+              <span className="min-w-0 truncate">{item.label}</span>
             </label>
           );
         })}
@@ -154,17 +210,12 @@ export function TorFilters({
   const { locale, t } = useLocale();
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-base font-semibold tracking-tight">{t("filterTitle")}</h3>
-        <button
-          type="button"
-          onClick={onClear}
-          className="inline-flex h-8 shrink-0 items-center rounded-full border-0 bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))] px-3 text-sm text-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] backdrop-blur-md backdrop-saturate-150 transition-transform duration-200 ease-out hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:transform-none"
-        >
-          {t("clearFilters")}
-        </button>
-      </div>
+    <FilterPanelStack>
+      <FilterPanelHeader
+        title={t("filterTitle")}
+        clearLabel={t("clearFilters")}
+        onClear={onClear}
+      />
       <FilterChecks
         label={t("lifecycle")}
         items={[
@@ -199,16 +250,35 @@ export function TorFilters({
       ) : null}
 
       <FilterChecks
-        label={t("status")}
+        label={t("watchOut")}
         items={[
-          { value: "ok", label: t("statusOk") },
-          { value: "suspicious", label: t("statusSuspicious") },
+          { value: "ok", label: t("watchOutClear") },
+          { value: "suspicious", label: t("watchOutFlagged") },
         ]}
         isChecked={(integrity) => value.integrities.includes(integrity)}
         onToggle={(integrity, checked) =>
           onChange({
             ...value,
             integrities: toggleMany(value.integrities, integrity, checked),
+          })
+        }
+      />
+
+      <FilterChecks
+        label={t("budgetAmount")}
+        items={[
+          { value: "specified", label: t("budgetAmountKnown") },
+          { value: "missing", label: t("budgetAmountUnknown") },
+        ]}
+        isChecked={(item) => value.budgetAvailability.includes(item)}
+        onToggle={(item, checked) =>
+          onChange({
+            ...value,
+            budgetAvailability: toggleMany(
+              value.budgetAvailability,
+              item,
+              checked,
+            ),
           })
         }
       />
@@ -268,6 +338,6 @@ export function TorFilters({
           onToggle={(_, checked) => onChange({ ...value, teamOnly: checked })}
         />
       ) : null}
-    </div>
+    </FilterPanelStack>
   );
 }

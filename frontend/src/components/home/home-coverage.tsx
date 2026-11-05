@@ -138,7 +138,9 @@ function FrostCloud({
       />
       <div
         className="relative z-10 flex h-full flex-col items-center justify-center gap-1.5 px-[18%] pb-[14%] pt-[20%] text-center"
-        style={textNudge ? { paddingTop: `calc(20% + ${textNudge})` } : undefined}
+        style={
+          textNudge ? { paddingTop: `calc(20% + ${textNudge})` } : undefined
+        }
       >
         {children}
       </div>
@@ -158,7 +160,9 @@ export function HomeCoverage() {
             {/* Uniform nudge — change --constellation-nudge-y to move everything equally. */}
             <div
               className="absolute inset-0"
-              style={{ transform: "translateY(var(--constellation-nudge-y, -18%))" }}
+              style={{
+                transform: "translateY(var(--constellation-nudge-y, -18%))",
+              }}
             >
               {FEEDS.map((feed, index) => (
                 <FrostCloud
@@ -190,7 +194,10 @@ export function HomeCoverage() {
                   frostHub,
                 )}
               >
-                <BrandLockup size="md" className="h-16 w-auto max-w-[70%] object-contain lg:h-18" />
+                <BrandLockup
+                  size="md"
+                  className="h-16 w-auto max-w-[70%] object-contain lg:h-18"
+                />
               </div>
             </div>
           </div>
@@ -203,7 +210,10 @@ export function HomeCoverage() {
                 frostHub,
               )}
             >
-              <BrandLockup size="sm" className="h-8 w-auto max-w-[70%] object-contain" />
+              <BrandLockup
+                size="sm"
+                className="h-8 w-auto max-w-[70%] object-contain"
+              />
             </div>
             <ul className="grid gap-2">
               {FEEDS.map((feed) => (
@@ -244,7 +254,11 @@ export function HomeCoverage() {
               )}
             >
               {t("browseTors")}
-              <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} className="size-3.5" />
+              <HugeiconsIcon
+                icon={ArrowRight01Icon}
+                strokeWidth={2}
+                className="size-3.5"
+              />
             </Link>
           </div>
           <ul className="flex flex-wrap gap-3">

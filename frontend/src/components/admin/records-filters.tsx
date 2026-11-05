@@ -1,5 +1,12 @@
 "use client";
 
+import {
+  ADMIN_STATUS_FILTER_ITEMS,
+  ADMIN_WATCH_OUT_FILTER_ITEMS,
+  FilterPanelHeader,
+  FilterPanelStack,
+  toggleMany,
+} from "@/components/filters/filter-panel";
 import { FilterChecks } from "@/components/tor/tor-filters";
 import {
   Select,
@@ -8,12 +15,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  dropOpenLifecycleStages,
+  hasOpenLifecycleStages,
+  isOpenLifecycleBudgetYear,
+  retainOpenLifecycleBudgetYears,
+} from "@/lib/budget-year";
+import type { ListingStage } from "@/lib/listing-stage";
 import { cn } from "@/lib/utils";
 
 export type RecordsVisibility = "visible" | "hidden";
-export type RecordsStage = "closing" | "open" | "draft";
+export type RecordsStage = ListingStage;
 export type RecordsReview = "auto" | "review" | "manual";
-export type RecordsIntegrity = "clear" | "watch";
+export type RecordsBudgetAvailability = "specified" | "missing";
+export type RecordsWatchOut = "clear" | "watch";
 export type RecordsSort =
   | "newest"
   | "oldest"
@@ -25,7 +40,8 @@ export type RecordsFilterState = {
   visibility: RecordsVisibility[];
   stages: RecordsStage[];
   reviews: RecordsReview[];
-  integrity: RecordsIntegrity[];
+  budgetAvailability: RecordsBudgetAvailability[];
+  watchOut: RecordsWatchOut[];
   sources: string[];
   budgetYears: string[];
   sort: RecordsSort;
@@ -35,7 +51,8 @@ export const DEFAULT_RECORDS_FILTERS: RecordsFilterState = {
   visibility: [],
   stages: [],
   reviews: [],
-  integrity: [],
+  budgetAvailability: [],
+  watchOut: [],
   sources: [],
   budgetYears: [],
   sort: "newest",
@@ -47,11 +64,6 @@ export const RECORDS_SOURCES = [
   { value: "EGP-RSS", label: "e-GP RSS" },
   { value: "SME-GP", label: "SME-GP" },
 ] as const;
-
-function toggleMany<T extends string>(current: T[], value: T, checked: boolean) {
-  if (!checked) return current.filter((item) => item !== value);
-  return current.includes(value) ? current : [...current, value];
-}
 
 export function RecordsSortSelect({
   value,
@@ -96,17 +108,8 @@ export function RecordsFilters({
   budgetYears?: string[];
 }) {
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-base font-semibold tracking-tight">Filters</h3>
-        <button
-          type="button"
-          onClick={onClear}
-          className="inline-flex h-8 shrink-0 items-center rounded-full border-0 bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))] px-3 text-sm text-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] backdrop-blur-md backdrop-saturate-150 transition-transform duration-200 ease-out hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:transform-none"
-        >
-          Clear
-        </button>
-      </div>
+    <FilterPanelStack>
+      <FilterPanelHeader onClear={onClear} />
       <FilterChecks
         label="Visibility"
         items={[
@@ -122,23 +125,26 @@ export function RecordsFilters({
         }
       />
       <FilterChecks
-        label="Lifecycle"
-        items={[
-          { value: "closing", label: "Closing soon" },
-          { value: "open", label: "Open" },
-          { value: "draft", label: "Draft" },
-        ]}
+        label="Status"
+        items={[...ADMIN_STATUS_FILTER_ITEMS]}
         isChecked={(stage) => value.stages.includes(stage)}
-        onToggle={(stage, checked) =>
-          onChange({ ...value, stages: toggleMany(value.stages, stage, checked) })
-        }
+        onToggle={(stage, checked) => {
+          const stages = toggleMany(value.stages, stage, checked);
+          onChange({
+            ...value,
+            stages,
+            budgetYears: hasOpenLifecycleStages(stages)
+              ? retainOpenLifecycleBudgetYears(value.budgetYears)
+              : value.budgetYears,
+          });
+        }}
       />
       <FilterChecks
-        label="Confidence"
+        label="Extraction confidence"
         items={[
-          { value: "auto", label: "Auto (≥90%)" },
-          { value: "review", label: "Lookup (80–89%)" },
-          { value: "manual", label: "Must check (<80%)" },
+          { value: "auto", label: "Ready (≥90%)" },
+          { value: "review", label: "Glance (80–89%)" },
+          { value: "manual", label: "Review (<80%)" },
         ]}
         isChecked={(band) => value.reviews.includes(band)}
         onToggle={(band, checked) =>
@@ -147,15 +153,30 @@ export function RecordsFilters({
       />
       <FilterChecks
         label="Watch out"
-        items={[
-          { value: "watch", label: "Watch out" },
-          { value: "clear", label: "Clear" },
-        ]}
-        isChecked={(item) => value.integrity.includes(item)}
+        items={[...ADMIN_WATCH_OUT_FILTER_ITEMS]}
+        isChecked={(item) => value.watchOut.includes(item)}
         onToggle={(item, checked) =>
           onChange({
             ...value,
-            integrity: toggleMany(value.integrity, item, checked),
+            watchOut: toggleMany(value.watchOut, item, checked),
+          })
+        }
+      />
+      <FilterChecks
+        label="Budget amount"
+        items={[
+          { value: "specified", label: "Known" },
+          { value: "missing", label: "Unknown" },
+        ]}
+        isChecked={(item) => value.budgetAvailability.includes(item)}
+        onToggle={(item, checked) =>
+          onChange({
+            ...value,
+            budgetAvailability: toggleMany(
+              value.budgetAvailability,
+              item,
+              checked,
+            ),
           })
         }
       />
@@ -164,10 +185,18 @@ export function RecordsFilters({
           label="Budget year"
           items={budgetYears.map((year) => ({ value: year, label: year }))}
           isChecked={(year) => value.budgetYears.includes(year)}
+          isDisabled={(year) =>
+            hasOpenLifecycleStages(value.stages) &&
+            !isOpenLifecycleBudgetYear(year)
+          }
           onToggle={(year, checked) =>
             onChange({
               ...value,
               budgetYears: toggleMany(value.budgetYears, year, checked),
+              stages:
+                checked && !isOpenLifecycleBudgetYear(year)
+                  ? dropOpenLifecycleStages(value.stages)
+                  : value.stages,
             })
           }
         />
@@ -186,6 +215,6 @@ export function RecordsFilters({
           })
         }
       />
-    </div>
+    </FilterPanelStack>
   );
 }

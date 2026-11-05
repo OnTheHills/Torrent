@@ -53,7 +53,7 @@ export function OverviewView() {
               title="Extraction accuracy"
               description={
                 data.accuracy.sampleSize
-                  ? `${data.accuracy.accuracy}% of checked fields matched the source across ${data.accuracy.sampleSize} reviews. Above 90% can publish automatically, 80–90% stays in review, and below 80% needs a manual fix.`
+                  ? `${data.accuracy.accuracy}% of checked fields matched the source across ${data.accuracy.sampleSize} reviews. ≥90% is Ready, 80–89% is Glance, and below 80% is Review.`
                   : "No reviewed sample yet. Score the catalog, then approve or correct records. Accuracy is the share of checked fields left unchanged."
               }
               action={

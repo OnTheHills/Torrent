@@ -57,7 +57,7 @@ export function SourceTransparencyPanel({ tor }: { tor: Tor }) {
               {t("verified")}
             </Badge>
           ) : (
-            <Badge variant="destructive">{t("integritySuspicious")}</Badge>
+            <Badge variant="destructive">{t("watchOutFlagged")}</Badge>
           )}
           <Badge variant="outline">
             {t("aiConfidence")}: {confidenceLabel}

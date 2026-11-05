@@ -80,44 +80,54 @@ const ROLES: {
 ];
 
 const iconFrame =
-  "bg-white text-foreground ring-[color-mix(in_srgb,var(--palette-gray-300)_65%,transparent)]";
+  "bg-background text-foreground ring-[color-mix(in_srgb,var(--palette-gray-300)_65%,transparent)]";
 
 const toneStyles = {
   teal: {
     card: "bg-[color-mix(in_srgb,var(--palette-teal-300)_42%,transparent)] ring-[color-mix(in_srgb,var(--palette-teal-400)_50%,transparent)]",
     featureIcon: "text-[var(--palette-teal-700)]",
     cta: "bg-[color-mix(in_srgb,var(--palette-teal-500)_38%,transparent)] text-[var(--palette-teal-900)] ring-[color-mix(in_srgb,var(--palette-teal-600)_42%,transparent)] hover:bg-[color-mix(in_srgb,var(--palette-teal-500)_48%,transparent)]",
-    place: "justify-self-start origin-center -rotate-[7deg] md:translate-x-[2%]",
+    place: "justify-self-start origin-bottom -rotate-[6deg] md:translate-x-[2%]",
   },
   orange: {
     card: "bg-[color-mix(in_srgb,var(--palette-orange-300)_46%,transparent)] ring-[color-mix(in_srgb,var(--palette-orange-400)_52%,transparent)]",
     featureIcon: "text-[var(--palette-orange-700)]",
     cta: "bg-[color-mix(in_srgb,var(--palette-orange-500)_38%,transparent)] text-[var(--palette-orange-900)] ring-[color-mix(in_srgb,var(--palette-orange-600)_42%,transparent)] hover:bg-[color-mix(in_srgb,var(--palette-orange-500)_48%,transparent)]",
-    place: "justify-self-end origin-center rotate-[7deg] md:translate-x-[-2%]",
+    place: "justify-self-end origin-bottom rotate-[6deg] md:translate-x-[-2%]",
   },
 } as const;
 
 export function HomeRoles() {
   const { t } = useLocale();
   const [front, setFront] = useState<RoleTone>("orange");
+  const [shake, setShake] = useState<{ tone: RoleTone; tick: number } | null>(
+    null,
+  );
+
+  const bringFront = (tone: RoleTone) => {
+    setFront(tone);
+    setShake((prev) => ({ tone, tick: (prev?.tick ?? 0) + 1 }));
+  };
 
   return (
     <HomeSection title={t("rolesTitle")} description={t("rolesSubtitle")}>
-      <div className="relative mx-auto grid w-full max-w-4xl py-4 md:py-6">
+      {/* Extra pad keeps rotated card bottoms inside this band so neighbors can't cover CTAs. */}
+      <div className="relative isolate mx-auto grid w-full max-w-4xl px-2 pb-14 pt-8 md:px-4 md:pb-20 md:pt-10">
         {ROLES.map((role) => {
           const tone = toneStyles[role.tone];
           const isFront = front === role.tone;
+          const isShaking = shake?.tone === role.tone;
           return (
             <article
               key={role.title}
               role="button"
               tabIndex={0}
               aria-pressed={isFront}
-              onClick={() => setFront(role.tone)}
+              onClick={() => bringFront(role.tone)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault();
-                  setFront(role.tone);
+                  bringFront(role.tone);
                 }
               }}
               className={cn(
@@ -131,7 +141,7 @@ export function HomeRoles() {
               <div className="flex items-start gap-3">
                 <span
                   className={cn(
-                    "flex size-11 shrink-0 items-center justify-center rounded-full ring-1",
+                    "flex size-12 shrink-0 items-center justify-center rounded-full ring-1",
                     iconFrame,
                   )}
                 >
@@ -146,19 +156,34 @@ export function HomeRoles() {
               </div>
 
               {t(role.body) ? (
-                <p className="mt-4 text-base leading-[1.7] text-muted-foreground">
+                <p className="mt-4 text-sm leading-[1.7] text-muted-foreground">
                   {t(role.body)}
                 </p>
               ) : null}
 
               <ul className="mt-5 space-y-3">
-                {role.features.map((feature) => (
+                {role.features.map((feature, index) => (
                   <li key={feature.label} className="flex items-start gap-2.5 text-sm leading-snug">
-                    <HugeiconsIcon
-                      icon={feature.icon}
-                      strokeWidth={2}
-                      className={cn("mt-0.5 size-4 shrink-0", tone.featureIcon)}
-                    />
+                    <span
+                      key={isShaking ? `${shake.tick}-${feature.label}` : feature.label}
+                      className={cn(
+                        "mt-0.5 inline-flex size-4 shrink-0 items-center justify-center",
+                        tone.featureIcon,
+                        isShaking &&
+                          "motion-safe:animate-[role-feature-shake_420ms_ease-in-out_both]",
+                      )}
+                      style={
+                        isShaking
+                          ? { animationDelay: `${index * 55}ms` }
+                          : undefined
+                      }
+                    >
+                      <HugeiconsIcon
+                        icon={feature.icon}
+                        strokeWidth={2}
+                        className="size-4"
+                      />
+                    </span>
                     <span>
                       <span className="font-semibold text-foreground">{t(feature.name)}:</span>{" "}
                       {t(feature.label)}

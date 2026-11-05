@@ -11,7 +11,7 @@ import {
   type NotificationPrefs,
 } from "@/components/providers/notification-prefs-provider";
 import { useLocale } from "@/components/providers/locale-provider";
-import { categoryTone } from "@/components/tor/listing-badges";
+import { frostSelectedItem } from "@/components/tor/tor-filters";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -294,7 +294,6 @@ export function NotificationSettingsView() {
         <CardContent className="flex flex-wrap gap-2 pt-5">
           {CATEGORIES.map((category) => {
             const selected = draft.categories.includes(category);
-            const tone = categoryTone(category);
             return (
               <button
                 key={category}
@@ -304,24 +303,19 @@ export function NotificationSettingsView() {
                 onClick={() => toggleCategory(category)}
                 className={cn(
                   "inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium",
-                  "shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_88%,transparent)] backdrop-blur-md backdrop-saturate-150",
-                  "ring-1 transition-[background-color,transform] duration-200 ease-out",
+                  "transition-[background-color,transform] duration-200 ease-out",
                   "hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-60",
                   "motion-reduce:transition-none motion-reduce:hover:transform-none",
                   selected
-                    ? cn(
-                        tone.fill,
-                        tone.text,
-                        "ring-[color-mix(in_srgb,currentColor_28%,transparent)]",
-                      )
-                    : "bg-[color-mix(in_srgb,white_72%,transparent)] text-muted-foreground ring-[color-mix(in_srgb,var(--palette-gray-900)_10%,transparent)] hover:bg-[color-mix(in_srgb,white_88%,transparent)]",
+                    ? frostSelectedItem
+                    : "bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))] text-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] backdrop-blur-md backdrop-saturate-150 hover:bg-sidebar-hover",
                 )}
               >
                 {selected ? (
                   <HugeiconsIcon
                     icon={Tick02Icon}
                     strokeWidth={2.25}
-                    className="size-3.5 shrink-0"
+                    className="size-3.5 shrink-0 text-foreground"
                   />
                 ) : null}
                 {category}

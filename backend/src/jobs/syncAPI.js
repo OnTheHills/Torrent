@@ -3,6 +3,7 @@ const { hydrateProjects } = require("@/services/tor/api/bmaEgp2/files");
 const ocrEgp = require("@/services/tor/ocr/ocrEgp");
 const ocrBmaPlans = require("@/services/tor/ocr/ocrBmaPlans");
 const smeAnnouncements = require("@/services/tor/smeAnnouncement");
+const { mergeByRefIds, reconcileAll } = require("@/services/tor/mergeDuplicateTors");
 const torRepository = require("@/repositories/torRepository");
 const torMatching = require("@/jobs/matchTors");
 const classification = require("@/services/admin/classification");
@@ -72,21 +73,32 @@ async function syncSource(name, {
     ({ updatedTorIds = [], ...ocr } = await ocrBmaPlans.enrich(tors));
   }
 
+  // Cross-source merge after OCR so deadline/document richness is available for conflict detection.
+  const merge = await mergeByRefIds(tors.map((tor) => tor.refId));
+  const mergedSurvivorIds = merge.survivorIds.map(String);
+  const absorbedIdSet = new Set(merge.absorbedIds.map(String));
+
   const matchTorIds = [
     ...new Set(
       (name === "dataGoProcess5"
-        ? updatedTorIds
-        : [...changedTorIds, ...updatedTorIds]
+        ? [...updatedTorIds, ...mergedSurvivorIds]
+        : [...changedTorIds, ...updatedTorIds, ...mergedSurvivorIds]
       )
         .filter(Boolean)
-        .map(String),
+        .map(String)
+        .filter((id) => !absorbedIdSet.has(id)),
     ),
   ];
   if (enqueueMatches && matchTorIds.length) await torMatching.enqueueTors(matchTorIds);
 
+  // Score new rows only. Skip conflicted merge survivors so scoring does not wipe conflict reasons.
+  const conflictedIdSet = new Set(merge.conflictedSurvivorIds.map(String));
   let reviewScore = {};
-  if (scoreCreated && createdTorIds.length) {
-    reviewScore = await scoreTorIds(createdTorIds);
+  if (scoreCreated) {
+    const idsToScore = createdTorIds
+      .map(String)
+      .filter((id) => !absorbedIdSet.has(id) && !conflictedIdSet.has(id));
+    if (idsToScore.length) reviewScore = await scoreTorIds(idsToScore);
   }
 
   return {
@@ -97,6 +109,9 @@ async function syncSource(name, {
     ...persisted,
     ...replaced,
     ...ocr,
+    mergeGroups: merge.groups,
+    mergeMerged: merge.merged,
+    mergeConflicted: merge.conflicted,
     ...(reviewScore.scored
       ? { reviewScored: reviewScore.scored, reviewVertexScored: reviewScore.vertexScored }
       : {}),
@@ -113,13 +128,24 @@ async function syncAPI() {
       syncSource(name, { enqueueMatches: false, collectMatchIds: true, scoreCreated: false }),
     ),
   );
-  const changedTorIds = [...new Set(results.flatMap((result) => result._matchTorIds || []))];
+  // Catch any remaining cross-source twins after the active sync batch.
+  const reconcile = await reconcileAll();
+  const conflictedIdSet = new Set((reconcile.conflictedSurvivorIds || []).map(String));
+  const absorbedIdSet = new Set((reconcile.absorbedIds || []).map(String));
+  const changedTorIds = [
+    ...new Set([
+      ...results.flatMap((result) => result._matchTorIds || []),
+      ...(reconcile.survivorIds || []).map(String),
+    ]),
+  ].filter((id) => !absorbedIdSet.has(id));
   const createdTorIds = [...new Set(results.flatMap((result) => result._createdTorIds || []))];
   if (changedTorIds.length) await torMatching.enqueueTors(changedTorIds);
-  if (createdTorIds.length) await scoreTorIds(createdTorIds);
+  const scoreIds = createdTorIds.filter((id) => !conflictedIdSet.has(String(id)) && !absorbedIdSet.has(String(id)));
+  if (scoreIds.length) await scoreTorIds(scoreIds);
   const announcement = await smeAnnouncements.enrichStored();
   return [
     ...results.map(({ _matchTorIds, _createdTorIds, ...result }) => result),
+    { source: "TOR-MERGE", ...reconcile },
     { source: "SME-GP", ...announcement },
   ];
 }

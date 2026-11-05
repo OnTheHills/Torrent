@@ -3,7 +3,10 @@
 import { ShellContent } from "@/components/layout/shell-content";
 import { useLocale } from "@/components/providers/locale-provider";
 import { TorBrowse } from "@/components/tor/tor-browse";
-import type { SourceFilter } from "@/components/tor/tor-filters";
+import type {
+  BudgetAvailability,
+  SourceFilter,
+} from "@/components/tor/tor-filters";
 import type { ListingStage } from "@/lib/listing-stage";
 import type {
   AgencyId,
@@ -21,6 +24,7 @@ export function ListingsView({
   initialSort = "newest",
   initialStages = [],
   initialBudgetYears = [],
+  initialBudgetAvailability = [],
   initialIntegrities = [],
 }: {
   tors?: Tor[];
@@ -31,6 +35,7 @@ export function ListingsView({
   initialSort?: ListingSort;
   initialStages?: ListingStage[];
   initialBudgetYears?: string[];
+  initialBudgetAvailability?: BudgetAvailability[];
   initialIntegrities?: IntegrityStatus[];
 }) {
   const { t } = useLocale();
@@ -64,6 +69,7 @@ export function ListingsView({
             initialSort={initialSort}
             initialStages={initialStages}
             initialBudgetYears={initialBudgetYears}
+            initialBudgetAvailability={initialBudgetAvailability}
             initialIntegrities={initialIntegrities}
             showHeader={false}
           />

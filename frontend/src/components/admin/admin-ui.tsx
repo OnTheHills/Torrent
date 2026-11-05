@@ -1,7 +1,11 @@
 "use client";
 
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import { ShellContent } from "@/components/layout/shell-content";
 import { Badge } from "@/components/ui/badge";
@@ -254,6 +258,7 @@ export function useAdminQuery<T>(path: string) {
   const query = useQuery({
     queryKey: ["admin", path],
     queryFn: () => api<T>(path),
+    placeholderData: keepPreviousData,
   });
 
   const reload = useCallback(
@@ -271,6 +276,8 @@ export function useAdminQuery<T>(path: string) {
         : "Request failed"
       : null,
     loading: query.isLoading,
+    fetching: query.isFetching,
+    isPlaceholderData: query.isPlaceholderData,
     reload,
   };
 }
