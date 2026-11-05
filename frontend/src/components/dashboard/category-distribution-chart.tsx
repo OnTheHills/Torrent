@@ -36,8 +36,9 @@ export function CategoryDistributionChart() {
   return (
     <div>
       {isError ? <p role="status" className="mb-3 text-sm text-muted-foreground">{t("categoryDistributionStale")}</p> : null}
-      <p className="mb-6 text-xs text-muted-foreground">{t("distributionCount")}</p>
-      <div className="overflow-x-auto pb-2">
+      <p className="mb-2 text-xs text-muted-foreground">{t("distributionCount")}</p>
+      {/* Keep above-bar counts and the top axis tick inside the scroll viewport. */}
+      <div className="overflow-x-auto pb-2 pt-8">
         <div className="grid min-w-[640px] grid-cols-[3rem_1fr] gap-x-3">
           <div aria-hidden className="relative h-64 text-right text-xs text-muted-foreground">
             {Array.from({ length: 5 }, (_, i) => i * step).map((count) => (
