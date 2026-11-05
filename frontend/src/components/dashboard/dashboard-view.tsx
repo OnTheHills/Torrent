@@ -12,6 +12,7 @@ import { HistoricalPriceTable } from "@/components/dashboard/historical-price-ta
 import { TorIngestionChart } from "@/components/dashboard/tor-ingestion-chart";
 import { DepartmentBudgetChart } from "@/components/dashboard/department-budget-chart";
 import { BudgetDistributionChart } from "@/components/dashboard/budget-distribution-chart";
+import { CategoryDistributionChart } from "@/components/dashboard/category-distribution-chart";
 import { ShellContent } from "@/components/layout/shell-content";
 import { MonitorSection } from "@/components/monitor/monitor-section";
 import { useAudience } from "@/components/providers/audience-provider";
@@ -118,6 +119,10 @@ export function DashboardView() {
 
         <MonitorSection title={t("distributionTitle")} description={t("distributionDescription")}>
           <BudgetDistributionChart tors={tors} isPending={waiting} isError={isError} />
+        </MonitorSection>
+
+        <MonitorSection title={t("categoryDistributionTitle")} description={t("categoryDistributionDescription")}>
+          <CategoryDistributionChart />
         </MonitorSection>
 
         <MonitorSection

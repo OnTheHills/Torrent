@@ -1,5 +1,18 @@
 import type { Tor } from "@/types/tor";
 
+export interface CategoryFrequency {
+  category: string;
+  frequency: number;
+}
+
+export function fetchCategoryDistribution({ signal }: { signal: AbortSignal }) {
+  return api<{ categories: CategoryFrequency[] }>("/tors/category-distribution", {
+    method: "GET",
+    cache: "no-store",
+    signal,
+  });
+}
+
 export interface DepartmentBudget {
   department: string;
   totalBudget: number;

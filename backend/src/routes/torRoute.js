@@ -3,6 +3,7 @@ const {
   createTor,
   getAllTors,
   getTopDepartmentsByBudget,
+  getCategoryDistribution,
   getTorById,
   updateTor,
   deleteTor,
@@ -16,6 +17,7 @@ const adminOnly = [requireAuth, requireRole("admin")];
 torRouter.post("/", ...adminOnly, createTor);
 torRouter.get("/", getAllTors);
 torRouter.get("/top-departments-by-budget", getTopDepartmentsByBudget);
+torRouter.get("/category-distribution", getCategoryDistribution);
 torRouter.get("/:id", getTorById);
 torRouter.patch("/:id", ...adminOnly, updateTor);
 torRouter.delete("/:id", ...adminOnly, deleteTor);

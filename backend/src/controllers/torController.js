@@ -8,6 +8,42 @@ function withMatchEligibility(tor) {
 const torCrudService = require("@/services/tor/torCrudService");
 const TOR = require("@/models/TOR");
 
+async function getCategoryDistribution(request, response) {
+  try {
+    const result = await TOR.aggregate([
+      { $match: { hidden: { $ne: true } } },
+      { $project: {
+        category: { $trim: { input: { $cond: [
+          { $eq: [{ $type: "$category" }, "string"] }, "$category", "",
+        ] } } },
+      } },
+      { $set: { category: { $cond: [
+        { $or: [{ $eq: ["$category", ""] }, { $eq: [{ $strcasecmp: ["$category", "Others"] }, 0] }] },
+        "Others", "$category",
+      ] } } },
+      { $group: { _id: "$category", frequency: { $sum: 1 } } },
+      { $project: { _id: 0, category: "$_id", frequency: 1 } },
+      { $sort: { frequency: -1, category: 1 } },
+      { $facet: {
+        top: [{ $match: { category: { $ne: "Others" } } }, { $limit: 7 }],
+        tail: [{ $match: { category: { $ne: "Others" } } }, { $skip: 7 }],
+        others: [{ $match: { category: "Others" } }],
+      } },
+      { $project: {
+        categories: { $concatArrays: ["$top", { $cond: [
+          { $gt: [{ $add: [{ $size: "$top" }, { $size: "$tail" }, { $size: "$others" }] }, 0] },
+          [{ category: "Others", frequency: { $add: [{ $sum: "$tail.frequency" }, { $sum: "$others.frequency" }] } }],
+          [],
+        ] }] },
+      } },
+    ]);
+    response.set("Cache-Control", "no-store");
+    return response.status(200).json({ categories: result[0]?.categories ?? [] });
+  } catch (error) {
+    return response.status(500).json({ message: error.message });
+  }
+}
+
 async function getTopDepartmentsByBudget(request, response) {
   try {
     const departments = await TOR.aggregate([
@@ -105,4 +141,4 @@ async function deleteTor(request, response) {
   }
 }
 
-module.exports = { createTor, deleteTor, getAllTors, getTorById, updateTor, getTopDepartmentsByBudget };
+module.exports = { createTor, deleteTor, getAllTors, getTorById, updateTor, getTopDepartmentsByBudget, getCategoryDistribution };
