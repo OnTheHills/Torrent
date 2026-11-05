@@ -1,5 +1,18 @@
 import type { Tor } from "@/types/tor";
 
+export interface DepartmentBudget {
+  department: string;
+  totalBudget: number;
+  torCount: number;
+}
+
+export function fetchTopDepartmentsByBudget({ signal }: { signal: AbortSignal }) {
+  return api<{ departments: DepartmentBudget[] }>("/tors/top-departments-by-budget", {
+    cache: "no-store",
+    signal,
+  });
+}
+
 // Server-rendered Next.js code cannot reach the host's localhost inside Docker,
 // while browser code can. Keep the choice in one place for every API call.
 const isServer = typeof window === "undefined";

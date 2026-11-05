@@ -2,6 +2,7 @@ const express = require("express");
 const {
   createTor,
   getAllTors,
+  getTopDepartmentsByBudget,
   getTorById,
   updateTor,
   deleteTor,
@@ -14,6 +15,7 @@ const adminOnly = [requireAuth, requireRole("admin")];
 
 torRouter.post("/", ...adminOnly, createTor);
 torRouter.get("/", getAllTors);
+torRouter.get("/top-departments-by-budget", getTopDepartmentsByBudget);
 torRouter.get("/:id", getTorById);
 torRouter.patch("/:id", ...adminOnly, updateTor);
 torRouter.delete("/:id", ...adminOnly, deleteTor);

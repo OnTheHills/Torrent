@@ -10,6 +10,8 @@ import { BudgetKpiStrip } from "@/components/dashboard/budget-kpi-strip";
 import { DashboardFetchStatus } from "@/components/dashboard/dashboard-loading";
 import { HistoricalPriceTable } from "@/components/dashboard/historical-price-table";
 import { TorIngestionChart } from "@/components/dashboard/tor-ingestion-chart";
+import { DepartmentBudgetChart } from "@/components/dashboard/department-budget-chart";
+import { BudgetDistributionChart } from "@/components/dashboard/budget-distribution-chart";
 import { ShellContent } from "@/components/layout/shell-content";
 import { MonitorSection } from "@/components/monitor/monitor-section";
 import { useAudience } from "@/components/providers/audience-provider";
@@ -108,6 +110,14 @@ export function DashboardView() {
               <TorIngestionChart tors={tors} />
             </>
           )}
+        </MonitorSection>
+
+        <MonitorSection title={t("departmentBudgetTitle")} description={t("departmentBudgetDescription")}>
+          <DepartmentBudgetChart />
+        </MonitorSection>
+
+        <MonitorSection title={t("distributionTitle")} description={t("distributionDescription")}>
+          <BudgetDistributionChart tors={tors} isPending={waiting} isError={isError} />
         </MonitorSection>
 
         <MonitorSection
