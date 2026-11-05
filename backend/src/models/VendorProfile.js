@@ -23,11 +23,17 @@ const vendorProfileSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
-    companyName: {
+    vendorType: {
+      type: String,
+      enum: ["individual", "company"],
+      default: "company",
+      required: true,
+    },
+    vendorName: {
       type: String,
       trim: true,
     },
-    companyEmail: {
+    vendorEmail: {
       type: String,
       trim: true,
       
@@ -53,7 +59,7 @@ const vendorProfileSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    companyPhone: {
+    vendorPhone: {
       type: String,
       trim: true,
     },

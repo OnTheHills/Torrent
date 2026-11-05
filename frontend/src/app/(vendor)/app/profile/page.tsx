@@ -3,6 +3,7 @@
 
 import { ShellContent } from "@/components/layout/shell-content";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Cancel01Icon,
   PlusSignIcon,
@@ -201,12 +202,13 @@ function projectHasContent(project: ProjectRow) {
 }
 
 type SavedProfile = {
+  vendorType?: "individual" | "company";
   securityCertificates?: string[];
   aiCertificates?: string[];
   otherCertificates?: string[];
-  companyName?: string;
-  companyEmail?: string;
-  companyPhone?: string;
+  vendorName?: string;
+  vendorEmail?: string;
+  vendorPhone?: string;
   teamSize?: string;
   vendorCapDescription?: string;
   techSkills?: string[];
@@ -217,9 +219,9 @@ type SavedProfile = {
 } | null;
 
 const initialProfile = {
-  companyName: "",
-  companyEmail: "",
-  companyPhone: "",
+  vendorName: "",
+  vendorEmail: "",
+  vendorPhone: "",
   teamSize: "",
   vendorCapDescription: "",
   techSkills: "",
@@ -233,7 +235,9 @@ const projectFrostCard =
   "relative w-full rounded-xl bg-[color-mix(in_srgb,white_78%,transparent)] p-5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_36%,transparent)] backdrop-blur-md backdrop-saturate-150 md:p-6";
 
 export default function ProfilePage() {
+  const queryClient = useQueryClient();
   const [profile, setProfile] = useState(initialProfile);
+  const [vendorType, setVendorType] = useState<"individual" | "company">("company");
   const [certificates, setCertificates] = useState(emptyCertificates);
   const [checkingCertificates, setCheckingCertificates] = useState<Partial<Record<CertificateField, boolean>>>({});
   const [isProfileLoading, setIsProfileLoading] = useState(true);
@@ -272,11 +276,12 @@ export default function ProfilePage() {
           `/vendor-profiles/get/${currentUser._id}`,
         );
         if (cancelled || !saved) return;
+        setVendorType(saved.vendorType ?? "company");
         setCertificates(savedCertificateSelections(saved));
         setProfile({
-          companyName: saved.companyName ?? "",
-          companyEmail: saved.companyEmail ?? "",
-          companyPhone: saved.companyPhone ?? "",
+          vendorName: saved.vendorName ?? "",
+          vendorEmail: saved.vendorEmail ?? "",
+          vendorPhone: saved.vendorPhone ?? "",
           teamSize: saved.teamSize ?? "",
           vendorCapDescription: saved.vendorCapDescription ?? "",
           techSkills: (saved.techSkills ?? []).join(", "),
@@ -460,10 +465,11 @@ export default function ProfilePage() {
 
       const submittedProfile = {
         userId: currentUser._id,
-        companyName: profile.companyName,
-        companyEmail: profile.companyEmail,
+        vendorType,
+        vendorName: profile.vendorName,
+        vendorEmail: profile.vendorEmail,
         vendorCapDescription: profile.vendorCapDescription,
-        teamSize: profile.teamSize,
+        teamSize: vendorType === "company" ? profile.teamSize : "",
         techSkills: profile.techSkills
           .split(",")
           .map((skill) => skill.trim())
@@ -477,7 +483,7 @@ export default function ProfilePage() {
           urls: project.urls,
         })),
         website: profile.website,
-        companyPhone: profile.companyPhone,
+        vendorPhone: profile.vendorPhone,
         bio: profile.bio,
         location: profile.location,
       };
@@ -504,6 +510,9 @@ export default function ProfilePage() {
         },
       );
       setCertificates(savedCertificateSelections(saved));
+
+      await queryClient.cancelQueries({ queryKey: ["vendor-profile", currentUser._id] });
+      queryClient.setQueryData(["vendor-profile", currentUser._id], saved);
 
       console.log(
         "Vendor profile submitted to backend:\n",
@@ -547,45 +556,70 @@ export default function ProfilePage() {
           <Card className={profileCard}>
             <CardHeader>
               <CardTitle className="text-xl font-semibold leading-snug tracking-tight">
-                Company Details
+                Vendor details
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 sm:grid-cols-2">
+                <fieldset className="flex flex-col gap-2.5 sm:col-span-2">
+                  <legend className="mb-2.5 text-sm font-medium leading-snug">
+                    Vendor type
+                  </legend>
+                  <div className="flex flex-wrap gap-4">
+                    {(["individual", "company"] as const).map((type) => (
+                      <label
+                        key={type}
+                        className="flex cursor-pointer items-center gap-2 text-sm"
+                      >
+                        <input
+                          type="radio"
+                          name="vendorType"
+                          value={type}
+                          checked={vendorType === type}
+                          onChange={() => setVendorType(type)}
+                          className="size-4 accent-[var(--palette-teal-600)]"
+                        />
+                        {type === "individual" ? "Individual" : "Company"}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
                 <div className="flex flex-col gap-2.5 sm:col-span-2">
                   <label
                     className="text-sm font-medium leading-snug"
-                    htmlFor="company"
+                    htmlFor="vendorName"
                   >
-                    Company name
+                    {vendorType === "individual" ? "Vendor name" : "Company name"}
                   </label>
                   <Input
                     className={fieldClass}
-                    id="company"
-                    value={profile.companyName}
+                    id="vendorName"
+                    value={profile.vendorName}
                     onChange={(event) =>
-                      updateProfile("companyName", event.target.value)
+                      updateProfile("vendorName", event.target.value)
                     }
                   />
                 </div>
-                <div className="flex flex-col gap-2.5">
-                  <label
-                    className="text-sm font-medium leading-snug"
-                    htmlFor="size"
-                  >
-                    Team size
-                  </label>
-                  <Input
-                    className={fieldClass}
-                    id="size"
-                    inputMode="numeric"
-                    placeholder="Number of people"
-                    value={profile.teamSize}
-                    onChange={(event) =>
-                      updateProfile("teamSize", event.target.value)
-                    }
-                  />
-                </div>
+                {vendorType === "company" && (
+                  <div className="flex flex-col gap-2.5">
+                    <label
+                      className="text-sm font-medium leading-snug"
+                      htmlFor="size"
+                    >
+                      Team size
+                    </label>
+                    <Input
+                      className={fieldClass}
+                      id="size"
+                      inputMode="numeric"
+                      placeholder="Number of people"
+                      value={profile.teamSize}
+                      onChange={(event) =>
+                        updateProfile("teamSize", event.target.value)
+                      }
+                    />
+                  </div>
+                )}
                 <div className="flex flex-col gap-2.5">
                   <label
                     className="text-sm font-medium leading-snug"
@@ -606,34 +640,34 @@ export default function ProfilePage() {
                 <div className="flex flex-col gap-2.5">
                   <label
                     className="text-sm font-medium leading-snug"
-                    htmlFor="companyEmail"
+                    htmlFor="vendorEmail"
                   >
                     Email
                   </label>
                   <Input
                     className={fieldClass}
-                    id="companyEmail"
+                    id="vendorEmail"
                     type="email"
-                    value={profile.companyEmail}
+                    value={profile.vendorEmail}
                     onChange={(event) =>
-                      updateProfile("companyEmail", event.target.value)
+                      updateProfile("vendorEmail", event.target.value)
                     }
                   />
                 </div>
                 <div className="flex flex-col gap-2.5">
                   <label
                     className="text-sm font-medium leading-snug"
-                    htmlFor="companyPhone"
+                    htmlFor="vendorPhone"
                   >
                     Phone
                   </label>
                   <Input
                     className={fieldClass}
-                    id="companyPhone"
+                    id="vendorPhone"
                     type="tel"
-                    value={profile.companyPhone}
+                    value={profile.vendorPhone}
                     onChange={(event) =>
-                      updateProfile("companyPhone", event.target.value)
+                      updateProfile("vendorPhone", event.target.value)
                     }
                   />
                 </div>
@@ -660,7 +694,7 @@ export default function ProfilePage() {
                     className="text-sm font-medium leading-snug"
                     htmlFor="bio"
                   >
-                    About the company
+                    About this vendor
                   </label>
                   <textarea
                     ref={bioRef}

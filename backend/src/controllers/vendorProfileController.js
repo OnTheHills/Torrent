@@ -7,8 +7,8 @@ function profileData(request) {
   if (body.userId && String(body.userId) !== String(request.vendorProfile?.userId || request.user.sub)) {
     throw badRequest("You cannot change the profile owner.", 403);
   }
-  const allowed = ["companyName", "companyEmail", "vendorCapDescription", "teamSize", "techSkills",
-    "pastProjects", "website", "companyPhone", "bio", "location",
+  const allowed = ["vendorType", "vendorName", "vendorEmail", "vendorCapDescription", "teamSize", "techSkills",
+    "pastProjects", "website", "vendorPhone", "bio", "location",
     "securityCertificates", "aiCertificates", "otherCertificates"];
   return Object.fromEntries(allowed.filter((field) => Object.hasOwn(body, field)).map((field) => [field, body[field]]));
 }

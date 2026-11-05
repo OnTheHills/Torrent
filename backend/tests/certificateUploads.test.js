@@ -56,7 +56,7 @@ test("certificate uploads persist with their profile and enforce ownership and P
   const cookie = (userId = USER) => `torrent_session=${signUserToken({ _id: userId, role: "vendor", email: "test@example.com" })}`;
   const upload = (fields = {}, files = {}) => {
     const form = new FormData();
-    form.append("profile", JSON.stringify({ userId: USER, companyName: "Test company", ...fields }));
+    form.append("profile", JSON.stringify({ userId: USER, vendorName: "Test company", ...fields }));
     for (const [field, uploads] of Object.entries(files)) {
       for (const file of uploads) form.append(field, new Blob([file.buffer ?? PNG], { type: file.type ?? "image/png" }), file.name ?? "certificate.png");
     }
@@ -180,9 +180,9 @@ test("certificate uploads persist with their profile and enforce ownership and P
   });
 
   await t.test("profile updates save without queuing matching", async () => {
-    const response = await send("PATCH", `/${PROFILE}`, upload({ companyName: "Saved without matching" }));
+    const response = await send("PATCH", `/${PROFILE}`, upload({ vendorName: "Saved without matching" }));
     assert.equal(response.status, 200);
-    assert.equal(stored.companyName, "Saved without matching");
+    assert.equal(stored.vendorName, "Saved without matching");
     assert.equal(enqueueTor.mock.callCount(), 0);
     assert.equal(enqueueTors.mock.callCount(), 0);
   });

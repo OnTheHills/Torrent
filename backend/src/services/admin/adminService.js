@@ -811,8 +811,8 @@ async function auditLog(query) {
 function completeness(profile) {
   if (!profile) return 0;
   const checks = [
-    profile.companyName,
-    profile.companyEmail,
+    profile.vendorName,
+    profile.vendorEmail,
     profile.vendorCapDescription,
     profile.teamSize,
     profile.website,
@@ -842,7 +842,7 @@ async function users() {
         disabled: Boolean(person.disabled),
         emailVerified: Boolean(person.emailVerified),
         createdAt: person.createdAt,
-        companyName: profile?.companyName || "",
+        vendorName: profile?.vendorName || "",
         completeness: completeness(profile),
         certificates: profile?.certificates || [],
         profileId: profile?._id || null,
@@ -878,9 +878,9 @@ async function getUser(id) {
     profileId: profile?._id || null,
     profile: profile
       ? {
-          companyName: profile.companyName || "",
-          companyEmail: profile.companyEmail || "",
-          companyPhone: profile.companyPhone || "",
+          vendorName: profile.vendorName || "",
+          vendorEmail: profile.vendorEmail || "",
+          vendorPhone: profile.vendorPhone || "",
           website: profile.website || "",
           location: profile.location || "",
           teamSize: profile.teamSize || "",

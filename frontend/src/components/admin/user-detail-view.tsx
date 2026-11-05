@@ -67,9 +67,9 @@ type UserDetail = {
   completeness: number;
   profileId: string | null;
   profile: {
-    companyName: string;
-    companyEmail: string;
-    companyPhone: string;
+    vendorName: string;
+    vendorEmail: string;
+    vendorPhone: string;
     website: string;
     location: string;
     teamSize: string;
@@ -578,11 +578,11 @@ export function UserDetailView({ id }: { id: string }) {
     data?.email,
     data?.role,
     data?.disabled,
-    data?.profile?.companyName,
+    data?.profile?.vendorName,
   ]);
 
-  const companyName =
-    data?.role === "vendor" ? data.profile?.companyName?.trim() || "" : "";
+  const vendorName =
+    data?.role === "vendor" ? data.profile?.vendorName?.trim() || "" : "";
 
   return (
     <div>
@@ -622,7 +622,7 @@ export function UserDetailView({ id }: { id: string }) {
               <h1 className="text-3xl font-semibold tracking-tight md:text-4xl md:leading-[1.15]">
                 {displayName}
               </h1>
-              {data?.email || companyName ? (
+              {data?.email || vendorName ? (
                 <p className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-muted-foreground">
                   {data?.email ? (
                     <span className="inline-flex min-w-0 items-center gap-1.5">
@@ -634,14 +634,14 @@ export function UserDetailView({ id }: { id: string }) {
                       <span className="truncate">{data.email}</span>
                     </span>
                   ) : null}
-                  {companyName ? (
+                  {vendorName ? (
                     <span className="inline-flex min-w-0 items-center gap-1.5">
                       <HugeiconsIcon
                         icon={BankIcon}
                         strokeWidth={1.75}
                         className="size-5 shrink-0"
                       />
-                      <span className="truncate">{companyName}</span>
+                      <span className="truncate">{vendorName}</span>
                     </span>
                   ) : null}
                 </p>
@@ -662,7 +662,7 @@ export function UserDetailView({ id }: { id: string }) {
           <>
             {data.role === "vendor" ? (
               <AdminSection
-                title="Company & capability"
+                title="Vendor & capability"
                 description="A read-only view of this vendor's profile as used for opportunity matching."
               >
                 <AdminPanel>
@@ -674,16 +674,16 @@ export function UserDetailView({ id }: { id: string }) {
                     <div className="space-y-6">
                       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         <DetailRow
-                          label="Company"
-                          value={show(profile.companyName)}
+                          label="Vendor"
+                          value={show(profile.vendorName)}
                         />
                         <DetailRow
-                          label="Company email"
-                          value={show(profile.companyEmail)}
+                          label="Vendor email"
+                          value={show(profile.vendorEmail)}
                         />
                         <DetailRow
                           label="Phone"
-                          value={show(profile.companyPhone)}
+                          value={show(profile.vendorPhone)}
                         />
                         <DetailRow
                           label="Website"
