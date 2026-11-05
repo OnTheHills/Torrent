@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Menu01Icon } from "@hugeicons/core-free-icons";
 
@@ -21,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";
 import { routes } from "@/config/routes";
 import type { DictionaryKey } from "@/lib/i18n/dictionary";
+import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 /**
@@ -38,11 +40,29 @@ export function ShellAppBar({
   const { user } = useSession();
   const { toggleSidebar } = useSidebar();
   const showAlerts = audience === "vendor";
+  const { data: vendorProfile } = useQuery({
+    queryKey: ["vendor-profile", user?._id],
+    enabled: audience === "vendor" && Boolean(user),
+    queryFn: async () => {
+      try {
+        return await api<{ companyName?: string } | null>(
+          `/vendor-profiles/get/${user!._id}`,
+        );
+      } catch (error) {
+        if ((error as { status?: number }).status === 404) return null;
+        throw error;
+      }
+    },
+    retry: false,
+  });
+  const vendorName = audience === "vendor" && user
+    ? vendorProfile?.companyName?.trim()
+    : undefined;
 
   return (
     <AppBar>
       <AppBar.Primary>
-        <AppBar.Left>
+        <AppBar.Left className="min-w-0">
           <Button
             type="button"
             variant="ghost"
@@ -58,12 +78,24 @@ export function ShellAppBar({
           </Button>
           <AppBar.MobileDivider />
 
-          <AppBar.BrandLockup>
+          <AppBar.BrandLockup className="min-w-0">
             <Link
               href={audience === "vendor" ? routes.app.home : routes.home}
-              className="inline-flex h-12 items-center md:h-16"
+              className="inline-flex h-12 min-w-0 items-center gap-1 md:h-16 md:gap-1.5"
             >
-              <BrandLockup size="xl" priority />
+              {/* Clip the wordmark from the combined asset, keeping its icon. */}
+              <span
+                aria-hidden="true"
+                className="h-14 w-6 shrink-0 overflow-hidden md:h-20 md:w-[35px]"
+              >
+                <BrandLockup size="xl" priority className="max-w-none" />
+              </span>
+              <span
+                title={vendorName || t("brand")}
+                className="max-w-[32vw] truncate font-heading text-2xl leading-none font-black tracking-[-0.05em] text-[#282828] md:max-w-md md:text-[34px]"
+              >
+                {vendorName || t("brand")}
+              </span>
             </Link>
             {workspace ? (
               <AppBar.WorkspaceName

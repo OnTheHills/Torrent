@@ -3,6 +3,7 @@
 
 import { ShellContent } from "@/components/layout/shell-content";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Cancel01Icon,
   PlusSignIcon,
@@ -234,6 +235,7 @@ const projectFrostCard =
   "relative w-full rounded-xl bg-[color-mix(in_srgb,white_78%,transparent)] p-5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_36%,transparent)] backdrop-blur-md backdrop-saturate-150 md:p-6";
 
 export default function ProfilePage() {
+  const queryClient = useQueryClient();
   const [profile, setProfile] = useState(initialProfile);
   const [vendorType, setVendorType] = useState<"individual" | "company">("company");
   const [certificates, setCertificates] = useState(emptyCertificates);
@@ -508,6 +510,9 @@ export default function ProfilePage() {
         },
       );
       setCertificates(savedCertificateSelections(saved));
+
+      await queryClient.cancelQueries({ queryKey: ["vendor-profile", currentUser._id] });
+      queryClient.setQueryData(["vendor-profile", currentUser._id], saved);
 
       console.log(
         "Vendor profile submitted to backend:\n",
