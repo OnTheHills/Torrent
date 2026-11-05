@@ -34,6 +34,7 @@ function compactList(values, maxItems, maxLength = 500) {
 
 function matchPrompt(profile, tor, certificates = []) {
   const vendor = {
+    vendorType: profile.vendorType === "individual" ? "individual" : "company",
     companyName: compact(profile.companyName, 200),
     capabilities: compact(profile.vendorCapDescription, 1800),
     bio: compact(profile.bio, 1000),
@@ -51,7 +52,9 @@ function matchPrompt(profile, tor, certificates = []) {
           completedAt: project.completedAt ?? null,
           urls: compactList(project.urls, 8, 300),
         }),
-    teamSize: compact(profile.teamSize, 100),
+    ...(profile.vendorType === "individual"
+      ? { capacity: "This is one person." }
+      : { teamSize: compact(profile.teamSize, 100) }),
     location: compact(profile.location, 100),
     website: compact(profile.website, 300),
   };
