@@ -259,6 +259,10 @@ function mapBackendTorToFrontendTor(data: any): Tor {
 
   return {
     id: data._id,
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt,
+    status: data.status,
+    source: data.source,
     matchEligible: typeof data.matchEligible === "boolean" ? data.matchEligible : undefined,
     refId: data.refId || data._id,
     title: data.title,
