@@ -46,6 +46,25 @@
     }
   }
 
+  @keyframes role-feature-shake {
+    0%,
+    100% {
+      transform: translateX(0) rotate(0deg);
+    }
+    20% {
+      transform: translateX(-2px) rotate(-8deg);
+    }
+    40% {
+      transform: translateX(2px) rotate(8deg);
+    }
+    60% {
+      transform: translateX(-1.5px) rotate(-5deg);
+    }
+    80% {
+      transform: translateX(1.5px) rotate(5deg);
+    }
+  }
+
   .bma-stripes {
     background-image: repeating-linear-gradient(
       75deg,

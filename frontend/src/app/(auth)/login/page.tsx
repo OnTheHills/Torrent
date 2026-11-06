@@ -6,16 +6,17 @@ import { GoogleButton } from "@/components/auth/google-button";
 import { routes } from "@/config/routes";
 
 export const metadata: Metadata = {
-  title: "Log in",
+  title: "Welcome back",
 };
 
 export default function LoginPage() {
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="space-y-1">
-        <h1 className="text-xl font-semibold">Log in</h1>
+        <h1 className="text-xl font-semibold">Welcome back</h1>
         <p className="text-sm text-muted-foreground">
-            Continue with the Google account you added as a test user.
+          Sign in with Google to open your vendor workspace, saved listings, and
+          alerts.
         </p>
       </div>
       <GoogleButton />

@@ -108,7 +108,7 @@ const frostPill =
 const frostPillIdle =
   "bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))] text-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)]";
 const frostPillOn =
-  "bg-[color-mix(in_srgb,var(--palette-teal-400)_32%,transparent)] text-[var(--palette-teal-800)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_80%,transparent)] ring-[color-mix(in_srgb,var(--palette-teal-400)_48%,transparent)]";
+  "bg-sidebar-accent text-sidebar-accent-foreground shadow-none ring-0";
 const frostPillDanger =
   "bg-[color-mix(in_srgb,var(--palette-red-400)_32%,transparent)] text-[var(--palette-red-800)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_80%,transparent)] ring-[color-mix(in_srgb,var(--palette-red-400)_48%,transparent)] hover:bg-[color-mix(in_srgb,var(--palette-red-400)_44%,transparent)]";
 

@@ -33,7 +33,7 @@ export function TorTable({ tors }: { tors: Tor[] }) {
             {vendor ? (
               <th className="px-4 py-3 font-medium">{t("match")}</th>
             ) : null}
-            <th className="py-3 pl-4 font-medium">{t("status")}</th>
+            <th className="py-3 pl-4 font-medium">{t("watchOut")}</th>
             {vendor ? <th className="w-12 py-3 pl-2" /> : null}
           </tr>
         </thead>

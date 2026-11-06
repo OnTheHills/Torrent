@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Tick02Icon } from "@hugeicons/core-free-icons";
 
 import { useLocale } from "@/components/providers/locale-provider";
+import {
+  FrostCheckbox,
+  frostSelectedItem,
+} from "@/components/tor/tor-filters";
 import {
   Card,
   CardContent,
@@ -41,24 +43,11 @@ export function GoNoGoChecklist({ requirements }: { requirements: string[] }) {
                     setChecked((prev) => ({ ...prev, [index]: !prev[index] }))
                   }
                   className={cn(
-                    "flex w-full items-start gap-3 rounded-xl border px-4 py-3 text-left text-sm transition-colors",
-                    on
-                      ? "border-primary/40 bg-primary/5"
-                      : "border-border bg-muted/40 hover:bg-muted/70"
+                    "flex w-full items-start gap-2.5 rounded-full px-2.5 py-2 text-left text-sm transition-colors hover:bg-sidebar-hover",
+                    on && frostSelectedItem,
                   )}
                 >
-                  <span
-                    className={cn(
-                      "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded border",
-                      on
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-background"
-                    )}
-                  >
-                    {on ? (
-                      <HugeiconsIcon icon={Tick02Icon} size={12} strokeWidth={2} />
-                    ) : null}
-                  </span>
+                  <FrostCheckbox checked={on} className="mt-0.5" />
                   <span className="leading-relaxed text-foreground">{item}</span>
                 </button>
               </li>
@@ -72,9 +61,7 @@ export function GoNoGoChecklist({ requirements }: { requirements: string[] }) {
             <p
               className={cn(
                 "text-sm font-semibold",
-                isGo
-                  ? "text-emerald-300"
-                  : "text-destructive"
+                isGo ? "text-foreground" : "text-destructive",
               )}
             >
               {isGo ? t("goStatus") : t("noGoStatus")}
@@ -83,8 +70,7 @@ export function GoNoGoChecklist({ requirements }: { requirements: string[] }) {
           <div className="h-2.5 overflow-hidden rounded-full bg-background">
             <div
               className={cn(
-                "h-full rounded-full transition-all duration-300",
-                isGo ? "bg-emerald-500" : "bg-primary"
+                "h-full rounded-full bg-foreground/70 transition-all duration-300",
               )}
               style={{ width: `${pct}%` }}
             />

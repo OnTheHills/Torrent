@@ -5,9 +5,14 @@ import { useMemo, useRef, useState } from "react";
 import {
   ArrowLeft01Icon,
   ArrowRight01Icon,
+  BadgePercentIcon,
+  BankIcon,
   ChevronFirstIcon,
   ChevronLastIcon,
+  Invisible,
   Search01Icon,
+  SourceCodeIcon,
+  ViewIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
@@ -17,6 +22,7 @@ import {
   AdminHero,
   AdminStatus,
   ReasonField,
+  frostButton,
   useAdminQuery,
 } from "@/components/admin/admin-ui";
 import {
@@ -26,16 +32,36 @@ import {
   RecordsSortSelect,
   type RecordsFilterState,
 } from "@/components/admin/records-filters";
+import {
+  bandLabel,
+  bandLabelClassName,
+  bandTint,
+  effectiveBand,
+} from "@/components/admin/review-band";
+import {
+  FilterCountPill,
+  FilterPanelAside,
+  FilterPanelLayout,
+} from "@/components/filters/filter-panel";
+import { StageBadge } from "@/components/tor/listing-badges";
+import {
+  FrostCheckbox,
+  frostSelectedItem,
+} from "@/components/tor/tor-filters";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Surface } from "@/components/ui/surface";
 import { routes } from "@/config/routes";
 import { formatBudgetCompact } from "@/data/mock";
 import { api } from "@/lib/api";
+import { listingStage } from "@/lib/listing-stage";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 25;
 const PAGE_WINDOW_SIZE = 5;
+const TABLE_SKELETON_ROWS = 8;
 
 type Row = {
   id: string;
@@ -43,6 +69,8 @@ type Row = {
   title: string;
   source?: string;
   department?: string;
+  status?: string;
+  deadline?: string;
   budgetThb: number;
   confidence: number;
   reviewStatus: string;
@@ -50,15 +78,30 @@ type Row = {
   integrityStatus?: string;
 };
 
+function rowStage(row: Row) {
+  return listingStage({
+    lifecycle: row.status || "published",
+    deadline: row.deadline
+      ? new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(
+          new Date(row.deadline),
+        )
+      : undefined,
+    sourceKind: row.source === "SME-GP" ? "sme-gp" : undefined,
+  });
+}
+
 type Payload = {
   total: number;
   items: Row[];
   budgetYears?: string[];
 };
 
-const SOURCE_LABEL = Object.fromEntries(
-  RECORDS_SOURCES.map((source) => [source.value, source.label]),
-) as Record<string, string>;
+const SOURCE_LABEL: Record<string, string> = {
+  ...Object.fromEntries(
+    RECORDS_SOURCES.map((source) => [source.value, source.label]),
+  ),
+  "EGP-PROCESS5": "e-GP Process5",
+};
 
 function sourceLabel(source?: string) {
   if (!source) return "—";
@@ -76,8 +119,11 @@ function buildRecordsPath(
   if (filters.budgetYears.length) params.set("year", filters.budgetYears.join(","));
   if (filters.stages.length) params.set("stage", filters.stages.join(","));
   if (filters.reviews.length) params.set("review", filters.reviews.join(","));
-  if (filters.integrity.length) {
-    params.set("integrity", filters.integrity.join(","));
+  if (filters.budgetAvailability.length) {
+    params.set("budget", filters.budgetAvailability.join(","));
+  }
+  if (filters.watchOut.length) {
+    params.set("integrity", filters.watchOut.join(","));
   }
   if (filters.visibility.length) {
     params.set("visibility", filters.visibility.join(","));
@@ -94,16 +140,25 @@ export function TorsView() {
   const [filters, setFilters] = useState<RecordsFilterState>(DEFAULT_RECORDS_FILTERS);
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<string[]>([]);
+  const [selecting, setSelecting] = useState(false);
   const [reason, setReason] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const listTopRef = useRef<HTMLDivElement>(null);
 
+  function stopSelecting() {
+    setSelecting(false);
+    setSelected([]);
+  }
+
   const path = useMemo(
     () => buildRecordsPath(query, filters, page),
     [query, filters, page],
   );
-  const { data, error, loading, reload } = useAdminQuery<Payload>(path);
+  const { data, error, loading, fetching, isPlaceholderData, reload } =
+    useAdminQuery<Payload>(path);
+  const showTableSkeleton = loading || isPlaceholderData;
+
   function applyFilters(next: RecordsFilterState) {
     setFilters(next);
     setPage(1);
@@ -168,28 +223,7 @@ export function TorsView() {
         description="Search every stored TOR, including hidden ones. Hiding keeps the row and its history, and removes it from the public catalog."
       />
       <AdminBody className="max-w-screen-2xl space-y-10 md:space-y-12">
-        <div
-          ref={listTopRef}
-          className="grid items-start gap-8 lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)]"
-        >
-          <div className="flex items-end justify-between gap-4 lg:col-span-2">
-            <h2 className="text-2xl font-semibold tracking-tight md:text-[2rem] md:leading-[1.2]">
-              Catalog
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {loading && !data ? (
-                "Loading…"
-              ) : (
-                <>
-                  <span className="font-semibold tabular-nums text-foreground">
-                    {total.toLocaleString("en-US")}
-                  </span>{" "}
-                  match this filter
-                </>
-              )}
-            </p>
-          </div>
-
+        <FilterPanelLayout ref={listTopRef}>
           <div className="flex items-center gap-3 lg:col-span-2">
             <form
               className="relative isolate min-w-0 flex-1 rounded-full shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] backdrop-blur-md backdrop-saturate-150"
@@ -219,6 +253,36 @@ export function TorsView() {
               onChange={(sort) => applyFilters({ ...filters, sort })}
               className="w-44 shrink-0 sm:w-52"
             />
+            <Button
+              type="button"
+              size="lg"
+              className={cn(
+                "h-10 w-[5.25rem] shrink-0 rounded-full px-4",
+                frostButton,
+              )}
+              aria-pressed={selecting}
+              onClick={() => {
+                if (selecting) stopSelecting();
+                else setSelecting(true);
+              }}
+            >
+              {selecting ? "Done" : "Select"}
+            </Button>
+            <FilterCountPill
+              className={fetching ? "opacity-60" : undefined}
+              aria-live="polite"
+            >
+              {loading && !data ? (
+                "Loading…"
+              ) : (
+                <>
+                  <span className="font-semibold tabular-nums">
+                    {total.toLocaleString("en-US")}
+                  </span>
+                  <span className="ml-1 opacity-80">match this filter</span>
+                </>
+              )}
+            </FilterCountPill>
           </div>
 
           {selected.length > 0 ? (
@@ -257,6 +321,13 @@ export function TorsView() {
                   >
                     Clear selection
                   </AdminButton>
+                  <AdminButton
+                    tone="glass"
+                    disabled={busy}
+                    onClick={stopSelecting}
+                  >
+                    Done
+                  </AdminButton>
                 </div>
               </Surface>
               {message ? (
@@ -267,103 +338,209 @@ export function TorsView() {
             <p className="text-sm text-muted-foreground lg:col-span-2">{message}</p>
           ) : null}
 
-          <aside className="self-start lg:sticky lg:top-6 lg:max-h-[calc(100dvh-72px-3rem)] lg:overflow-y-auto">
-            <Surface className="bg-surface p-5 ring-transparent md:p-6">
-              <RecordsFilters
-                value={filters}
-                onChange={applyFilters}
-                onClear={() => applyFilters(DEFAULT_RECORDS_FILTERS)}
-                budgetYears={data?.budgetYears ?? []}
-              />
-            </Surface>
-          </aside>
+          <FilterPanelAside>
+            <RecordsFilters
+              value={filters}
+              onChange={applyFilters}
+              onClear={() => applyFilters(DEFAULT_RECORDS_FILTERS)}
+              budgetYears={data?.budgetYears ?? []}
+            />
+          </FilterPanelAside>
 
           <div className="min-w-0 space-y-6">
-            <AdminStatus loading={loading && !data} error={error} />
-            <Surface className="overflow-hidden bg-surface p-0 ring-transparent">
+            {error ? <AdminStatus error={error} /> : null}
+            <Surface
+              className="overflow-hidden bg-surface p-0 ring-transparent"
+              aria-busy={showTableSkeleton}
+            >
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[720px] table-fixed border-collapse text-left text-sm">
+                <table className="w-full min-w-[760px] table-fixed border-collapse text-left text-sm">
                   <colgroup>
-                    <col className="w-12" />
+                    {selecting ? <col className="w-12" /> : null}
                     <col />
                     <col className="w-[6.5rem]" />
-                    <col className="w-[6.5rem]" />
-                    <col className="w-[6.5rem]" />
+                    <col className="w-[9.5rem]" />
+                    <col className="w-[10.75rem]" />
                   </colgroup>
                   <thead className="text-xs text-muted-foreground">
                     <tr className="border-b border-[color-mix(in_srgb,var(--palette-gray-300)_35%,transparent)]">
-                      <th className="px-4 py-3" aria-hidden />
-                      <th className="px-3 py-3 font-medium">Title</th>
-                      <th className="px-3 py-3 font-medium">Source</th>
-                      <th className="px-3 py-3 text-right font-medium">Budget</th>
-                      <th className="px-4 py-3 text-right font-medium">Score</th>
+                      {selecting ? <th className="px-4 py-3" aria-hidden /> : null}
+                      <th className="px-3 pl-4 py-3 font-medium">Title</th>
+                      <th className="py-3 pr-6 pl-3 text-right font-medium">Budget</th>
+                      <th className="py-3 pr-1.5 pl-6 font-medium">Status</th>
+                      <th className="py-3 pr-3 pl-1.5 font-medium">Extraction</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {data?.items.length ? (
-                      data.items.map((row) => {
-                        const checked = selected.includes(row.id);
-                        return (
+                    {showTableSkeleton
+                      ? Array.from({ length: TABLE_SKELETON_ROWS }, (_, index) => (
                           <tr
-                            key={row.id}
-                            className={cn(
-                              "border-t border-[color-mix(in_srgb,var(--palette-gray-300)_28%,transparent)] transition-colors",
-                              checked
-                                ? "bg-[color-mix(in_srgb,var(--palette-teal-100)_55%,transparent)]"
-                                : "hover:bg-[color-mix(in_srgb,white_45%,transparent)]",
-                            )}
+                            key={`skeleton-${index}`}
+                            className="border-t border-[color-mix(in_srgb,var(--palette-gray-300)_28%,transparent)]"
                           >
-                            <td className="px-4 py-3 align-middle">
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                onChange={() => toggle(row.id)}
-                                aria-label={`Select ${row.title}`}
-                                className="size-4 cursor-pointer rounded-[4px] border-0 bg-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_55%,transparent)] accent-[var(--palette-teal-500)]"
-                              />
+                            {selecting ? (
+                              <td className="px-4 py-3 align-middle">
+                                <Skeleton className="size-4 rounded-[5px]" />
+                              </td>
+                            ) : null}
+                            <td className="px-3 pl-4 py-3 align-middle">
+                              <Skeleton className="h-4 w-[88%]" />
+                              <div className="mt-2 flex items-center gap-2">
+                                <Skeleton className="h-3 w-14" />
+                                <Skeleton className="h-3 w-20" />
+                                <Skeleton className="h-3 w-36" />
+                              </div>
                             </td>
-                            <td className="px-3 py-3 align-middle">
-                              <Link
-                                href={routes.admin.tor(row.id)}
-                                className="line-clamp-2 font-medium leading-snug hover:underline"
-                              >
-                                {row.title}
-                              </Link>
-                              <p className="mt-1 truncate text-xs text-muted-foreground">
-                                {[
-                                  row.hidden ? "Hidden" : null,
-                                  row.integrityStatus === "flagged" ||
-                                  row.integrityStatus === "confirmed"
-                                    ? "Watch out"
-                                    : null,
-                                  row.department || row.refId || null,
-                                ]
-                                  .filter(Boolean)
-                                  .join(" · ") || "—"}
-                              </p>
+                            <td className="py-3 pr-6 pl-3 align-middle">
+                              <Skeleton className="ml-auto h-3.5 w-14" />
                             </td>
-                            <td className="truncate px-3 py-3 align-middle text-muted-foreground">
-                              {sourceLabel(row.source)}
+                            <td className="py-3 pr-1.5 pl-6 align-middle">
+                              <Skeleton className="h-6 w-[5.5rem] rounded-full" />
                             </td>
-                            <td className="px-3 py-3 align-middle text-right tabular-nums">
-                              {formatBudgetCompact(row.budgetThb)}
-                            </td>
-                            <td className="px-4 py-3 align-middle text-right tabular-nums">
-                              {row.confidence}%
+                            <td className="py-3 pr-3 pl-1.5 align-middle">
+                              <Skeleton className="h-6 w-[9.5rem] rounded-full" />
                             </td>
                           </tr>
-                        );
-                      })
-                    ) : data && !loading ? (
-                      <tr>
-                        <td
-                          colSpan={5}
-                          className="px-4 py-10 text-center text-muted-foreground"
-                        >
-                          No records match these filters.
-                        </td>
-                      </tr>
-                    ) : null}
+                        ))
+                      : data?.items.length
+                        ? data.items.map((row) => {
+                            const checked = selected.includes(row.id);
+                            const source = sourceLabel(row.source);
+                            const department = row.department || row.refId || "";
+                            const watchOut =
+                              row.integrityStatus === "flagged" ||
+                              row.integrityStatus === "confirmed";
+                            const band = effectiveBand(
+                              row.reviewStatus,
+                              row.confidence,
+                            );
+                            return (
+                              <tr
+                                key={row.id}
+                                className={cn(
+                                  "border-t border-[color-mix(in_srgb,var(--palette-gray-300)_28%,transparent)] transition-colors",
+                                  checked
+                                    ? frostSelectedItem
+                                    : "hover:bg-[color-mix(in_srgb,white_45%,transparent)]",
+                                )}
+                              >
+                                {selecting ? (
+                                  <td className="px-4 py-3 align-middle">
+                                    <label className="inline-flex cursor-pointer items-center">
+                                      <input
+                                        type="checkbox"
+                                        checked={checked}
+                                        onChange={() => toggle(row.id)}
+                                        aria-label={`Select ${row.title}`}
+                                        className="peer sr-only"
+                                      />
+                                      <FrostCheckbox checked={checked} />
+                                    </label>
+                                  </td>
+                                ) : null}
+                                <td className="px-3 pl-4 py-3 align-middle">
+                                  <Link
+                                    href={routes.admin.tor(row.id)}
+                                    className="line-clamp-2 font-medium leading-snug hover:underline"
+                                  >
+                                    {row.title}
+                                  </Link>
+                                  <p className="mt-1.5 grid min-w-0 grid-cols-[max-content_calc(0.875rem+0.375rem+13ch)_minmax(0,1fr)] items-center gap-x-1 text-xs text-muted-foreground">
+                                    {row.hidden ? (
+                                      <span className="inline-flex items-center gap-1 font-medium text-[var(--palette-red-700)]">
+                                        <HugeiconsIcon
+                                          icon={Invisible}
+                                          strokeWidth={1.75}
+                                          className="size-3.5 shrink-0"
+                                        />
+                                        Hidden
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 font-medium text-[var(--palette-green-800)]">
+                                        <HugeiconsIcon
+                                          icon={ViewIcon}
+                                          strokeWidth={1.75}
+                                          className="size-3.5 shrink-0"
+                                        />
+                                        Visible
+                                      </span>
+                                    )}
+                                    <span className="inline-flex min-w-0 items-center gap-1 pl-4">
+                                      {source !== "—" ? (
+                                        <>
+                                          <HugeiconsIcon
+                                            icon={SourceCodeIcon}
+                                            strokeWidth={1.75}
+                                            className="size-3.5 shrink-0"
+                                          />
+                                          <span className="truncate">{source}</span>
+                                        </>
+                                      ) : (
+                                        <span className="truncate">—</span>
+                                      )}
+                                    </span>
+                                    <span className="inline-flex min-w-0 items-center gap-x-1">
+                                      {department ? (
+                                        <span className="inline-flex min-w-0 items-center gap-1">
+                                          <HugeiconsIcon
+                                            icon={BankIcon}
+                                            strokeWidth={1.75}
+                                            className="size-3.5 shrink-0"
+                                          />
+                                          <span className="truncate">
+                                            {department}
+                                          </span>
+                                        </span>
+                                      ) : (
+                                        <span className="truncate">—</span>
+                                      )}
+                                      {watchOut ? (
+                                        <span className="shrink-0 font-medium text-[var(--palette-orange-800)]">
+                                          Watch out
+                                        </span>
+                                      ) : null}
+                                    </span>
+                                  </p>
+                                </td>
+                                <td className="py-3 pr-6 pl-3 align-middle text-right tabular-nums">
+                                  {formatBudgetCompact(row.budgetThb)}
+                                </td>
+                                <td className="py-3 pr-1.5 pl-6 align-middle">
+                                  <StageBadge stage={rowStage(row)} />
+                                </td>
+                                <td className="py-3 pr-3 pl-1.5 align-middle">
+                                  <Badge
+                                    variant="outline"
+                                    className="inline-flex h-6 w-fit max-w-full items-center gap-1 border-0 px-2 pr-1 text-[0.625rem] text-foreground [&>svg]:size-3!"
+                                    style={{
+                                      backgroundColor: `color-mix(in srgb, ${bandTint(band)} 72%, transparent)`,
+                                    }}
+                                  >
+                                    <HugeiconsIcon
+                                      icon={BadgePercentIcon}
+                                      strokeWidth={2}
+                                    />
+                                    <span className={bandLabelClassName}>
+                                      {bandLabel(band)}
+                                    </span>
+                                    <span className="inline-flex h-4 min-w-[2.75rem] items-center justify-center rounded-full bg-white px-1.5 text-[0.625rem] font-semibold tabular-nums text-foreground">
+                                      {row.confidence}%
+                                    </span>
+                                  </Badge>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        : (
+                          <tr>
+                            <td
+                              colSpan={selecting ? 5 : 4}
+                              className="px-4 py-10 text-center text-muted-foreground"
+                            >
+                              No records match these filters.
+                            </td>
+                          </tr>
+                        )}
                   </tbody>
                 </table>
               </div>
@@ -434,7 +611,7 @@ export function TorsView() {
               </nav>
             ) : null}
           </div>
-        </div>
+        </FilterPanelLayout>
       </AdminBody>
     </div>
   );

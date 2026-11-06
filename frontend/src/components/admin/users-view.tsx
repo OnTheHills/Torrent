@@ -13,6 +13,13 @@ import {
   ReasonField,
   useAdminQuery,
 } from "@/components/admin/admin-ui";
+import {
+  FilterPanelAside,
+  FilterPanelHeader,
+  FilterPanelLayout,
+  FilterPanelStack,
+  toggleMany,
+} from "@/components/filters/filter-panel";
 import { FilterChecks } from "@/components/tor/tor-filters";
 import { Input } from "@/components/ui/input";
 import {
@@ -96,15 +103,6 @@ function rolePillClass(role: Person["role"]) {
   );
 }
 
-function toggleMany<T extends string>(
-  current: T[],
-  value: T,
-  checked: boolean,
-) {
-  if (!checked) return current.filter((item) => item !== value);
-  return current.includes(value) ? current : [...current, value];
-}
-
 function profileBucket(person: Person): ProfileFilter {
   if (!person.profileId) return "none";
   return person.completeness >= 80 ? "ready" : "incomplete";
@@ -167,17 +165,8 @@ function UsersFilters({
   onClear: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-base font-semibold tracking-tight">Filters</h3>
-        <button
-          type="button"
-          onClick={onClear}
-          className="inline-flex h-8 shrink-0 items-center rounded-full border-0 bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))] px-3 text-sm text-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] backdrop-blur-md backdrop-saturate-150 transition-transform duration-200 ease-out hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:transform-none"
-        >
-          Clear
-        </button>
-      </div>
+    <FilterPanelStack>
+      <FilterPanelHeader onClear={onClear} />
       <FilterChecks
         label="Role"
         items={[
@@ -222,7 +211,7 @@ function UsersFilters({
           })
         }
       />
-    </div>
+    </FilterPanelStack>
   );
 }
 
@@ -290,7 +279,7 @@ export function UsersView() {
         description="Find accounts and change roles. Open a profile to review capability, certificates, and disable access."
       />
       <AdminBody className="max-w-screen-2xl space-y-10 md:space-y-12">
-        <div className="grid items-start gap-8 lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)]">
+        <FilterPanelLayout>
           <div className="flex items-end justify-between gap-4 lg:col-span-2">
             <h2 className="text-2xl font-semibold tracking-tight md:text-[2rem] md:leading-[1.2]">
               Accounts
@@ -395,15 +384,13 @@ export function UsersView() {
             </p>
           ) : null}
 
-          <aside className="self-start lg:sticky lg:top-6 lg:max-h-[calc(100dvh-72px-3rem)] lg:overflow-y-auto">
-            <Surface className="bg-surface p-5 ring-transparent md:p-6">
-              <UsersFilters
-                value={filters}
-                onChange={applyFilters}
-                onClear={() => applyFilters(DEFAULT_FILTERS)}
-              />
-            </Surface>
-          </aside>
+          <FilterPanelAside>
+            <UsersFilters
+              value={filters}
+              onChange={applyFilters}
+              onClear={() => applyFilters(DEFAULT_FILTERS)}
+            />
+          </FilterPanelAside>
 
           <div className="min-w-0 space-y-4">
             <AdminStatus loading={loading && !data} error={error} />
@@ -525,7 +512,7 @@ export function UsersView() {
               </div>
             </Surface>
           </div>
-        </div>
+        </FilterPanelLayout>
       </AdminBody>
     </div>
   );

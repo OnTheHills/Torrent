@@ -71,7 +71,7 @@ function scorePrompt(tor, heuristic = {}, now = new Date()) {
     "Dates are Gregorian YYYY-MM-DD in Asia/Bangkok. publishedAt is only 'future' if it is after today; do not invent calendar years from model knowledge.",
     "If a field is missing but the source type often omits it, do not heavily punish confidence.",
     "Lower confidence when important fields look wrong, contradictory, OCR-failed, or too thin for vendors.",
-    "Score guide: 90-100 = safe to auto-trust; 80-89 = quick human lookup; below 80 = must check or fix.",
+    "Score guide: 90-100 = Ready (safe to auto-trust); 80-89 = Glance (quick human look); below 80 = Review (needs a fix).",
     "Also judge procurement integrity (Watch out): short bidding windows, deadline before publish, awarded with no budget, or budgets far from category norms.",
     "integrityHints lists rule-based flags already detected — treat them as evidence, and add other clear anomalies only.",
     "Set integrity to watch when something looks odd for vendors; clear when nothing noteworthy.",

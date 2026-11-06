@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 
 import { ListingsView } from "@/components/tor/listings-view";
-import { type SourceFilter } from "@/components/tor/tor-filters";
+import {
+  type BudgetAvailability,
+  type SourceFilter,
+} from "@/components/tor/tor-filters";
 import { TOR_CATEGORIES } from "@/lib/tor-categories";
 import { parseAgencyId } from "@/config/agencies";
 import { parseListingStages } from "@/lib/listing-stage";
@@ -27,6 +30,7 @@ type Props = {
     sort?: SearchValue;
     stage?: SearchValue;
     year?: SearchValue;
+    budget?: SearchValue;
     integrity?: SearchValue;
   }>;
 };
@@ -45,7 +49,8 @@ function firstValue(value: SearchValue) {
 }
 
 export default async function TorsPage({ searchParams }: Props) {
-  const { q, agency, category, source, sort, stage, year, integrity } = await searchParams;
+  const { q, agency, category, source, sort, stage, year, budget, integrity } =
+    await searchParams;
   const agencies = searchValues(agency).flatMap((item) => {
     const id = parseAgencyId(item);
     return id === "all" ? [] : [id];
@@ -61,6 +66,9 @@ export default async function TorsPage({ searchParams }: Props) {
   });
   const stages = parseListingStages(searchValues(stage));
   const budgetYears = searchValues(year).filter((item) => /^25\d{2}$/.test(item));
+  const budgetAvailability = searchValues(budget).flatMap((item) =>
+    item === "specified" || item === "missing" ? [item] : [],
+  );
   const integrities = searchValues(integrity).flatMap((item) =>
     item === "ok" || item === "suspicious" ? [item] : [],
   );
@@ -74,6 +82,9 @@ export default async function TorsPage({ searchParams }: Props) {
       initialSort={parseListingSort(firstValue(sort))}
       initialStages={stages}
       initialBudgetYears={budgetYears}
+      initialBudgetAvailability={
+        budgetAvailability satisfies BudgetAvailability[]
+      }
       initialIntegrities={integrities satisfies IntegrityStatus[]}
     />
   );

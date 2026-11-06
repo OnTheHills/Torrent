@@ -1,5 +1,17 @@
 const { classifyCategory, parseBudget } = require("@/utils/torUtils");
 const { parseEgpDate } = require("@/services/tor/api/dataGo/adapter");
+const { stageFromEgp } = require("@/services/tor/smeAnnouncement");
+
+function statusFor({ project, procurement, documentUrl, dataGo }) {
+  const staged = stageFromEgp({
+    flowName: procurement?.flowName,
+    projectStatus: project?.projectStatus,
+    announceType: project?.announceType || dataGo?.announce_type,
+  });
+  if (staged === "awarded" || staged === "cancelled") return staged;
+  if (documentUrl) return staged === "published" ? "published" : staged;
+  return "discovered";
+}
 
 function adapt(rows = []) {
   return rows.flatMap(({ dataGo, project, procurement, documentUrl }) => {
@@ -19,7 +31,7 @@ function adapt(rows = []) {
       egpUrl: listing.toString(),
       publishedAt: parseEgpDate(dataGo.announce_date || dataGo.transaction_date),
       category: classifyCategory(title),
-      status: documentUrl ? "published" : "discovered",
+      status: statusFor({ project, procurement, documentUrl, dataGo }),
       documentUrl,
       egpDeptId: procurement.deptId || undefined,
       egpDeptSubId: procurement.deptSubId || undefined,

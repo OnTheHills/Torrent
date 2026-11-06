@@ -124,7 +124,7 @@ function SettingsForm({ initial }: { initial: Settings }) {
       </div>
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <label className="text-xs text-muted-foreground">
-          Auto-publish at or above
+          Ready at or above
           <input
             className={`${fieldClass} mt-1`}
             value={autoThreshold}
@@ -132,7 +132,7 @@ function SettingsForm({ initial }: { initial: Settings }) {
           />
         </label>
         <label className="text-xs text-muted-foreground">
-          Manual fix below
+          Review below
           <input
             className={`${fieldClass} mt-1`}
             value={reviewThreshold}
