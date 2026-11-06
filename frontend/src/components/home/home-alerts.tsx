@@ -107,7 +107,7 @@ export function HomeAlerts() {
                   href={channel.href}
                   className={cn(
                     chromeFrostGlaze,
-                    "inline-flex h-[2.75rem] shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-medium md:h-[3.125rem]",
+                    "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-medium",
                     "transition-[transform,background] duration-200 ease-out",
                     "hover:-translate-y-0.5",
                     "motion-reduce:transition-none motion-reduce:hover:transform-none",

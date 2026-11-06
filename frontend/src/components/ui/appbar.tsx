@@ -29,7 +29,8 @@ export const chromeFrostMist =
 export const chromeFrostGlaze = "liquid-glass-control";
 
 /** Liquid glass button with a soft dim — for white / flat panels. */
-export const chromeFrostGlazeDim = "liquid-glass-control liquid-glass-control-dim";
+export const chromeFrostGlazeDim =
+  "liquid-glass-control liquid-glass-control-dim";
 
 /** Selected / primary frost on the light glass chrome. */
 export const chromeFrostTeal =

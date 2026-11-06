@@ -14,9 +14,11 @@
   color-scheme: light;
 
   /* Inter for Latin in both locales; Thai glyphs fall through to Plex/Prompt. */
-  --font-sans: var(--font-inter), var(--font-ibm-plex-sans-thai), var(--font-prompt),
+  --font-sans:
+    var(--font-inter), var(--font-ibm-plex-sans-thai), var(--font-prompt),
     ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-inter), var(--font-ibm-plex-sans-thai), var(--font-prompt),
+  --font-heading:
+    var(--font-inter), var(--font-ibm-plex-sans-thai), var(--font-prompt),
     ui-sans-serif, system-ui, sans-serif;
 
   --palette-black: #05080d;
@@ -184,7 +186,11 @@
   /* Light liquid-glass app bar (matches sidebar capsule). */
   --appbar: rgb(200 206 218 / 0.38);
   --appbar-foreground: var(--palette-gray-900);
-  --appbar-muted-foreground: color-mix(in srgb, var(--palette-gray-700) 72%, transparent);
+  --appbar-muted-foreground: color-mix(
+    in srgb,
+    var(--palette-gray-700) 72%,
+    transparent
+  );
   --appbar-hover: rgb(255 255 255 / 0.22);
   --appbar-active: rgb(0 0 0 / 0.1);
   --appbar-accent-foreground: var(--palette-teal-700);
@@ -197,7 +203,11 @@
    */
   --sidebar: rgb(200 206 218 / 0.38);
   --sidebar-foreground: var(--palette-gray-900);
-  --sidebar-muted-foreground: color-mix(in srgb, var(--palette-gray-700) 72%, transparent);
+  --sidebar-muted-foreground: color-mix(
+    in srgb,
+    var(--palette-gray-700) 72%,
+    transparent
+  );
   --sidebar-primary: var(--palette-teal-500);
   --sidebar-primary-foreground: var(--palette-teal-50);
   --sidebar-hover: rgb(255 255 255 / 0.22);
@@ -244,8 +254,16 @@
   --surface: var(--palette-gray-50);
   --surface-elevated: color-mix(in srgb, var(--palette-white) 78%, transparent);
   --surface-frost: color-mix(in srgb, var(--palette-white) 48%, transparent);
-  --surface-frost-ring: color-mix(in srgb, var(--palette-white) 70%, transparent);
-  --surface-frost-highlight: color-mix(in srgb, var(--palette-white) 88%, transparent);
+  --surface-frost-ring: color-mix(
+    in srgb,
+    var(--palette-white) 70%,
+    transparent
+  );
+  --surface-frost-highlight: color-mix(
+    in srgb,
+    var(--palette-white) 88%,
+    transparent
+  );
 
   /*
    * Clear liquid glass — shared material (light glass, dark ink).
@@ -255,19 +273,21 @@
   --liquid-glass-tint-alpha: 0.14;
   --liquid-glass-tint-scale: 1;
   --liquid-glass-tint: rgb(
-    255 255 255 / calc(var(--liquid-glass-tint-alpha) * var(--liquid-glass-tint-scale))
+    255 255 255 /
+      calc(var(--liquid-glass-tint-alpha) * var(--liquid-glass-tint-scale))
   );
   --liquid-glass-tint-hover: rgb(
     255 255 255 /
-      calc((var(--liquid-glass-tint-alpha) + 0.14) * var(--liquid-glass-tint-scale))
+      calc(
+        (var(--liquid-glass-tint-alpha) + 0.14) * var(--liquid-glass-tint-scale)
+      )
   );
   --liquid-glass-filter: blur(2px) saturate(180%)
     brightness(calc(1 + 0.06 * var(--liquid-glass-tint-scale)));
   --liquid-glass-edge:
     inset 1.5px 1.5px 1px -1px rgb(255 255 255 / 0.95),
     inset -1.5px -1.5px 1px -1px rgb(255 255 255 / 0.55),
-    inset 0 0 0 0.5px rgb(255 255 255 / 0.3),
-    0 0 0 0.5px rgb(0 0 0 / 0.06),
+    inset 0 0 0 0.5px rgb(255 255 255 / 0.3), 0 0 0 0.5px rgb(0 0 0 / 0.06),
     0 6px 24px rgb(0 0 0 / 0.08);
   --liquid-glass-ink: rgb(0 0 0 / 0.86);
   --liquid-glass-ink-secondary: rgb(60 60 67 / 0.7);
@@ -292,14 +312,24 @@
     color-mix(in srgb, var(--palette-gray-100) 55%, white),
     white
   );
-  --surface-clear-frost-ring: color-mix(in srgb, var(--palette-gray-300) 42%, transparent);
-  --surface-clear-frost-highlight: color-mix(in srgb, var(--palette-white) 96%, transparent);
+  --surface-clear-frost-ring: color-mix(
+    in srgb,
+    var(--palette-gray-300) 42%,
+    transparent
+  );
+  --surface-clear-frost-highlight: color-mix(
+    in srgb,
+    var(--palette-white) 96%,
+    transparent
+  );
   --toggle-thumb: color-mix(in srgb, var(--palette-white) 28%, transparent);
   --pattern-line: color-mix(in srgb, var(--palette-teal-800) 18%, transparent);
   --band-paper: var(--palette-gray-50);
 }
 
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
   :root {
     --appbar: color-mix(in srgb, var(--palette-gray-50) 92%, white);
     --sidebar: color-mix(in srgb, var(--palette-gray-50) 92%, white);

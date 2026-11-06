@@ -108,11 +108,7 @@
         rgb(255 255 255 / 0.05) 28%,
         transparent 52%
       ),
-      linear-gradient(
-        335deg,
-        rgb(255 255 255 / 0.1) 0%,
-        transparent 36%
-      ),
+      linear-gradient(335deg, rgb(255 255 255 / 0.1) 0%, transparent 36%),
       var(--sidebar);
     border: 1px solid var(--sidebar-border);
     box-shadow:
@@ -135,12 +131,11 @@
     inset: 0;
     z-index: 0;
     border-radius: inherit;
-    background:
-      radial-gradient(
-        120% 55% at 18% -10%,
-        rgb(255 255 255 / 0.55),
-        transparent 58%
-      );
+    background: radial-gradient(
+      120% 55% at 18% -10%,
+      rgb(255 255 255 / 0.55),
+      transparent 58%
+    );
     opacity: 0.85;
     mix-blend-mode: soft-light;
   }
@@ -177,8 +172,7 @@
    */
   .liquid-glass-control.liquid-glass-control-dim {
     background:
-      var(--liquid-glass-inner-light),
-      rgb(255 255 255 / 0.04),
+      var(--liquid-glass-inner-light), rgb(255 255 255 / 0.04),
       var(--liquid-glass-dim);
     color: var(--liquid-glass-ink);
     box-shadow: var(--liquid-glass-edge);
@@ -192,8 +186,7 @@
 
   .liquid-glass-control.liquid-glass-control-dim:hover {
     background:
-      var(--liquid-glass-inner-light),
-      rgb(255 255 255 / 0.1),
+      var(--liquid-glass-inner-light), rgb(255 255 255 / 0.1),
       var(--liquid-glass-dim-hover);
     -webkit-backdrop-filter: blur(2px) saturate(160%) brightness(0.9);
     backdrop-filter: blur(2px) saturate(160%) brightness(0.9);
@@ -205,7 +198,8 @@
 
   .liquid-glass-card:hover,
   .liquid-glass-card[aria-pressed="true"] {
-    background: var(--liquid-glass-inner-light), var(--liquid-glass-card-tint-hover);
+    background:
+      var(--liquid-glass-inner-light), var(--liquid-glass-card-tint-hover);
   }
 
   .liquid-glass-card .liquid-glass-muted {

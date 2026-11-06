@@ -67,7 +67,9 @@ export function AccountControl() {
         )}
         aria-label={name}
       >
-        <span className="min-w-0 truncate px-2.5 text-xs font-medium">{name}</span>
+        <span className="min-w-0 truncate px-2.5 text-xs font-medium">
+          {name}
+        </span>
         {user.picture ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
