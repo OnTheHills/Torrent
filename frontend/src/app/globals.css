@@ -65,6 +65,24 @@
     }
   }
 
+  @keyframes mhg-radar-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes mhg-blip {
+    0%,
+    100% {
+      opacity: 0.4;
+      transform: scale(0.92);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.08);
+    }
+  }
+
   .bma-stripes {
     background-image: repeating-linear-gradient(
       75deg,
