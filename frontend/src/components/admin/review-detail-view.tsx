@@ -4,6 +4,7 @@
 import { ShellContent } from "@/components/layout/shell-content";
 import type { CSSProperties } from "react";
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   Alert02Icon,
@@ -27,11 +28,35 @@ import {
   frostButton,
   useAdminQuery,
 } from "@/components/admin/admin-ui";
+import {
+  bandLabel,
+  bandLabelClassName,
+  bandTint,
+  effectiveBand,
+} from "@/components/admin/review-band";
 import { WatchOutCard } from "@/components/admin/watch-out-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { routes } from "@/config/routes";
 import { api } from "@/lib/api";
+
+type TorSourceLink = {
+  source?: string;
+  refId?: string;
+  egpUrl?: string;
+  documentUrl?: string;
+  status?: string;
+  title?: string;
+};
+
+type TorMergeConflict = {
+  field: string;
+  trustedSource?: string;
+  otherSource?: string;
+  trustedValue?: unknown;
+  otherValue?: unknown;
+  resolution?: string;
+};
 
 type TorRecord = {
   id: string;
@@ -56,6 +81,9 @@ type TorRecord = {
   egpUrl?: string;
   pdfUrl?: string;
   summary?: string;
+  mergeStatus?: string | null;
+  mergeConflicts?: TorMergeConflict[];
+  sources?: TorSourceLink[];
 };
 
 const RAINBOW_GLOW = [
@@ -67,11 +95,45 @@ const RAINBOW_GLOW = [
 ].join(",");
 
 const SOURCE_LABEL: Record<string, string> = {
-  "DATA-GO-EGP": "e-GP",
+  "EGP-PROCESS5": "e-GP Process5",
+  "DATA-GO-EGP": "data.go e-GP",
   "BMA-EGP2": "BMA e-GP2",
   "EGP-RSS": "e-GP RSS",
   "SME-GP": "SME-GP",
 };
+
+function sourceLabelOf(source?: string) {
+  if (!source) return "Source";
+  return SOURCE_LABEL[source] || source;
+}
+
+function displayConflictValue(value: unknown) {
+  if (value === null || value === undefined || value === "") return "(empty)";
+  if (typeof value === "string" || typeof value === "number") return String(value);
+  if (value instanceof Date || (typeof value === "string" && /^\d{4}-\d{2}/.test(value))) {
+    return String(value).slice(0, 10);
+  }
+  return String(value);
+}
+
+function sourceLinks(data: TorRecord) {
+  const links: Array<{ key: string; label: string; href: string }> = [];
+  const seen = new Set<string>();
+  const push = (label: string, href?: string) => {
+    const url = String(href || "").trim();
+    if (!url || seen.has(url)) return;
+    seen.add(url);
+    links.push({ key: url, label, href: url });
+  };
+
+  for (const row of data.sources || []) {
+    const label = sourceLabelOf(row.source);
+    push(`${label} listing`, row.egpUrl);
+    push(`${label} document`, row.documentUrl);
+  }
+  push(`${sourceLabelOf(data.source)} listing`, data.egpUrl);
+  return links;
+}
 
 function dateInput(value?: string) {
   if (!value) return "";
@@ -82,26 +144,63 @@ function dateInput(value?: string) {
   );
 }
 
-function effectiveBand(status: string | undefined, confidence: number) {
-  if (status === "manual" || status === "review") return status;
-  if (confidence < 80) return "manual";
-  if (confidence < 90) return "review";
-  return "review";
-}
-
-function bandLabel(band: string) {
-  if (band === "manual") return "Must check";
-  if (band === "review") return "Lookup";
-  return band;
-}
-
-function bandTint(band: string) {
-  if (band === "manual") return "var(--palette-red-200)";
-  if (band === "review") return "var(--palette-yellow-200)";
-  return "var(--palette-gray-200)";
+function FrostConflictCard({ conflicts }: { conflicts: TorMergeConflict[] }) {
+  if (!conflicts.length) return null;
+  return (
+    <div className="rounded-lg border-0 bg-[color-mix(in_srgb,var(--palette-yellow-100)_55%,transparent)] p-5 shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_80%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--palette-yellow-300)_45%,transparent)] md:p-6">
+      <div className="flex items-center gap-2.5">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--palette-yellow-300)_35%,transparent)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.55)] ring-1 ring-[color-mix(in_srgb,var(--palette-yellow-400)_40%,transparent)]">
+          <HugeiconsIcon
+            icon={Alert02Icon}
+            strokeWidth={2}
+            className="size-4 text-[var(--palette-yellow-900)]"
+          />
+        </span>
+        <h2 className="text-lg font-semibold tracking-tight text-[var(--palette-yellow-950)]">
+          Source conflict
+        </h2>
+      </div>
+      <p className="mt-3 text-sm leading-[1.7] text-foreground md:text-base">
+        Fields disagreed across feeds. Trusted values were kept (status may
+        follow the more advanced lifecycle). Open every source link above to
+        verify.
+      </p>
+      <ul className="mt-4 space-y-3">
+        {conflicts.map((item) => (
+          <li
+            key={`${item.field}-${item.trustedSource}-${item.otherSource}`}
+            className="rounded-md bg-[color-mix(in_srgb,white_72%,transparent)] px-3 py-2.5 text-sm ring-1 ring-[color-mix(in_srgb,var(--palette-yellow-300)_40%,transparent)]"
+          >
+            <p className="font-semibold tracking-tight">{item.field}</p>
+            <p className="mt-1 text-muted-foreground">
+              {sourceLabelOf(item.trustedSource)}:{" "}
+              {displayConflictValue(item.trustedValue)}
+              {" → "}
+              {sourceLabelOf(item.otherSource)}:{" "}
+              {displayConflictValue(item.otherValue)}
+              {item.resolution ? (
+                <span className="ml-2 text-foreground">
+                  ({item.resolution === "lifecycle_advanced"
+                    ? "kept advanced lifecycle"
+                    : "kept trusted source"})
+                </span>
+              ) : null}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
 export function ReviewDetailView({ id }: { id: string }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const fromRecords =
+    pathname.startsWith(`${routes.admin.tors}/`) ||
+    searchParams.get("from") === "records";
+  const backHref = fromRecords ? routes.admin.tors : routes.admin.review;
+  const backLabel = fromRecords ? "Back to records" : "Back to queue";
   const { data, error, loading } = useAdminQuery<TorRecord>(
     `/api/admin/tors/${id}`,
   );
@@ -234,9 +333,9 @@ export function ReviewDetailView({ id }: { id: string }) {
         <ShellContent>
         <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-[calc(144px+2rem)] sm:px-6 md:pb-12 md:pt-[calc(144px+3rem)]">
           <Button asChild size="lg" className={frostButton}>
-            <Link href={routes.admin.review}>
+            <Link href={backHref}>
               <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} />
-              Back to queue
+              {backLabel}
             </Link>
           </Button>
           <div className="mt-8 w-full max-w-5xl">
@@ -280,23 +379,28 @@ export function ReviewDetailView({ id }: { id: string }) {
                     }}
                   >
                     <HugeiconsIcon icon={BadgePercentIcon} strokeWidth={2} />
-                    {bandLabel(band)}
+                    <span className={bandLabelClassName}>{bandLabel(band)}</span>
                     <span className="inline-flex h-6 items-center rounded-full bg-white px-2 text-xs font-semibold text-foreground">
                       {data.confidence}%
                     </span>
                   </Badge>
                   <div className="flex flex-wrap items-center gap-3">
-                    {data.egpUrl ? (
-                      <Button asChild size="lg" variant="orange">
-                        <a href={data.egpUrl} target="_blank" rel="noreferrer">
-                          Open listing
+                    {sourceLinks(data).map((link, index) => (
+                      <Button
+                        key={link.key}
+                        asChild
+                        size="lg"
+                        variant={index === 0 ? "orange" : "outline"}
+                      >
+                        <a href={link.href} target="_blank" rel="noreferrer">
+                          {link.label}
                           <HugeiconsIcon
                             icon={LinkSquare02Icon}
                             strokeWidth={2}
                           />
                         </a>
                       </Button>
-                    ) : null}
+                    ))}
                     {data.pdfUrl ? (
                       <Button asChild size="lg" variant="outline">
                         <a href={data.pdfUrl} target="_blank" rel="noreferrer">
@@ -349,6 +453,10 @@ export function ReviewDetailView({ id }: { id: string }) {
             </div>
 
             <WatchOutCard data={data} />
+
+            {data.mergeStatus === "conflicted" || data.mergeConflicts?.length ? (
+              <FrostConflictCard conflicts={data.mergeConflicts || []} />
+            ) : null}
 
             <div className="grid gap-6 lg:grid-cols-2">
               <AdminPanel

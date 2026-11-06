@@ -18,16 +18,21 @@ import { useAudience } from "@/components/providers/audience-provider";
 import { useLocale } from "@/components/providers/locale-provider";
 import { ListingFrostCard } from "@/components/tor/listing-frost-card";
 import {
+  FilterCountPill,
+  FilterPanelAside,
+  FilterPanelLayout,
+} from "@/components/filters/filter-panel";
+import {
   DEFAULT_FILTERS,
   TorFilters,
   TorSort,
+  type BudgetAvailability,
   type SourceFilter,
   type TorFilterState,
 } from "@/components/tor/tor-filters";
 import { TorFetchStatus } from "@/components/tor/tor-loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Surface } from "@/components/ui/surface";
 import { torAgency, torDepartment, torTitle } from "@/data/mock";
 import { useTorsWithMatches } from "@/components/tor/use-match-scores";
 import { listingStage, type ListingStage } from "@/lib/listing-stage";
@@ -77,6 +82,7 @@ export function TorBrowse({
   initialSort = "newest",
   initialStages = [],
   initialBudgetYears = [],
+  initialBudgetAvailability = [],
   initialIntegrities = [],
   showHeader = true,
 }: {
@@ -88,6 +94,7 @@ export function TorBrowse({
   initialSort?: ListingSort;
   initialStages?: ListingStage[];
   initialBudgetYears?: string[];
+  initialBudgetAvailability?: BudgetAvailability[];
   initialIntegrities?: IntegrityStatus[];
   showHeader?: boolean;
 }) {
@@ -104,6 +111,7 @@ export function TorBrowse({
     categories: initialCategories,
     sources: initialSources,
     budgetYears: initialBudgetYears,
+    budgetAvailability: initialBudgetAvailability,
     integrities: initialIntegrities,
     stages: initialStages,
     sort: parseListingSort(initialSort),
@@ -126,6 +134,9 @@ export function TorBrowse({
     if (next.categories.length) params.set("category", next.categories.join(","));
     if (next.sources.length) params.set("source", next.sources.join(","));
     if (next.budgetYears.length) params.set("year", next.budgetYears.join(","));
+    if (next.budgetAvailability.length) {
+      params.set("budget", next.budgetAvailability.join(","));
+    }
     if (next.integrities.length) params.set("integrity", next.integrities.join(","));
     if (next.sort !== "newest") params.set("sort", next.sort);
     if (next.stages.length) params.set("stage", next.stages.join(","));
@@ -161,6 +172,12 @@ export function TorBrowse({
       const matchesBudgetYear =
         filters.budgetYears.length === 0 ||
         filters.budgetYears.includes(String(tor.budgetYear || ""));
+      const hasAmount = knownBudget(tor.budgetThb);
+      const matchesBudgetAmount =
+        filters.budgetAvailability.length === 0 ||
+        filters.budgetAvailability.some((mode) =>
+          mode === "specified" ? hasAmount : !hasAmount,
+        );
       const matchesIntegrity =
         filters.integrities.length === 0 || filters.integrities.includes(tor.integrity);
       const matchesTeam =
@@ -180,6 +197,7 @@ export function TorBrowse({
         matchesSource &&
         matchesLifecycle &&
         matchesBudgetYear &&
+        matchesBudgetAmount &&
         matchesIntegrity &&
         matchesTeam &&
         matchesQuery
@@ -231,18 +249,7 @@ export function TorBrowse({
         />
       ) : null}
 
-      <div className="grid items-start gap-8 lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)]">
-      <div className="flex items-end justify-between gap-4 lg:col-span-2">
-        <h2 className="text-2xl font-semibold tracking-tight md:text-[2rem] md:leading-[1.2]">
-          {t("listingsResultsTitle")}
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          <span className="font-semibold tabular-nums text-foreground">
-            {filtered.length}
-          </span>{" "}
-          {t("of")} {tors.length} {t("results")}
-        </p>
-      </div>
+      <FilterPanelLayout>
       <div className="flex items-center gap-3 lg:col-span-2">
       <label className="relative isolate block min-w-0 flex-1 rounded-full shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] backdrop-blur-md backdrop-saturate-150">
         <span
@@ -269,19 +276,25 @@ export function TorBrowse({
         onChange={(sort) => applyFilters({ ...filters, sort })}
         className="w-44 shrink-0 border-0 bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] sm:w-52"
       />
+      <FilterCountPill>
+        <span className="font-semibold tabular-nums">
+          {filtered.length}
+        </span>
+        <span className="ml-1 opacity-80">
+          {t("of")} {tors.length} {t("results")}
+        </span>
+      </FilterCountPill>
       </div>
 
-      <aside className="self-start lg:sticky lg:top-6 lg:max-h-[calc(100dvh-72px-3rem)] lg:overflow-y-auto">
-        <Surface className="bg-surface p-5 ring-transparent md:p-6">
-          <TorFilters
-            value={filters}
-            onChange={applyFilters}
-            onClear={resetAll}
-            budgetYears={budgetYearOptions}
-            showMatchFilter={vendor}
-          />
-        </Surface>
-      </aside>
+      <FilterPanelAside>
+        <TorFilters
+          value={filters}
+          onChange={applyFilters}
+          onClear={resetAll}
+          budgetYears={budgetYearOptions}
+          showMatchFilter={vendor}
+        />
+      </FilterPanelAside>
 
       <MonitorSection
         className="min-w-0"
@@ -385,7 +398,7 @@ export function TorBrowse({
         )}
         </div>
       </MonitorSection>
-      </div>
+      </FilterPanelLayout>
     </div>
   );
 }

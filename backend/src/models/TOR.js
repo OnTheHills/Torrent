@@ -155,6 +155,45 @@ const torSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    sources: {
+      type: [
+        {
+          source: { type: String, trim: true },
+          refId: { type: String, trim: true },
+          egpUrl: { type: String, trim: true },
+          documentUrl: { type: String, trim: true },
+          status: { type: String, trim: true },
+          budgetThb: { type: Number },
+          deadline: { type: Date },
+          publishedAt: { type: Date },
+          title: { type: String, trim: true },
+          lastSeenAt: { type: Date },
+          absorbedTorId: { type: mongoose.Schema.Types.ObjectId, ref: "TOR" },
+        },
+      ],
+      default: undefined,
+    },
+    mergeConflicts: {
+      type: [
+        {
+          field: { type: String, trim: true },
+          trustedSource: { type: String, trim: true },
+          otherSource: { type: String, trim: true },
+          trustedValue: { type: mongoose.Schema.Types.Mixed },
+          otherValue: { type: mongoose.Schema.Types.Mixed },
+          resolution: {
+            type: String,
+            enum: ["trusted", "lifecycle_advanced"],
+          },
+        },
+      ],
+      default: undefined,
+    },
+    mergeStatus: {
+      type: String,
+      enum: ["clean", "conflicted", "resolved"],
+      index: true,
+    },
     ocr: {
       status: {
         type: String,

@@ -61,7 +61,14 @@ test("stage filter isolates closing-soon deadlines within seven Bangkok days", (
   assert.equal(until.toISOString(), "2026-10-24T17:00:00.000Z");
   const closing = stageClauses(["closing"], now);
   assert.deepEqual(closing, {
-    $or: [{ deadline: { $gte: today, $lte: until } }],
+    $and: [
+      { $or: [{ deadline: { $gte: today, $lte: until } }] },
+      { budgetYear: { $gte: "2570" } },
+    ],
+  });
+  const awarded = stageClauses(["awarded"], now);
+  assert.deepEqual(awarded, {
+    $or: [{ status: { $in: ["awarded", "winner", "Awarded", "Winner"] } }],
   });
 });
 

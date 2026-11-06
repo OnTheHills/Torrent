@@ -10,6 +10,12 @@ import {
   SparklesIcon,
 } from "@hugeicons/core-free-icons";
 
+import {
+  bandLabel,
+  bandLabelClassName,
+  bandTint,
+  effectiveBand,
+} from "@/components/admin/review-band";
 import { StageBadge } from "@/components/tor/listing-badges";
 import { Badge } from "@/components/ui/badge";
 import { FrostCard } from "@/components/ui/frost-card";
@@ -32,6 +38,8 @@ export type ReviewCardItem = {
   reviewMissing: string[];
   reviewScoreReason?: string;
   reviewScoreSource?: string | null;
+  mergeStatus?: string | null;
+  mergeConflicts?: Array<{ field: string }>;
 };
 
 const RAINBOW_GLOW = [
@@ -41,25 +49,6 @@ const RAINBOW_GLOW = [
   "radial-gradient(ellipse 46% 64% at 94% 78%, var(--palette-red-200), transparent)",
   "radial-gradient(ellipse 46% 64% at 8% 92%, var(--palette-teal-300), transparent)",
 ].join(",");
-
-function effectiveBand(status: string, confidence: number) {
-  if (status === "manual" || status === "review") return status;
-  if (confidence < 80) return "manual";
-  if (confidence < 90) return "review";
-  return status || "review";
-}
-
-function bandLabel(band: string) {
-  if (band === "manual") return "Must check";
-  if (band === "review") return "Lookup";
-  return band;
-}
-
-function bandTint(band: string) {
-  if (band === "manual") return "var(--palette-red-200)";
-  if (band === "review") return "var(--palette-yellow-200)";
-  return "var(--palette-gray-200)";
-}
 
 export function ReviewFrostCard({ item }: { item: ReviewCardItem }) {
   const href = routes.admin.reviewItem(item.id);
@@ -93,6 +82,18 @@ export function ReviewFrostCard({ item }: { item: ReviewCardItem }) {
     >
       <div className="flex min-w-0 items-center gap-1.5 px-5 pt-5">
         <StageBadge stage={stage} />
+        {item.mergeStatus === "conflicted" || item.mergeConflicts?.length ? (
+          <Badge
+            variant="outline"
+            className="inline-flex h-6 items-center border-0 px-2 text-[0.625rem] font-medium text-foreground"
+            style={{
+              backgroundColor:
+                "color-mix(in srgb, var(--palette-orange-200) 72%, transparent)",
+            }}
+          >
+            Source conflict
+          </Badge>
+        ) : null}
         <Badge
           variant="outline"
           className="ml-auto inline-flex h-6 items-center gap-1 border-0 px-2 pr-1 text-[0.625rem] text-foreground [&>svg]:size-3!"
@@ -101,7 +102,7 @@ export function ReviewFrostCard({ item }: { item: ReviewCardItem }) {
           }}
         >
           <HugeiconsIcon icon={BadgePercentIcon} strokeWidth={2} />
-          {bandLabel(band)}
+          <span className={bandLabelClassName}>{bandLabel(band)}</span>
           <span className="inline-flex h-4 items-center rounded-full bg-white px-1.5 text-[0.625rem] font-semibold text-foreground">
             {item.confidence}%
           </span>

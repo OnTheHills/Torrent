@@ -1,3 +1,5 @@
+const { BUDGET_YEAR } = require("@/constants/bmaConstants");
+
 const DAY = 24 * 60 * 60 * 1000;
 const OPEN_STATUSES = new Set(["open", "published", "draft", "closing"]);
 const CLOSED_STATUSES = new Set(["awarded", "cancelled", "closed", "winner"]);
@@ -20,16 +22,23 @@ function closingWindow(now = new Date()) {
   return { today, until: new Date(today.getTime() + 7 * DAY) };
 }
 
+const OPEN_STAGES = new Set(["closing", "open", "draft"]);
+const TERMINAL_STAGES = new Set(["closed", "awarded", "cancelled"]);
+
 function stageClauses(stages = [], now = new Date()) {
-  const wanted = stages.filter((stage) => stage === "closing" || stage === "open" || stage === "draft");
+  const wanted = stages.filter(
+    (stage) => OPEN_STAGES.has(stage) || TERMINAL_STAGES.has(stage),
+  );
   if (!wanted.length) return null;
   const { today, until } = closingWindow(now);
-  const clauses = [];
+  const openClauses = [];
+  const terminalClauses = [];
+
   if (wanted.includes("closing")) {
-    clauses.push({ deadline: { $gte: today, $lte: until } });
+    openClauses.push({ deadline: { $gte: today, $lte: until } });
   }
   if (wanted.includes("open")) {
-    clauses.push(
+    openClauses.push(
       { deadline: { $gt: until } },
       {
         $and: [
@@ -40,9 +49,45 @@ function stageClauses(stages = [], now = new Date()) {
     );
   }
   if (wanted.includes("draft")) {
-    clauses.push({ status: { $in: ["draft", "Draft"] } });
+    openClauses.push({ status: { $in: ["draft", "Draft"] } });
   }
-  return { $or: clauses };
+  if (wanted.includes("closed")) {
+    terminalClauses.push({
+      $or: [
+        { source: "SME-GP" },
+        { status: { $in: ["closed", "Closed"] } },
+        {
+          $and: [
+            { deadline: { $lt: today } },
+            {
+              status: {
+                $nin: ["draft", "Draft", "awarded", "winner", "cancelled", "Cancelled"],
+              },
+            },
+          ],
+        },
+      ],
+    });
+  }
+  if (wanted.includes("awarded")) {
+    terminalClauses.push({ status: { $in: ["awarded", "winner", "Awarded", "Winner"] } });
+  }
+  if (wanted.includes("cancelled")) {
+    terminalClauses.push({ status: { $in: ["cancelled", "Cancelled"] } });
+  }
+
+  const groups = [];
+  // Open/closing/draft only make sense for the current budget year — older
+  // years are treated as closed even if deadline/status data is stale.
+  if (openClauses.length) {
+    groups.push({
+      $and: [{ $or: openClauses }, { budgetYear: { $gte: BUDGET_YEAR } }],
+    });
+  }
+  if (terminalClauses.length) {
+    groups.push({ $or: terminalClauses });
+  }
+  return groups.length === 1 ? groups[0] : { $or: groups };
 }
 
 function confidenceOf(tor) {

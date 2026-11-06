@@ -66,9 +66,11 @@ export function HomeSection({
 /** Full-width canvas fill. Content sits on Surface / Card inside the column. */
 export function HomeBand({
   tone = "default",
+  className,
   children,
 }: {
   tone?: "default" | "paper" | "dark";
+  className?: string;
   children: ReactNode;
 }) {
   return (
@@ -78,7 +80,8 @@ export function HomeBand({
       className={cn(
         tone === "paper" && "story-paper",
         tone === "dark" && "bg-[var(--palette-teal-800)]",
-        tone === "default" && "bg-background"
+        tone === "default" && "bg-background",
+        className,
       )}
     >
       <HomeFrame className="py-8 md:py-12">{children}</HomeFrame>

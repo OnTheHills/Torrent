@@ -28,9 +28,13 @@ import {
   ReviewFrostCard,
   type ReviewCardItem,
 } from "@/components/admin/review-frost-card";
+import {
+  FilterCountPill,
+  FilterPanelAside,
+  FilterPanelLayout,
+} from "@/components/filters/filter-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Surface } from "@/components/ui/surface";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -139,7 +143,8 @@ export function ReviewView() {
     () => buildReviewPath(query, filters, page),
     [query, filters, page],
   );
-  const { data, error, loading, reload } = useAdminQuery<ReviewPayload>(path);
+  const { data, error, loading, fetching, reload } =
+    useAdminQuery<ReviewPayload>(path);
 
   useEffect(() => {
     if (updatePhase !== "updating") return;
@@ -249,7 +254,7 @@ export function ReviewView() {
       <AdminHero
         className="max-w-screen-2xl"
         title="Review queue"
-        description="Open and upcoming records that need a human look — Lookup for a quick check, Must check when fields look incomplete. Fresh TORs are scored on every sync (rules first, then Vertex AI); update scores manually only if confidence looks wrong."
+        description="Open and upcoming records that need a human look — Glance for a quick check, Review when fields look incomplete. Fresh TORs are scored on every sync (rules first, then Vertex AI); update scores manually only if confidence looks wrong."
         actions={
           <>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -304,25 +309,7 @@ export function ReviewView() {
         }
       />
       <AdminBody className="max-w-screen-2xl space-y-10 md:space-y-12">
-        <div ref={listTopRef} className="grid items-start gap-8 lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)]">
-            <div className="flex items-end justify-between gap-4 lg:col-span-2">
-              <h2 className="text-2xl font-semibold tracking-tight md:text-[2rem] md:leading-[1.2]">
-                Needs review
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {loading && !data ? (
-                  "Loading…"
-                ) : (
-                  <>
-                    <span className="font-semibold tabular-nums text-foreground">
-                      {total.toLocaleString("en-US")}
-                    </span>{" "}
-                    open / upcoming
-                  </>
-                )}
-              </p>
-            </div>
-
+        <FilterPanelLayout ref={listTopRef}>
             <div className="flex items-center gap-3 lg:col-span-2">
                 <form
                   className="relative isolate min-w-0 flex-1 rounded-full shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] backdrop-blur-md backdrop-saturate-150"
@@ -352,18 +339,31 @@ export function ReviewView() {
                   onChange={(sort) => applyFilters({ ...filters, sort })}
                   className="w-44 shrink-0 sm:w-52"
                 />
+                <FilterCountPill
+                  className={fetching ? "opacity-60" : undefined}
+                  aria-live="polite"
+                >
+                  {loading && !data ? (
+                    "Loading…"
+                  ) : (
+                    <>
+                      <span className="font-semibold tabular-nums">
+                        {total.toLocaleString("en-US")}
+                      </span>
+                      <span className="ml-1 opacity-80">open / upcoming</span>
+                    </>
+                  )}
+                </FilterCountPill>
             </div>
 
-            <aside className="self-start lg:sticky lg:top-6 lg:max-h-[calc(100dvh-72px-3rem)] lg:overflow-y-auto">
-              <Surface className="bg-surface p-5 ring-transparent md:p-6">
-                <ReviewFilters
-                  value={filters}
-                  onChange={applyFilters}
-                  onClear={() => applyFilters(DEFAULT_REVIEW_FILTERS)}
-                  budgetYears={data?.budgetYears ?? []}
-                />
-              </Surface>
-            </aside>
+            <FilterPanelAside>
+              <ReviewFilters
+                value={filters}
+                onChange={applyFilters}
+                onClear={() => applyFilters(DEFAULT_REVIEW_FILTERS)}
+                budgetYears={data?.budgetYears ?? []}
+              />
+            </FilterPanelAside>
 
             <div className="min-w-0 space-y-6">
               <AdminStatus loading={loading && !data} error={error} />
@@ -443,7 +443,7 @@ export function ReviewView() {
                 </nav>
               ) : null}
             </div>
-        </div>
+        </FilterPanelLayout>
       </AdminBody>
     </div>
   );

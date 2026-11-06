@@ -47,7 +47,7 @@ async function categoryMedians() {
 }
 
 /**
- * Heuristic-score TOR ids, then Vertex-score open Lookup/Must-check rows.
+ * Heuristic-score TOR ids, then Vertex-score open Glance/Review rows.
  * Also writes Watch out integrity from rules (+ Vertex when scored).
  * Used after sync for newly created software TORs.
  */

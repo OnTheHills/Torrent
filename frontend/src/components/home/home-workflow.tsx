@@ -53,51 +53,27 @@ export function HomeWorkflow() {
 
   return (
     <HomeSection title={t("workflowTitle")} description={t("workflowSubtitle")}>
-      <style>{`
-        .workflow-chevron {
-          clip-path: polygon(
-            0 0,
-            100% 0,
-            100% calc(100% - 1rem),
-            50% 100%,
-            0 calc(100% - 1rem),
-            50% 1rem
-          );
-        }
-        @media (min-width: 768px) {
-          .workflow-chevron {
-            clip-path: polygon(
-              0 0,
-              calc(100% - 1.75rem) 0,
-              100% 50%,
-              calc(100% - 1.75rem) 100%,
-              0 100%,
-              1.75rem 50%
-            );
-          }
-        }
-      `}</style>
-
-      <ol className="grid grid-cols-1 gap-x-1.5 gap-y-3 md:grid-cols-4">
-        {STAGES.map((stage) => (
-          <li key={stage.title} className="flex flex-col gap-3">
-            <div
-              className={cn(
-                "workflow-chevron flex h-20 items-center justify-center px-8 text-foreground md:h-24 md:px-10",
-                frostBase,
-                stage.fill,
-              )}
-            >
-              <h3 className="flex items-center justify-center gap-2.5 text-center text-xl font-semibold tracking-tight md:gap-3 md:text-2xl">
-                <HugeiconsIcon
-                  icon={stage.icon}
-                  strokeWidth={2}
-                  className="size-5 shrink-0 md:size-6"
-                />
-                {t(stage.title)}
+      <ol className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {STAGES.map((stage, index) => (
+          <li
+            key={stage.title}
+            className={cn(
+              "flex min-h-[11rem] flex-col rounded-2xl p-5 text-foreground md:p-6",
+              frostBase,
+              stage.fill,
+            )}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <h3 className="text-xl font-semibold tracking-tight md:text-2xl">
+                {index + 1}. {t(stage.title)}
               </h3>
+              <HugeiconsIcon
+                icon={stage.icon}
+                strokeWidth={2}
+                className="size-5 shrink-0 md:size-6"
+              />
             </div>
-            <p className="px-1 text-sm leading-[1.65] text-muted-foreground md:pr-4">
+            <p className="mt-auto pt-6 text-sm leading-[1.65] text-foreground/75">
               {t(stage.body)}
             </p>
           </li>
