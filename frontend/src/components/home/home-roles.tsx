@@ -18,6 +18,7 @@ import {
 
 import { HomeSection } from "@/components/home/home-section";
 import { useLocale } from "@/components/providers/locale-provider";
+import { chromeFrostGlaze } from "@/components/ui/appbar";
 import { routes } from "@/config/routes";
 import type { DictionaryKey } from "@/lib/i18n/dictionary";
 import { cn } from "@/lib/utils";
@@ -80,20 +81,25 @@ const ROLES: {
 ];
 
 const iconFrame =
-  "bg-background text-foreground ring-[color-mix(in_srgb,var(--palette-gray-300)_65%,transparent)]";
+  "bg-[color-mix(in_srgb,var(--palette-white)_72%,transparent)] text-[color:var(--liquid-glass-ink)] ring-[color-mix(in_srgb,var(--palette-gray-300)_45%,transparent)] shadow-[inset_0_1px_0_0_rgb(255_255_255_/_0.7)] backdrop-blur-[2px]";
 
+/**
+ * Chromatic scene under each glass card — glass must sit over color, not flat paper.
+ */
 const toneStyles = {
   teal: {
-    card: "bg-[color-mix(in_srgb,var(--palette-teal-300)_42%,transparent)] ring-[color-mix(in_srgb,var(--palette-teal-400)_50%,transparent)]",
-    featureIcon: "text-[var(--palette-teal-700)]",
-    cta: "bg-[color-mix(in_srgb,var(--palette-teal-500)_38%,transparent)] text-[var(--palette-teal-900)] ring-[color-mix(in_srgb,var(--palette-teal-600)_42%,transparent)] hover:bg-[color-mix(in_srgb,var(--palette-teal-500)_48%,transparent)]",
-    place: "justify-self-start origin-bottom -rotate-[6deg] md:translate-x-[2%]",
+    scene:
+      "bg-[radial-gradient(120%_90%_at_20%_10%,var(--palette-teal-150),var(--palette-teal-300)_55%,var(--palette-teal-500))]",
+    featureIcon: "text-[var(--palette-teal-800)]",
+    place:
+      "self-start justify-self-start origin-bottom -rotate-[6deg] md:translate-x-[2%]",
   },
   orange: {
-    card: "bg-[color-mix(in_srgb,var(--palette-orange-300)_46%,transparent)] ring-[color-mix(in_srgb,var(--palette-orange-400)_52%,transparent)]",
-    featureIcon: "text-[var(--palette-orange-700)]",
-    cta: "bg-[color-mix(in_srgb,var(--palette-orange-500)_38%,transparent)] text-[var(--palette-orange-900)] ring-[color-mix(in_srgb,var(--palette-orange-600)_42%,transparent)] hover:bg-[color-mix(in_srgb,var(--palette-orange-500)_48%,transparent)]",
-    place: "justify-self-end origin-bottom rotate-[6deg] md:translate-x-[-2%]",
+    scene:
+      "bg-[radial-gradient(120%_90%_at_20%_10%,var(--palette-orange-150),var(--palette-orange-300)_55%,var(--palette-orange-500))]",
+    featureIcon: "text-[var(--palette-orange-800)]",
+    place:
+      "self-start justify-self-end origin-bottom rotate-[6deg] md:translate-x-[-2%]",
   },
 } as const;
 
@@ -118,95 +124,129 @@ export function HomeRoles() {
           const isFront = front === role.tone;
           const isShaking = shake?.tone === role.tone;
           return (
-            <article
+            <div
               key={role.title}
-              role="button"
-              tabIndex={0}
-              aria-pressed={isFront}
-              onClick={() => bringFront(role.tone)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  bringFront(role.tone);
-                }
-              }}
               className={cn(
-                "col-start-1 row-start-1 w-[min(100%,22.5rem)] cursor-pointer rounded-2xl p-6 shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_85%,transparent),0_18px_40px_rgb(0_0_0_/_0.08)] ring-1 backdrop-blur-xl backdrop-saturate-150 transition-[transform,box-shadow] duration-300 ease-out md:w-[58%] md:max-w-[28rem] md:p-7",
+                "relative col-start-1 row-start-1 h-fit w-[min(100%,22.5rem)] transition-transform duration-300 ease-out md:w-[58%] md:max-w-[28rem]",
                 "motion-reduce:transition-none",
-                tone.card,
                 tone.place,
                 isFront ? "z-20 scale-[1.02]" : "z-10 scale-100",
               )}
             >
-              <div className="flex items-start gap-3">
-                <span
-                  className={cn(
-                    "flex size-12 shrink-0 items-center justify-center rounded-full ring-1",
-                    iconFrame,
-                  )}
-                >
-                  <HugeiconsIcon icon={role.icon} strokeWidth={2} className="size-5" />
-                </span>
-                <div className="min-w-0 space-y-1">
-                  <p className="text-sm leading-snug text-muted-foreground">
-                    {t(role.eyebrow)}
-                  </p>
-                  <h3 className="text-xl font-semibold tracking-tight">{t(role.title)}</h3>
-                </div>
-              </div>
-
-              {t(role.body) ? (
-                <p className="mt-4 text-sm leading-[1.7] text-muted-foreground">
-                  {t(role.body)}
-                </p>
-              ) : null}
-
-              <ul className="mt-5 space-y-3">
-                {role.features.map((feature, index) => (
-                  <li key={feature.label} className="flex items-start gap-2.5 text-sm leading-snug">
-                    <span
-                      key={isShaking ? `${shake.tick}-${feature.label}` : feature.label}
-                      className={cn(
-                        "mt-0.5 inline-flex size-4 shrink-0 items-center justify-center",
-                        tone.featureIcon,
-                        isShaking &&
-                          "motion-safe:animate-[role-feature-shake_420ms_ease-in-out_both]",
-                      )}
-                      style={
-                        isShaking
-                          ? { animationDelay: `${index * 55}ms` }
-                          : undefined
-                      }
-                    >
-                      <HugeiconsIcon
-                        icon={feature.icon}
-                        strokeWidth={2}
-                        className="size-4"
-                      />
-                    </span>
-                    <span>
-                      <span className="font-semibold text-foreground">{t(feature.name)}:</span>{" "}
-                      {t(feature.label)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-
-              <Link
-                href={role.href}
-                onClick={(event) => event.stopPropagation()}
+              {/* Scene the glass samples — same radii as the card. */}
+              <div
+                aria-hidden
                 className={cn(
-                  "mt-6 inline-flex h-10 w-fit items-center gap-1.5 rounded-full px-4 text-sm font-medium",
-                  "shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_80%,transparent)] ring-1",
-                  "backdrop-blur-md transition-[transform,background-color] duration-200 ease-out",
-                  "hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:transform-none",
-                  tone.cta,
+                  "pointer-events-none absolute inset-0 rounded-2xl",
+                  tone.scene,
+                )}
+              />
+              <article
+                role="button"
+                tabIndex={0}
+                aria-pressed={isFront}
+                onClick={() => bringFront(role.tone)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    bringFront(role.tone);
+                  }
+                }}
+                className={cn(
+                  "liquid-glass-card relative h-fit cursor-pointer rounded-2xl p-6 md:p-7",
+                  "transition-[transform,background] duration-300 ease-out",
+                  "motion-reduce:transition-none",
                 )}
               >
-                {t(role.cta)}
-                <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} className="size-3.5" />
-              </Link>
-            </article>
+                <div className="flex items-start gap-3">
+                  <span
+                    className={cn(
+                      "flex size-12 shrink-0 items-center justify-center rounded-full ring-1",
+                      iconFrame,
+                    )}
+                  >
+                    <HugeiconsIcon
+                      icon={role.icon}
+                      strokeWidth={2}
+                      className="size-5"
+                    />
+                  </span>
+                  <div className="min-w-0 space-y-1">
+                    <p className="liquid-glass-muted text-sm leading-snug">
+                      {t(role.eyebrow)}
+                    </p>
+                    <h3 className="liquid-glass-ink text-xl font-semibold tracking-tight">
+                      {t(role.title)}
+                    </h3>
+                  </div>
+                </div>
+
+                {t(role.body) ? (
+                  <p className="liquid-glass-muted mt-4 text-sm leading-[1.7]">
+                    {t(role.body)}
+                  </p>
+                ) : null}
+
+                <ul className="mt-5 space-y-3">
+                  {role.features.map((feature, index) => (
+                    <li
+                      key={feature.label}
+                      className="liquid-glass-muted flex items-start gap-2.5 text-sm leading-snug"
+                    >
+                      <span
+                        key={
+                          isShaking
+                            ? `${shake.tick}-${feature.label}`
+                            : feature.label
+                        }
+                        className={cn(
+                          "mt-0.5 inline-flex size-4 shrink-0 items-center justify-center",
+                          tone.featureIcon,
+                          isShaking &&
+                            "motion-safe:animate-[role-feature-shake_420ms_ease-in-out_both]",
+                        )}
+                        style={
+                          isShaking
+                            ? { animationDelay: `${index * 55}ms` }
+                            : undefined
+                        }
+                      >
+                        <HugeiconsIcon
+                          icon={feature.icon}
+                          strokeWidth={2}
+                          className="size-4"
+                        />
+                      </span>
+                      <span>
+                        <span className="liquid-glass-ink font-semibold">
+                          {t(feature.name)}:
+                        </span>{" "}
+                        {t(feature.label)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Link
+                  href={role.href}
+                  onClick={(event) => event.stopPropagation()}
+                  className={cn(
+                    chromeFrostGlaze,
+                    "mt-6 inline-flex h-10 w-fit items-center gap-1.5 rounded-full px-4 text-sm font-medium",
+                    "transition-[transform,background] duration-200 ease-out",
+                    "hover:-translate-y-0.5",
+                    "motion-reduce:transition-none motion-reduce:hover:transform-none",
+                  )}
+                >
+                  {t(role.cta)}
+                  <HugeiconsIcon
+                    icon={ArrowRight01Icon}
+                    strokeWidth={2}
+                    className="size-3.5"
+                  />
+                </Link>
+              </article>
+            </div>
           );
         })}
       </div>

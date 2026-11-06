@@ -1,66 +1,62 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import { HomeSection } from "@/components/home/home-section";
-import { BrandLockup } from "@/components/layout/brand-lockup";
 import { useLocale } from "@/components/providers/locale-provider";
+import { chromeFrostGlazeDim } from "@/components/ui/appbar";
 import { routes } from "@/config/routes";
 import type { DictionaryKey } from "@/lib/i18n/dictionary";
 import { cn } from "@/lib/utils";
 
+/** Frost sheet inside the folder — same chrome as workflow cards. */
+const frostPaper =
+  "border-0 shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_80%,transparent),0_6px_18px_rgb(0_0_0_/_0.05)] ring-1 backdrop-blur-xl backdrop-saturate-150";
+
+/** Vintage kraft folder shell — same brown on every folder. */
+const folderBack =
+  "bg-[linear-gradient(165deg,#c4a878_0%,#d0b68a_55%,#c8ab7d_100%)]";
+const folderFront =
+  "bg-[linear-gradient(180deg,#f0dfc0_0%,#e8d4b0_48%,#dfc6a0_100%)]";
+
 /**
- * How data enters TORRENT — four source clouds around one hub.
+ * How data enters TORRENT — four source folders.
  * Keep this honest: curated feeds + expanding e-GP department allowlist.
- *
- * Layering: left clouds behind the hub, right clouds in front (sketch).
  */
 const FEEDS: {
   title: DictionaryKey;
   body: DictionaryKey;
-  left: string;
-  top: string;
-  layer: "back" | "front";
-  /** Extra top padding on the label stack (pushes copy down inside the cloud). */
-  textNudge?: string;
+  /** Colored paper fill + ring. */
+  paper: string;
 }[] = [
   {
     title: "coverageFeedOcdsTitle",
     body: "coverageFeedOcdsBody",
-    left: "6%",
-    top: "24%",
-    layer: "front",
-    textNudge: "1.4rem",
+    paper:
+      "bg-[color-mix(in_srgb,var(--palette-green-300)_45%,transparent)] ring-[color-mix(in_srgb,var(--palette-green-400)_55%,transparent)]",
   },
   {
     title: "coverageFeedEgp2Title",
     body: "coverageFeedEgp2Body",
-    left: "54%",
-    top: "22%",
-    layer: "front",
-    textNudge: "1.4rem",
+    paper:
+      "bg-[color-mix(in_srgb,var(--palette-teal-400)_45%,transparent)] ring-[color-mix(in_srgb,var(--palette-teal-400)_55%,transparent)]",
   },
   {
     title: "coverageFeedRssTitle",
     body: "coverageFeedRssBody",
-    left: "8%",
-    top: "52%",
-    layer: "front",
+    paper:
+      "bg-[color-mix(in_srgb,var(--palette-blue-300)_45%,transparent)] ring-[color-mix(in_srgb,var(--palette-blue-400)_55%,transparent)]",
   },
   {
     title: "coverageFeedDataGoTitle",
     body: "coverageFeedDataGoBody",
-    left: "52%",
-    top: "52%",
-    layer: "front",
-    textNudge: "0.95rem",
+    paper:
+      "bg-[color-mix(in_srgb,var(--palette-purple-300)_48%,transparent)] ring-[color-mix(in_srgb,var(--palette-purple-400)_50%,transparent)]",
   },
 ];
 
-/** Public labels for the curated e-GP allowlist (see backend EGP_DEPT_IDS). */
 /**
  * Curated e-GP allowlist labels (see backend EGP_DEPT_IDS).
  * English short names verified against official agency branding.
@@ -105,46 +101,66 @@ const DEPT_CHIPS: { labelEn: string; labelTh: string; logo: string }[] = [
 ];
 
 const frostChip =
-  "inline-flex h-16 min-h-16 max-h-16 items-center gap-3 whitespace-nowrap rounded-lg border-0 bg-[rgb(255_255_255_/_0.88)] py-0 pl-3 pr-4 text-base font-medium leading-none text-foreground shadow-[inset_0_1px_0_0_rgb(255_255_255_/_0.95)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_55%,transparent)]";
-
-/** Yellow frost — same recipe as tinted frost buttons (teal/orange/etc.). */
-const frostHub =
-  "border-0 bg-[color-mix(in_srgb,var(--palette-yellow-300)_42%,transparent)] text-[var(--palette-yellow-900)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_85%,transparent),0_8px_24px_rgb(0_0_0_/_0.05)] ring-1 ring-[color-mix(in_srgb,var(--palette-yellow-400)_50%,transparent)] backdrop-blur-md backdrop-saturate-150";
+  "inline-flex h-16 min-h-16 max-h-16 items-center gap-3 whitespace-nowrap rounded-lg border-0 bg-surface/30 py-0 pl-3 pr-4 text-base font-medium leading-none text-foreground shadow-[inset_0_1px_0_0_rgb(255_255_255_/_0.95)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_55%,transparent)]";
 
 /** Flat white frame for the departments card. */
 const deptsCard =
   "border-0 bg-white text-foreground ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_55%,transparent)]";
 
-function FrostCloud({
-  children,
-  className,
-  style,
-  textNudge,
+/**
+ * Folder layers (back → front):
+ * 1. kraft back
+ * 2. colored paper (peeks above the front)
+ * 3. kraft front
+ */
+function FeedFolder({
+  title,
+  body,
+  paper,
 }: {
-  children: ReactNode;
-  className?: string;
-  style?: CSSProperties;
-  textNudge?: string;
+  title: string;
+  body: string;
+  paper: string;
 }) {
   return (
-    <div className={cn("relative", className)} style={style}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/cloud.png"
-        alt=""
-        aria-hidden
-        className="pointer-events-none absolute inset-0 h-full w-full object-contain drop-shadow-[0_12px_24px_rgb(80_130_180_/_0.28)] opacity-65"
-        draggable={false}
-      />
-      <div
-        className="relative z-10 flex h-full flex-col items-center justify-center gap-1.5 px-[18%] pb-[14%] pt-[20%] text-center"
-        style={
-          textNudge ? { paddingTop: `calc(20% + ${textNudge})` } : undefined
-        }
-      >
-        {children}
+    <article className="relative flex h-full w-full flex-col pt-9 text-foreground">
+      {/* Body stack: back kraft → colored paper → front kraft */}
+      <div className="relative flex min-h-[9.5rem] flex-1 flex-col md:min-h-[10.5rem]">
+        {/* 1. Back kraft — peeks at half the visible paper height */}
+        <div
+          aria-hidden
+          className={cn(
+            "absolute inset-x-0 -top-4 bottom-0 z-0 rounded-md shadow-[0_14px_30px_rgb(0_0_0_/_0.14)]",
+            folderBack,
+          )}
+        />
+
+        {/* 2. Colored paper — reveals above the front (and above the back rim) */}
+        <div
+          aria-hidden
+          className={cn(
+            "absolute inset-x-3 -top-8 z-10 h-[60%] rounded-sm sm:inset-x-4",
+            frostPaper,
+            paper,
+          )}
+        />
+
+        {/* 3. Front kraft — covers the paper except the top-right peek */}
+        <div
+          className={cn(
+            "relative z-20 flex flex-1 flex-col rounded-md px-5 pb-5 pt-6 shadow-[inset_0_1px_0_0_rgb(255_255_255_/_0.35)] ring-1 ring-[rgb(0_0_0_/_0.08)] md:px-6",
+            folderFront,
+          )}
+        >
+          <h3 className="text-lg font-semibold leading-tight tracking-tight md:text-xl">
+            {title}
+          </h3>
+          <p className="mt-3 text-sm leading-[1.65] text-[color-mix(in_srgb,var(--palette-gray-900)_72%,transparent)]">
+            {body}
+          </p>
+        </div>
       </div>
-    </div>
+    </article>
   );
 }
 
@@ -153,84 +169,18 @@ export function HomeCoverage() {
 
   return (
     <HomeSection title={t("coverageTitle")} description={t("coverageBody")}>
-      <div className="space-y-4">
-        <div>
-          {/* Desktop: big layered clouds around frost hub */}
-          <div className="relative mx-auto mt-0 hidden aspect-square w-full max-w-4xl md:-mb-[29%] md:block">
-            {/* Uniform nudge — change --constellation-nudge-y to move everything equally. */}
-            <div
-              className="absolute inset-0"
-              style={{
-                transform: "translateY(var(--constellation-nudge-y, -18%))",
-              }}
-            >
-              {FEEDS.map((feed, index) => (
-                <FrostCloud
-                  key={feed.title}
-                  textNudge={feed.textNudge}
-                  className={cn(
-                    "absolute aspect-[927/549] w-[38%]",
-                    feed.layer === "back" ? "z-[1]" : "z-30",
-                    "motion-safe:animate-[hero-tile-in_800ms_cubic-bezier(0.22,1,0.36,1)_both]",
-                  )}
-                  style={{
-                    left: feed.left,
-                    top: feed.top,
-                    animationDelay: `${index * 80}ms`,
-                  }}
-                >
-                  <p className="text-sm font-semibold leading-tight tracking-tight text-[var(--palette-teal-900)] lg:text-base">
-                    {t(feed.title)}
-                  </p>
-                  <p className="text-xs leading-[1.45] text-[var(--palette-teal-900)]/70 lg:text-[0.8rem]">
-                    {t(feed.body)}
-                  </p>
-                </FrostCloud>
-              ))}
-
-              <div
-                className={cn(
-                  "absolute left-1/2 top-1/2 z-20 flex aspect-square w-[34%] max-w-[17rem] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full",
-                  frostHub,
-                )}
-              >
-                <BrandLockup
-                  size="md"
-                  className="h-16 w-auto max-w-[70%] object-contain lg:h-18"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Mobile: hub first, then cloud stack */}
-          <div className="mt-5 space-y-3 md:hidden">
-            <div
-              className={cn(
-                "mx-auto flex size-28 items-center justify-center rounded-full",
-                frostHub,
-              )}
-            >
-              <BrandLockup
-                size="sm"
-                className="h-8 w-auto max-w-[70%] object-contain"
+      <div className="space-y-8 md:space-y-10">
+        <ul className="grid grid-cols-1 items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
+          {FEEDS.map((feed) => (
+            <li key={feed.title} className="min-w-0 h-full">
+              <FeedFolder
+                title={t(feed.title)}
+                body={t(feed.body)}
+                paper={feed.paper}
               />
-            </div>
-            <ul className="grid gap-2">
-              {FEEDS.map((feed) => (
-                <li key={feed.title}>
-                  <FrostCloud className="mx-auto aspect-[927/549] w-full max-w-sm">
-                    <p className="text-sm font-semibold leading-tight tracking-tight text-[var(--palette-teal-900)]">
-                      {t(feed.title)}
-                    </p>
-                    <p className="text-xs leading-[1.45] text-[var(--palette-teal-900)]/70">
-                      {t(feed.body)}
-                    </p>
-                  </FrostCloud>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
+            </li>
+          ))}
+        </ul>
 
         <div className={cn("space-y-4 rounded-2xl p-5 md:p-6", deptsCard)}>
           <div className="flex items-start justify-between gap-4">
@@ -245,11 +195,10 @@ export function HomeCoverage() {
             <Link
               href={routes.tors}
               className={cn(
-                "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-medium text-foreground",
-                "bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))]",
-                "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)]",
-                "backdrop-blur-md backdrop-saturate-150 transition-[transform,filter] duration-200 ease-out",
-                "hover:-translate-y-0.5 hover:brightness-[1.02]",
+                chromeFrostGlazeDim,
+                "inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-medium",
+                "transition-[transform,background] duration-200 ease-out",
+                "hover:-translate-y-0.5",
                 "motion-reduce:transition-none motion-reduce:hover:transform-none",
               )}
             >
@@ -257,7 +206,7 @@ export function HomeCoverage() {
               <HugeiconsIcon
                 icon={ArrowRight01Icon}
                 strokeWidth={2}
-                className="size-3.5"
+                className="size-4"
               />
             </Link>
           </div>

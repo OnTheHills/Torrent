@@ -74,7 +74,7 @@ function Toggle<T extends string>({
             onClick={() => onValueChange(option.value)}
             className={cn(
               "inline-flex shrink-0 items-center justify-center rounded-full font-medium whitespace-nowrap transition-colors",
-              size === "sm" ? "h-6 min-w-6 px-1.5 text-[0.65rem]" : "h-7 min-w-7 px-2.5 text-xs",
+              size === "sm" ? "h-6 min-w-6 px-1.5 text-[0.65rem]" : "h-8 min-w-8 px-3 text-xs",
               selected
                 ? tone === "chrome"
                   ? chromeFrostThumb

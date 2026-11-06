@@ -81,21 +81,10 @@ export function ShellAppBar({
           <AppBar.BrandLockup className="min-w-0">
             <Link
               href={audience === "vendor" ? routes.app.home : routes.home}
-              className="inline-flex h-12 min-w-0 items-center gap-1 md:h-16 md:gap-1.5"
+              className="inline-flex h-12 min-w-0 items-center md:h-16"
+              title={vendorName || t("brand")}
             >
-              {/* Clip the wordmark from the combined asset, keeping its icon. */}
-              <span
-                aria-hidden="true"
-                className="h-14 w-6 shrink-0 overflow-hidden md:h-20 md:w-[35px]"
-              >
-                <BrandLockup size="xl" priority className="max-w-none" />
-              </span>
-              <span
-                title={vendorName || t("brand")}
-                className="max-w-[32vw] truncate font-heading text-2xl leading-none font-black tracking-[-0.05em] text-[#282828] md:max-w-md md:text-[34px]"
-              >
-                {vendorName || t("brand")}
-              </span>
+              <BrandLockup size="xl" priority />
             </Link>
             {workspace ? (
               <AppBar.WorkspaceName

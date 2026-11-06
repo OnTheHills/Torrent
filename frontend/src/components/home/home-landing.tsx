@@ -1,5 +1,6 @@
 "use client";
 
+import { HomeAlerts } from "@/components/home/home-alerts";
 import { HomeCoverage } from "@/components/home/home-coverage";
 import { HomeHeroCards } from "@/components/home/home-hero-cards";
 import { HomeHeroTiles } from "@/components/home/home-hero-tiles";
@@ -19,15 +20,15 @@ export function HomeLanding() {
         <HomeHeroTiles className="pointer-events-none absolute inset-0 z-0 opacity-95" />
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 z-[1] bg-[linear-gradient(180deg,transparent_40%,var(--hero-stripe-c)_100%)]"
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[min(70%,22rem)] bg-[linear-gradient(180deg,transparent_0%,color-mix(in_srgb,var(--background)_40%,transparent)_42%,var(--background)_88%,var(--background)_100%)]"
         />
         <HomeFrame className="relative z-10 flex min-h-[28rem] flex-col justify-end pb-8 pt-[calc(144px+1.5rem)] md:min-h-[32rem] md:pb-10 md:pt-[calc(144px+2rem)]">
-          <div className="max-w-2xl md:max-w-3xl">
+          <div className="max-w-3xl md:max-w-5xl">
             <BrandLockup size="xxxxl" priority />
-            <h1 className="mt-2 whitespace-pre-line text-3xl font-semibold tracking-tight md:text-5xl md:leading-[1.1]">
+            <h1 className="mt-0.5 whitespace-pre-line text-3xl font-semibold tracking-tight md:mt-1 md:text-5xl md:leading-[1.1]">
               {t("homeTitle")}
             </h1>
-            <p className="mt-4 max-w-xl text-base leading-[1.7] text-hero-muted md:text-lg">
+            <p className="mt-4 max-w-3xl text-base leading-[1.7] text-hero-muted md:max-w-4xl md:text-lg">
               {t("homeDescription")}
             </p>
           </div>
@@ -35,16 +36,17 @@ export function HomeLanding() {
         </HomeFrame>
       </section>
 
+      <HomeBand frameClassName="pt-4 md:pt-6">
+        <HomeCoverage />
+      </HomeBand>
       <HomeBand>
-        <div className="pt-8 md:pt-2">
-          <HomeCoverage />
-        </div>
+        <HomeWorkflow />
       </HomeBand>
       <HomeBand>
         <HomeRoles />
       </HomeBand>
-      <HomeBand>
-        <HomeWorkflow />
+      <HomeBand frameClassName="pt-3 pb-12 md:pt-4 md:pb-16">
+        <HomeAlerts />
       </HomeBand>
     </div>
   );

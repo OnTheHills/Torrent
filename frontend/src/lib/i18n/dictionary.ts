@@ -65,18 +65,18 @@ export const dictionary = {
     coverageBody:
       "TORRENT consolidates official e-GP and agency feeds into one catalog of curated departments. Every listing links to its official source.",
     coverageHubCaption: "One catalog",
-    coverageFeedOcdsTitle: "BMA Open Contracting",
+    coverageFeedOcdsTitle: "BMA Open Contract",
     coverageFeedOcdsBody:
-      "Official OCDS JSON releases from Bangkok Metropolitan Administration.",
-    coverageFeedEgp2Title: "BMA e-GP2",
+      "Official OCDS release packages from the Bangkok Metropolitan Administration Open Contract platform.",
+    coverageFeedEgp2Title: "eGP BMA2",
     coverageFeedEgp2Body:
-      "Bangkok e-GP2 project search for published software TOR announcements.",
+      "BMA’s eGP BMA2 project search for published software TOR announcements.",
     coverageFeedRssTitle: "e-GP RSS",
     coverageFeedRssBody:
-      "Draft TOR and bid notices from selected departments on the national e-GP feed.",
-    coverageFeedDataGoTitle: "data.go & SME-GP",
+      "Draft TOR and invitation notices from selected departments on the national e-GP RSS feed.",
+    coverageFeedDataGoTitle: "data.go.th & SME-GP",
     coverageFeedDataGoBody:
-      "National open-data and SME procurement listings enriched into the same catalog.",
+      "Open Government Data of Thailand and SME-GP listings enriched into the same catalog.",
     coverageDeptsHeading: "Departments in scope",
     coverageDeptsBody:
       "The current allowlist covers selected e-GP departments and may expand without affecting browse behavior. Every listing links to its official source.",
@@ -93,7 +93,8 @@ export const dictionary = {
     roleVendorEyebrow: "For software companies bidding on TORs",
     roleVendorTitle: "Vendor account, lots more to love",
     roleVendorBody: "",
-    roleVendorFeature1: "Ranked opportunities scored to your capability profile",
+    roleVendorFeature1:
+      "Ranked opportunities scored to your capability profile",
     roleVendorFeature2: "Save TORs and track deadlines in one place",
     roleVendorFeature3: "Email notifications when TORs match your profile",
     roleVendorLineTitle: "LINE Notify",
@@ -117,6 +118,24 @@ export const dictionary = {
     workflowDeliverTitle: "Deliver",
     workflowDeliverBody:
       "Records land in the public catalog; vendors get AI matches in-inbox and optional LINE weekly new TORs.",
+    alertsEyebrow: "Stay ahead",
+    alertsTitle: "Stay updated",
+    alertsSubtitle:
+      "Stay in touch with new software TORs through Smart Alert email and a Monday LINE digest. Connect once and hear about matches and deadlines without refreshing the catalog.",
+    alertsSmartTitle: "Smart Alert",
+    alertsSmartBody:
+      "Email when new TORs match your profile, reminders before saved and matched listings close, and integrity flags on departments you watch. Tune budget range and categories in settings.",
+    alertsSmartStep1: "Sign in with a vendor account",
+    alertsSmartStep2: "Open Smart Alert and choose email types",
+    alertsSmartStep3: "Set budget and category preferences, then save",
+    alertsLineTitle: "LINE Notify",
+    alertsLineBody:
+      "A weekly Monday summary of new software TORs on the LINE Official Account. Anyone can add the OA; digests go only to linked vendor accounts.",
+    alertsLineStep1: "Connect LINE from Smart Alert settings",
+    alertsLineStep2: "Add the Official Account and send the link code",
+    alertsLineStep3: "Turn on the Monday TOR digest",
+    alertsCta: "Set up Smart Alert",
+    alertsLineCta: "Set up LINE",
     trustEyebrow: "Governance",
     trustTitle: "Transparent by design",
     trustSubtitle:
@@ -142,9 +161,9 @@ export const dictionary = {
       "This email is not registered. Create an account first.",
     logOut: "Log out",
     homeEyebrow: "Government software procurement intelligence",
-    homeTitle: "Find, understand, and monitor public software TORs",
+    homeTitle: "When public software TORs\nneed one home.",
     homeDescription:
-      "TORRENT brings software procurement records from Thai government organizations into one searchable platform, enriched with budget, and integrity context.",
+      "Time to say goodbye to hunting software TORs across agency sites, PDFs, and half-updated portals. With TORRENT, official records live in one searchable home.",
     heroCardListingsTitle: "Listings",
     heroCardListingsBody:
       "Browse software TORs from official feeds and selected departments in one catalog.",
@@ -171,8 +190,8 @@ export const dictionary = {
       "Public pages and official feeds — no login walls, no JS-only e-GP.",
     agenciesEyebrow: "Coverage",
     agenciesTitle: "Five software-TOR sources",
-    sourceOcds: "BMA OCDS",
-    sourceBmaEgp2: "BMA e-GP2",
+    sourceOcds: "BMA Open Contract",
+    sourceBmaEgp2: "eGP BMA2",
     sourceRss: "e-GP RSS",
     sourceHtml: "Public listing",
     sourceHealthTitle: "Ingestion sources",
@@ -216,8 +235,8 @@ export const dictionary = {
     allAgencies: "All departments",
     source: "Source",
     allSources: "All sources",
-    sourceSmeGp: "SME-GP",
-    sourceDataGo: "data.go e-GP",
+    sourceSmeGp: "THAI SME-GP",
+    sourceDataGo: "data.go.th",
     budgetRange: "Budget",
     budgetAll: "Any",
     budgetLt5: "< ฿5M",
@@ -344,7 +363,7 @@ export const dictionary = {
     detailBriefMissing:
       "The source listing does not include a project brief here. Open the original notice for the full TOR and annexes.",
     detailBriefMissingBma:
-      "BMA e-GP2 lists this as a project with a TOR or invitation notice. Open the source listing or the attached TOR PDF for the full brief.",
+      "eGP BMA2 lists this as a project with a TOR or invitation notice. Open the source listing or the attached TOR PDF for the full brief.",
     vertexSummaryFromTor: "Summarized by Vertex AI",
     ocrFromPlanPdf: "From TOR PDF (OCR)",
     textFromPlanPdf: "From TOR PDF (text layer)",
@@ -518,17 +537,18 @@ export const dictionary = {
     coverageBody:
       "TORRENT รวมฟีด e-GP และแหล่งหน่วยงานอย่างเป็นทางการเป็นแคตตาล็อกเดียวของหน่วยงานที่คัดเลือกไว้ ทุกรายการลิงก์กลับสู่แหล่งข้อมูลต้นทาง",
     coverageHubCaption: "แคตตาล็อกเดียว",
-    coverageFeedOcdsTitle: "สัญญาเปิด กทม.",
-    coverageFeedOcdsBody: "ชุดข้อมูล OCDS JSON อย่างเป็นทางการจากกรุงเทพมหานคร",
-    coverageFeedEgp2Title: "e-GP2 กทม.",
+    coverageFeedOcdsTitle: "Open Contract กทม.",
+    coverageFeedOcdsBody:
+      "ชุดข้อมูล OCDS จากแพลตฟอร์ม Open Contract ของกรุงเทพมหานคร",
+    coverageFeedEgp2Title: "eGP BMA2",
     coverageFeedEgp2Body:
-      "ค้นหาโครงการ e-GP2 ของ กทม. สำหรับประกาศ TOR ซอฟต์แวร์ที่เผยแพร่แล้ว",
+      "ค้นหาโครงการใน eGP BMA2 สำหรับประกาศ TOR ซอฟต์แวร์ที่เผยแพร่แล้ว",
     coverageFeedRssTitle: "RSS e-GP",
     coverageFeedRssBody:
-      "ร่าง TOR และประกาศประกวดราคาจากหน่วยงานที่เลือกในฟีด e-GP ระดับชาติ",
-    coverageFeedDataGoTitle: "data.go และ SME-GP",
+      "ร่าง TOR และประกาศเชิญชวนจากหน่วยงานที่เลือกในฟีด RSS e-GP ระดับชาติ",
+    coverageFeedDataGoTitle: "data.go.th และ SME-GP",
     coverageFeedDataGoBody:
-      "รายการจัดซื้อจากข้อมูลเปิดภาครัฐและ SME ที่ถูกรวมเข้าแคตตาล็อกเดียวกัน",
+      "รายการจากศูนย์กลางข้อมูลภาครัฐ (data.go.th) และ SME-GP ที่รวมเข้าแคตตาล็อกเดียวกัน",
     coverageDeptsHeading: "หน่วยงานที่อยู่ในขอบเขต",
     coverageDeptsBody:
       "รายการอนุญาตปัจจุบันครอบคลุมหน่วยงาน e-GP ที่คัดเลือกไว้ และสามารถขยายได้โดยไม่กระทบการค้นหา ทุกรายการลิงก์กลับสู่แหล่งข้อมูลอย่างเป็นทางการ",
@@ -569,6 +589,24 @@ export const dictionary = {
     workflowDeliverTitle: "ส่งต่อ",
     workflowDeliverBody:
       "รายการเข้าสู่แคตตาล็อกสาธารณะ ผู้ประกอบการได้การจับคู่ AI ในกล่องจดหมาย และ LINE รายสัปดาห์สำหรับ TOR ใหม่",
+    alertsEyebrow: "ไม่พลาดโอกาส",
+    alertsTitle: "อัปเดตอยู่เสมอ",
+    alertsSubtitle:
+      "ติดตาม TOR ซอฟต์แวร์ใหม่ผ่านอีเมลการแจ้งเตือนอัจฉริยะ และสรุป LINE วันจันทร์ เชื่อมครั้งเดียว แล้วรับข่าวการจับคู่และกำหนดปิดรับโดยไม่ต้องรีเฟรชแคตตาล็อก",
+    alertsSmartTitle: "การแจ้งเตือนอัจฉริยะ",
+    alertsSmartBody:
+      "อีเมลเมื่อมี TOR ใหม่ที่ตรงโปรไฟล์ เตือนก่อนรายการที่บันทึกหรือจับคู่ปิดรับ และธงความน่าเชื่อถือของหน่วยงานที่ติดตาม ปรับช่วงงบและหมวดในหน้าตั้งค่าได้",
+    alertsSmartStep1: "เข้าสู่ระบบด้วยบัญชีผู้ประกอบการ",
+    alertsSmartStep2: "เปิดการแจ้งเตือนอัจฉริยะ แล้วเลือกประเภทอีเมล",
+    alertsSmartStep3: "ตั้งงบและหมวดที่สนใจ แล้วบันทึก",
+    alertsLineTitle: "LINE Notify",
+    alertsLineBody:
+      "สรุป TOR ซอฟต์แวร์ใหม่ทุกวันจันทร์ผ่าน LINE Official Account แอดเพื่อน OA ได้ทุกคน แต่สรุปส่งเฉพาะผู้ขายที่เชื่อมบัญชี",
+    alertsLineStep1: "เชื่อม LINE จากหน้าตั้งค่าการแจ้งเตือนอัจฉริยะ",
+    alertsLineStep2: "แอดเพื่อน Official Account แล้วส่งรหัสเชื่อม",
+    alertsLineStep3: "เปิดสรุป TOR วันจันทร์",
+    alertsCta: "ตั้งค่าการแจ้งเตือนอัจฉริยะ",
+    alertsLineCta: "ตั้งค่า LINE",
     trustEyebrow: "ธรรมาภิบาล",
     trustTitle: "โปร่งใสตั้งแต่การออกแบบ",
     trustSubtitle:
@@ -593,9 +631,9 @@ export const dictionary = {
     emailNotRegistered: "อีเมลนี้ยังไม่ได้สมัคร สร้างบัญชีก่อน",
     logOut: "ออกจากระบบ",
     homeEyebrow: "ข้อมูลการจัดซื้อซอฟต์แวร์ภาครัฐ",
-    homeTitle: "ค้นหา เจาะลึก และติดตาม \nTOR ซอฟต์แวร์หน่วยงานรัฐ",
+    homeTitle: "เมื่อ TOR ซอฟต์แวร์ภาครัฐ\nต้องการบ้านหลังเดียว",
     homeDescription:
-      "TORRENT รวมประกาศจัดซื้อซอฟต์แวร์จากหลายหน่วยงานรัฐไว้ในแพลตฟอร์มเดียวที่สามารถสืบค้นได้ พร้อมข้อมูลวิเคราะห์ด้านงบประมาณ และความน่าเชื่อถือ",
+      "ถึงเวลาบอกลาการไล่ล่า TOR ซอฟต์แวร์ตามเว็บหน่วยงาน ไฟล์ PDF และพอร์ทัลที่อัปเดตไม่ครบ ด้วย TORRENT ข้อมูลทางการอยู่รวมกันในบ้านหลังเดียวที่ค้นหาได้",
     heroCardListingsTitle: "รายการ",
     heroCardListingsBody:
       "ค้นหา TOR ซอฟต์แวร์จากฟีดทางการและหน่วยงานที่เลือกในแคตตาล็อกเดียว",
@@ -622,8 +660,8 @@ export const dictionary = {
       "หน้าสาธารณะและแหล่งทางการ — ไม่ดึงหน้าที่ต้องล็อกอิน หรือ e-GP แบบ JS อย่างเดียว",
     agenciesEyebrow: "ขอบเขต",
     agenciesTitle: "ห้าแหล่ง TOR ซอฟต์แวร์",
-    sourceOcds: "OCDS กทม.",
-    sourceBmaEgp2: "e-GP2 กทม.",
+    sourceOcds: "Open Contract กทม.",
+    sourceBmaEgp2: "eGP BMA2",
     sourceRss: "RSS e-GP",
     sourceHtml: "หน้ารายการสาธารณะ",
     sourceHealthTitle: "แหล่งนำเข้าข้อมูล",
@@ -666,8 +704,8 @@ export const dictionary = {
     allAgencies: "ทุกหน่วยงาน",
     source: "แหล่งข้อมูล",
     allSources: "ทุกแหล่ง",
-    sourceSmeGp: "SME-GP",
-    sourceDataGo: "data.go e-GP",
+    sourceSmeGp: "THAI SME-GP",
+    sourceDataGo: "data.go.th",
     budgetRange: "งบประมาณ",
     budgetAll: "ทั้งหมด",
     budgetLt5: "< ฿5 ล้าน",
@@ -792,7 +830,7 @@ export const dictionary = {
     detailBriefMissing:
       "แหล่งประกาศไม่ได้เผยแพร่สรุปโครงการที่นี่ เปิดประกาศต้นทางเพื่อดู TOR และเอกสารแนบฉบับเต็ม",
     detailBriefMissingBma:
-      "e-GP2 กทม. เผยแพร่รายการนี้เป็นโครงการพร้อมร่าง TOR หรือประกาศเชิญชวน เปิดแหล่งประกาศหรือไฟล์ TOR เพื่อดูรายละเอียดฉบับเต็ม",
+      "eGP BMA2 เผยแพร่รายการนี้เป็นโครงการพร้อมร่าง TOR หรือประกาศเชิญชวน เปิดแหล่งประกาศหรือไฟล์ TOR เพื่อดูรายละเอียดฉบับเต็ม",
     vertexSummaryFromTor: "สรุปโดย Vertex AI",
     ocrFromPlanPdf: "จากไฟล์ TOR (OCR)",
     textFromPlanPdf: "จากไฟล์ TOR (ชั้นข้อความ)",

@@ -78,8 +78,8 @@ const TARGET_LABEL: Record<string, string> = {
 };
 
 const SOURCE_NAME: Record<string, string> = {
-  dataGo: "data.go e-GP",
-  bmaEgp2: "BMA e-GP2",
+  dataGo: "data.go.th",
+  bmaEgp2: "eGP BMA2",
   egpRss: "e-GP RSS",
   smeAnnouncements: "SME announcements",
   all: "All sources",
