@@ -9,6 +9,10 @@ import { BudgetChart } from "@/components/dashboard/budget-chart";
 import { BudgetKpiStrip } from "@/components/dashboard/budget-kpi-strip";
 import { DashboardFetchStatus } from "@/components/dashboard/dashboard-loading";
 import { HistoricalPriceTable } from "@/components/dashboard/historical-price-table";
+import { TorIngestionChart } from "@/components/dashboard/tor-ingestion-chart";
+import { DepartmentBudgetChart } from "@/components/dashboard/department-budget-chart";
+import { BudgetDistributionChart } from "@/components/dashboard/budget-distribution-chart";
+import { CategoryDistributionChart } from "@/components/dashboard/category-distribution-chart";
 import { ShellContent } from "@/components/layout/shell-content";
 import { MonitorSection } from "@/components/monitor/monitor-section";
 import { useAudience } from "@/components/providers/audience-provider";
@@ -22,12 +26,12 @@ export function DashboardView() {
   const { t } = useLocale();
   const audience = useAudience();
   const vendor = audience === "vendor";
-  const { data: tors = [], isFetching, isPending } = useQuery({
+  const { data: tors = [], isFetching, isPending, isError } = useQuery({
     ...torsQueryOptions,
     refetchInterval: (query) =>
       Array.isArray(query.state.data) && query.state.data.length === 0
         ? 2_000
-        : false,
+        : 60_000,
   });
 
   const benchmarks = buildBudgetBenchmarks(tors);
@@ -94,6 +98,31 @@ export function DashboardView() {
           ) : (
             <BudgetChart data={benchmarks} />
           )}
+        </MonitorSection>
+
+        <MonitorSection title={t("ingestionTitle")} description={t("ingestionDescription")}>
+          {waiting ? (
+            <div className="h-80 animate-pulse rounded-lg bg-background/60" />
+          ) : isError && !tors.length ? (
+            <p role="alert" className="py-16 text-center text-sm text-muted-foreground">{t("ingestionError")}</p>
+          ) : (
+            <>
+              {isError ? <p role="status" className="mb-3 text-sm text-muted-foreground">{t("ingestionStale")}</p> : null}
+              <TorIngestionChart tors={tors} />
+            </>
+          )}
+        </MonitorSection>
+
+        <MonitorSection title={t("departmentBudgetTitle")} description={t("departmentBudgetDescription")}>
+          <DepartmentBudgetChart />
+        </MonitorSection>
+
+        <MonitorSection title={t("distributionTitle")} description={t("distributionDescription")}>
+          <BudgetDistributionChart tors={tors} isPending={waiting} isError={isError} />
+        </MonitorSection>
+
+        <MonitorSection title={t("categoryDistributionTitle")} description={t("categoryDistributionDescription")}>
+          <CategoryDistributionChart />
         </MonitorSection>
 
         <MonitorSection
