@@ -1,5 +1,31 @@
 import type { Tor } from "@/types/tor";
 
+export interface CategoryFrequency {
+  category: string;
+  frequency: number;
+}
+
+export function fetchCategoryDistribution({ signal }: { signal: AbortSignal }) {
+  return api<{ categories: CategoryFrequency[] }>("/tors/category-distribution", {
+    method: "GET",
+    cache: "no-store",
+    signal,
+  });
+}
+
+export interface DepartmentBudget {
+  department: string;
+  totalBudget: number;
+  torCount: number;
+}
+
+export function fetchTopDepartmentsByBudget({ signal }: { signal: AbortSignal }) {
+  return api<{ departments: DepartmentBudget[] }>("/tors/top-departments-by-budget", {
+    cache: "no-store",
+    signal,
+  });
+}
+
 // Server-rendered Next.js code cannot reach the host's localhost inside Docker,
 // while browser code can. Keep the choice in one place for every API call.
 const isServer = typeof window === "undefined";
@@ -259,6 +285,10 @@ function mapBackendTorToFrontendTor(data: any): Tor {
 
   return {
     id: data._id,
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt,
+    status: data.status,
+    source: data.source,
     matchEligible: typeof data.matchEligible === "boolean" ? data.matchEligible : undefined,
     refId: data.refId || data._id,
     title: data.title,

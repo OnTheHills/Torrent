@@ -54,6 +54,11 @@ export type PriceAnalysisStatus = "above" | "near" | "below";
 
 export interface Tor {
   id: string;
+  /** Raw database fields used for ingestion counts, independent of listing dates. */
+  createdAt?: string;
+  updatedAt?: string;
+  status?: string;
+  source?: string;
   refId: string;
   title: string;
   titleTh: string;
