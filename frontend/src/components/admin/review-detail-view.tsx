@@ -96,10 +96,10 @@ const RAINBOW_GLOW = [
 
 const SOURCE_LABEL: Record<string, string> = {
   "EGP-PROCESS5": "e-GP Process5",
-  "DATA-GO-EGP": "data.go e-GP",
-  "BMA-EGP2": "BMA e-GP2",
+  "DATA-GO-EGP": "data.go.th",
+  "BMA-EGP2": "eGP BMA2",
   "EGP-RSS": "e-GP RSS",
-  "SME-GP": "SME-GP",
+  "SME-GP": "THAI SME-GP",
 };
 
 function sourceLabelOf(source?: string) {

@@ -59,10 +59,10 @@ export const DEFAULT_RECORDS_FILTERS: RecordsFilterState = {
 };
 
 export const RECORDS_SOURCES = [
-  { value: "DATA-GO-EGP", label: "data.go e-GP" },
-  { value: "BMA-EGP2", label: "BMA e-GP2" },
+  { value: "DATA-GO-EGP", label: "data.go.th" },
+  { value: "BMA-EGP2", label: "eGP BMA2" },
   { value: "EGP-RSS", label: "e-GP RSS" },
-  { value: "SME-GP", label: "SME-GP" },
+  { value: "SME-GP", label: "THAI SME-GP" },
 ] as const;
 
 export function RecordsSortSelect({

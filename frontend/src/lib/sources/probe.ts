@@ -84,7 +84,7 @@ async function probeOcds(): Promise<SourceProbeResult> {
     "https://opencontract.bangkok.go.th/assets/data/output/yearly/ocds_releases_2569.json";
   const meta = {
     id: "bma-ocds",
-    label: "BMA Open Contracting OCDS JSON",
+    label: "BMA Open Contract OCDS JSON",
     kind: "bma-ocds" as const,
     url,
   };
@@ -212,7 +212,7 @@ async function probeBmaEgp2PlanApi(): Promise<SourceProbeResult> {
     "https://egp2.bangkok.go.th/appapi/api/Projects/GetProjectFromFilter?pageNo=1&pageSize=5&sortBy=publishDateDesc&masterBudgetYearId=2570&masterAnnounceTypeId=24995aa2-d875-4d3d-9dec-d5e22d222aa4";
   const meta = {
     id: "bma-egp2-project-api",
-    label: "BMA e-GP 2 project search (TOR)",
+    label: "eGP BMA2 project search (TOR)",
     kind: "html" as const,
     url,
   };

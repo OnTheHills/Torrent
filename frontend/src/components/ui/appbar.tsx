@@ -9,11 +9,28 @@ import { cn } from "@/lib/utils";
  */
 
 export const appBarRootStyles =
-  "liquid-glass absolute inset-x-0 top-0 z-30 flex h-[72px] w-full items-center overflow-hidden rounded-none border-x-0 border-t-0 text-appbar-foreground shadow-[inset_0_-1px_0_0_rgb(255_255_255_/_0.28),0_8px_24px_var(--sidebar-glass-shadow)]";
+  "liquid-glass absolute inset-x-0 top-0 z-30 flex h-[72px] w-full items-center overflow-hidden rounded-none border-x-0 border-t-0 text-appbar-foreground shadow-[inset_0_-1px_0_0_var(--sidebar-border),0_8px_24px_var(--sidebar-glass-shadow)]";
 
 /** Neutral frost control on the light liquid-glass app bar. */
 export const chromeFrostBar =
   "border-0 bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))] text-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] backdrop-blur-md backdrop-saturate-150";
+
+/**
+ * Smoked glass for light / neutral surfaces — dims what sits under it.
+ * On saturated color fields prefer `chromeFrostGlaze`.
+ */
+export const chromeFrostMist =
+  "border-0 bg-[color-mix(in_srgb,var(--palette-gray-900)_15%,transparent)] text-foreground shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_72%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-900)_18%,transparent)] backdrop-blur-md backdrop-saturate-150";
+
+/**
+ * Clear liquid glass button — tint / filter / edge / ink from tokens.
+ * Sit on chromatic fields (Roles cards); not for flat gray panels.
+ */
+export const chromeFrostGlaze = "liquid-glass-control";
+
+/** Liquid glass button with a soft dim — for white / flat panels. */
+export const chromeFrostGlazeDim =
+  "liquid-glass-control liquid-glass-control-dim";
 
 /** Selected / primary frost on the light glass chrome. */
 export const chromeFrostTeal =
