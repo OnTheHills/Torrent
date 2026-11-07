@@ -1,25 +1,25 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { Alert02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import { FrostCard } from "@/components/ui/frost-card";
 import { cn } from "@/lib/utils";
 
-const FLAG_LABELS: Record<string, string> = {
-  "short-window": "Bidding window under 3 days",
-  "deadline-before-publish": "Deadline is before the announcement",
-  "awarded-without-budget": "Awarded with no budget",
-  "budget-high": "Budget is more than 3× the category median",
-  "budget-low": "Budget is under a quarter of the category median",
-  other: "Other procurement signal",
-};
+/** Vague flag labels mistakenly saved as integrityNoteEn — never show as the body. */
+const GENERIC_EN_NOTES = new Set([
+  "Other procurement signal",
+  "other",
+]);
 
 export type WatchOutData = {
   integrityStatus?: string | null;
   integrityFlags?: string[];
   integrityReason?: string | null;
   integrityNote?: string | null;
+  integrityNoteEn?: string | null;
 };
 
 export function hasWatchOut(data?: WatchOutData | null) {
@@ -29,8 +29,12 @@ export function hasWatchOut(data?: WatchOutData | null) {
   return Boolean(data.integrityFlags?.length);
 }
 
-function flagLabel(flag: string) {
-  return FLAG_LABELS[flag] || flag;
+function isGenericEnNote(value: string) {
+  const text = value.trim();
+  if (!text) return true;
+  if (GENERIC_EN_NOTES.has(text)) return true;
+  const parts = text.split(/\s·\s/);
+  return parts.length > 1 && parts.every((part) => GENERIC_EN_NOTES.has(part));
 }
 
 export function WatchOutCard({
@@ -40,50 +44,44 @@ export function WatchOutCard({
   data: WatchOutData;
   className?: string;
 }) {
+  const { locale, t } = useLocale();
   if (!hasWatchOut(data)) return null;
 
-  const flags = data.integrityFlags?.length
-    ? data.integrityFlags
-    : data.integrityReason
-      ? [data.integrityReason]
-      : [];
+  const noteTh = data.integrityNote?.trim() || "";
+  const noteEnRaw = data.integrityNoteEn?.trim() || "";
+  const noteEn = noteEnRaw && !isGenericEnNote(noteEnRaw) ? noteEnRaw : "";
+  // Body is prose only: Thai note, or 1:1 English translation — never flag labels.
   const summary =
-    data.integrityNote?.trim() ||
-    flags.map(flagLabel).join(" · ") ||
-    "This listing has procurement signals worth a closer look.";
+    locale === "th" ? noteTh || t("watchOutFallback") : noteEn || t("watchOutFallback");
 
   return (
     <FrostCard
       className={cn(
-        "rounded-lg border-0 bg-[color-mix(in_srgb,var(--palette-orange-100)_55%,transparent)] p-5 shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_80%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--palette-orange-300)_45%,transparent)] md:p-6",
+        "flex flex-col gap-5 rounded-2xl border-0 bg-[color-mix(in_srgb,var(--palette-yellow-100)_72%,transparent)] p-5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.9)] ring-1 ring-[color-mix(in_srgb,var(--palette-yellow-300)_55%,transparent)] backdrop-blur-xl backdrop-saturate-150 md:p-6",
         className,
       )}
+      style={
+        {
+          "--surface-frost-ring": "transparent",
+          "--surface-frost-highlight": "transparent",
+        } as CSSProperties
+      }
     >
-      <div className="flex items-center gap-2.5">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--palette-orange-300)_35%,transparent)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.55)] ring-1 ring-[color-mix(in_srgb,var(--palette-orange-400)_40%,transparent)]">
+      <div className="flex items-center gap-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.95)] ring-1 ring-white/80">
           <HugeiconsIcon
             icon={Alert02Icon}
             strokeWidth={2}
-            className="size-4 text-[var(--palette-orange-800)]"
+            className="size-5 text-[var(--palette-yellow-800)]"
           />
         </span>
-        <h2 className="text-lg font-semibold tracking-tight text-[var(--palette-orange-900)]">
-          Watch out
+        <h2 className="text-xl font-semibold tracking-tight text-[var(--palette-yellow-900)]">
+          {t("watchOut")}
         </h2>
       </div>
-      <p className="mt-3 text-sm leading-[1.7] text-foreground md:text-base">{summary}</p>
-      {flags.length ? (
-        <ul className="mt-4 flex flex-wrap gap-2">
-          {flags.map((flag) => (
-            <li
-              key={flag}
-              className="inline-flex h-7 items-center rounded-full bg-[color-mix(in_srgb,white_72%,transparent)] px-2.5 text-xs font-medium text-foreground ring-1 ring-[color-mix(in_srgb,var(--palette-orange-300)_40%,transparent)]"
-            >
-              {flagLabel(flag)}
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      <p className="text-sm leading-[1.7] text-foreground md:text-base">
+        {summary}
+      </p>
     </FrostCard>
   );
 }

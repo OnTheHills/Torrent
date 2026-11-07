@@ -18,14 +18,18 @@ import {
   formatBudgetCompact,
   getPriceAnalysisStatus,
 } from "@/data/mock";
-import { buildBudgetBenchmarks, getBenchmarkForCategory } from "@/lib/budget";
+import {
+  buildBudgetBenchmarks,
+  getBenchmarkForCategory,
+  type BudgetPeer,
+} from "@/lib/budget";
 import type { Tor } from "@/types/tor";
 
 export function BudgetComparePanel({
   benchmarkTors,
   tor,
 }: {
-  benchmarkTors?: Tor[];
+  benchmarkTors?: BudgetPeer[];
   tor: Tor;
 }) {
   const { locale, t } = useLocale();

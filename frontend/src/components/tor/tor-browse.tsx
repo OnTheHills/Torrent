@@ -39,7 +39,6 @@ import { listingStage, type ListingStage } from "@/lib/listing-stage";
 import { torsQueryOptions } from "@/lib/tors-query";
 import {
   parseListingSort,
-  type AgencyId,
   type IntegrityStatus,
   type ListingSort,
   type Tor,
@@ -76,7 +75,6 @@ function compareListings(a: Tor, b: Tor, sort: ListingSort, vendor = false) {
 export function TorBrowse({
   tors: initialTors,
   initialQuery = "",
-  initialAgencies = [],
   initialCategories = [],
   initialSources = [],
   initialSort = "newest",
@@ -88,7 +86,6 @@ export function TorBrowse({
 }: {
   tors: Tor[];
   initialQuery?: string;
-  initialAgencies?: AgencyId[];
   initialCategories?: string[];
   initialSources?: SourceFilter[];
   initialSort?: ListingSort;
@@ -107,7 +104,6 @@ export function TorBrowse({
   const listTopRef = useRef<HTMLDivElement>(null);
   const [filters, setFilters] = useState<TorFilterState>({
     ...DEFAULT_FILTERS,
-    agencies: initialAgencies,
     categories: initialCategories,
     sources: initialSources,
     budgetYears: initialBudgetYears,
@@ -124,13 +120,29 @@ export function TorBrowse({
   });
   const tors = useTorsWithMatches(sourceTors, vendor);
   const showListLoading = isPending && tors.length === 0;
+  const listingsReturn = useMemo(() => {
+    const params = new URLSearchParams();
+    if (query.trim()) params.set("q", query.trim());
+    if (filters.categories.length) params.set("category", filters.categories.join(","));
+    if (filters.sources.length) params.set("source", filters.sources.join(","));
+    if (filters.budgetYears.length) params.set("year", filters.budgetYears.join(","));
+    if (filters.budgetAvailability.length) {
+      params.set("budget", filters.budgetAvailability.join(","));
+    }
+    if (filters.integrities.length) {
+      params.set("integrity", filters.integrities.join(","));
+    }
+    if (filters.sort !== "newest") params.set("sort", filters.sort);
+    if (filters.stages.length) params.set("stage", filters.stages.join(","));
+    const qs = params.toString();
+    return qs ? `${pathname}?${qs}` : pathname;
+  }, [filters, pathname, query]);
 
   function applyFilters(next: TorFilterState, nextQuery = query) {
     setFilters(next);
     setPage(1);
     const params = new URLSearchParams();
     if (nextQuery.trim()) params.set("q", nextQuery.trim());
-    if (next.agencies.length) params.set("agency", next.agencies.join(","));
     if (next.categories.length) params.set("category", next.categories.join(","));
     if (next.sources.length) params.set("source", next.sources.join(","));
     if (next.budgetYears.length) params.set("year", next.budgetYears.join(","));
@@ -159,8 +171,6 @@ export function TorBrowse({
       const dept = torDepartment(tor, locale);
       const agency = torAgency(tor, locale);
       const title = torTitle(tor, locale);
-      const matchesAgency =
-        filters.agencies.length === 0 || filters.agencies.includes(tor.agencyId);
       const matchesCategory =
         filters.categories.length === 0 || filters.categories.includes(tor.category);
       const matchesSource =
@@ -192,7 +202,6 @@ export function TorBrowse({
         tor.refId.toLowerCase().includes(q);
 
       return (
-        matchesAgency &&
         matchesCategory &&
         matchesSource &&
         matchesLifecycle &&
@@ -323,10 +332,14 @@ export function TorBrowse({
           <>
             <div
               ref={listTopRef}
-              className="grid scroll-mt-6 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+              className="grid scroll-mt-6 gap-4 overflow-visible sm:grid-cols-2 xl:grid-cols-3"
             >
               {paginated.map((tor) => (
-                <ListingFrostCard key={tor.id} tor={tor} />
+                <ListingFrostCard
+                  key={tor.id}
+                  tor={tor}
+                  listingsReturn={listingsReturn}
+                />
               ))}
             </div>
             {totalRows > PAGE_SIZE ? (

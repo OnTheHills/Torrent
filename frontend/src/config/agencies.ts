@@ -49,15 +49,15 @@ export const AGENCIES: Agency[] = [
     sources: [
       {
         kind: "bma-ocds",
-        labelEn: "BMA Open Contracting (OCDS JSON)",
-        labelTh: "สัญญาเปิด กทม. (OCDS JSON)",
+        labelEn: "BMA Open Contract (OCDS JSON)",
+        labelTh: "Open Contract กทม. (OCDS JSON)",
         url: "https://opencontract.bangkok.go.th/assets/data/output/yearly/ocds_releases_2569.json",
         pageUrl: "https://opencontract.bangkok.go.th/ocds.html",
       },
       {
         kind: "bma-egp2",
-        labelEn: "BMA e-GP2 project search (TOR)",
-        labelTh: "ค้นหาโครงการ กทม. e-GP2 (TOR)",
+        labelEn: "eGP BMA2 project search (TOR)",
+        labelTh: "ค้นหาโครงการ eGP BMA2 (TOR)",
         url: "https://egp2.bangkok.go.th/appapi/api/Projects/GetProjectFromFilter?pageNo=1&pageSize=5&sortBy=publishDateDesc&masterBudgetYearId=2570&masterAnnounceTypeId=24995aa2-d875-4d3d-9dec-d5e22d222aa4",
         pageUrl: "https://egp2.bangkok.go.th/project-search?budgetYear=2570&sortBy=publishDateDesc&announcementType=24995aa2-d875-4d3d-9dec-d5e22d222aa4",
       },

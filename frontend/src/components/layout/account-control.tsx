@@ -7,8 +7,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 
 import { useSession } from "@/components/providers/session-provider";
 import { useLocale } from "@/components/providers/locale-provider";
-import { chromeFrostBar, chromeFrostTeal } from "@/components/ui/appbar";
-import { Button } from "@/components/ui/button";
+import { chromeFrostBar, liquidGlassClear } from "@/components/ui/appbar";
 import {
   FrostPopup,
   FrostPopupContent,
@@ -42,15 +41,18 @@ export function AccountControl() {
 
   if (!user) {
     return (
-      <Button
-        asChild
+      <Link
+        href={routes.login}
         className={cn(
-          chromeFrostTeal,
-          "hover:bg-[color-mix(in_srgb,var(--palette-teal-400)_44%,transparent)]",
+          liquidGlassClear,
+          "inline-flex h-9 shrink-0 items-center justify-center rounded-full px-4 text-sm font-medium",
+          "transition-[transform,background] duration-200 ease-out",
+          "hover:-translate-y-0.5",
+          "motion-reduce:transition-none motion-reduce:hover:transform-none",
         )}
       >
-        <Link href={routes.login}>{t("signUpLogin")}</Link>
-      </Button>
+        {t("signUpLogin")}
+      </Link>
     );
   }
 
@@ -65,7 +67,9 @@ export function AccountControl() {
         )}
         aria-label={name}
       >
-        <span className="min-w-0 truncate px-2.5 text-xs font-medium">{name}</span>
+        <span className="min-w-0 truncate px-2.5 text-xs font-medium">
+          {name}
+        </span>
         {user.picture ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img

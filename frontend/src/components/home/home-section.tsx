@@ -67,10 +67,12 @@ export function HomeSection({
 export function HomeBand({
   tone = "default",
   className,
+  frameClassName,
   children,
 }: {
   tone?: "default" | "paper" | "dark";
   className?: string;
+  frameClassName?: string;
   children: ReactNode;
 }) {
   return (
@@ -84,7 +86,9 @@ export function HomeBand({
         className,
       )}
     >
-      <HomeFrame className="py-8 md:py-12">{children}</HomeFrame>
+      <HomeFrame className={cn("py-6 md:py-9", frameClassName)}>
+        {children}
+      </HomeFrame>
     </Surface>
   );
 }

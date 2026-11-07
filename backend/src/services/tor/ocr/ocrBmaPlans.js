@@ -107,6 +107,12 @@ async function enrichOne(tor, existingByRef) {
       requirements: extracted.extract.requirements.length
         ? extracted.extract.requirements
         : undefined,
+      requirementsEn: extracted.extract.requirementsEn?.length
+        ? extracted.extract.requirementsEn
+        : undefined,
+      requirementItems: extracted.extract.requirementItems?.length
+        ? extracted.extract.requirementItems
+        : undefined,
       deadline: extracted.extract.deadline,
       skills: extracted.extract.skills.length ? extracted.extract.skills : undefined,
     });

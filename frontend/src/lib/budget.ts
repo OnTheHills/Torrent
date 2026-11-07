@@ -1,5 +1,7 @@
 import type { BudgetBenchmark, Tor } from "@/types/tor";
 
+export type BudgetPeer = Pick<Tor, "category" | "budgetThb">;
+
 // Median is more stable than an arithmetic mean when one procurement has an
 // unusually large budget, so it is used as the category "กลาง" benchmark.
 function median(values: number[]) {
@@ -13,7 +15,9 @@ function median(values: number[]) {
   return sorted[midpoint];
 }
 
-export function buildBudgetBenchmarks(tors: Tor[]): BudgetBenchmark[] {
+export function buildBudgetBenchmarks(
+  tors: BudgetPeer[],
+): BudgetBenchmark[] {
   // Group raw TORs first; every chart/table consumes the same derived benchmark.
   const budgetsByCategory = new Map<string, number[]>();
 

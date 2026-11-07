@@ -173,7 +173,7 @@ function SidebarContent({ className, ...props }: React.ComponentProps<"div">) {
       data-slot="sidebar-content"
       className={cn(
         "flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3 transition-[padding,gap] duration-150 ease-out group-data-[sidebar-open=true]/sidebar-wrapper:duration-180 group-data-[sidebar-open=true]/sidebar-wrapper:ease-[cubic-bezier(0.22,1,0.36,1)]",
-        "group-data-[sidebar-open=false]/sidebar-wrapper:gap-1.5 group-data-[sidebar-open=false]/sidebar-wrapper:px-1.5 group-data-[sidebar-open=false]/sidebar-wrapper:pt-1.5 pb-3",
+        "group-data-[sidebar-open=false]/sidebar-wrapper:gap-1.5 group-data-[sidebar-open=false]/sidebar-wrapper:px-1.5 group-data-[sidebar-open=false]/sidebar-wrapper:pt-2 pb-3",
         className,
       )}
       {...props}

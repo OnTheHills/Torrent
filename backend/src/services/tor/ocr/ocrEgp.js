@@ -73,6 +73,12 @@ async function enrich(tors = []) {
         summary: result.extract.summary || undefined,
         summaryTh: result.extract.summaryTh || undefined,
         requirements: result.extract.requirements,
+        requirementsEn: result.extract.requirementsEn?.length
+          ? result.extract.requirementsEn
+          : undefined,
+        requirementItems: result.extract.requirementItems?.length
+          ? result.extract.requirementItems
+          : undefined,
         skills: result.extract.skills,
         deadline: notice?.ok && notice.extract.deadline || result.extract.deadline,
       });

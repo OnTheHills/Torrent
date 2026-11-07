@@ -37,9 +37,9 @@ export function LatestPanel() {
         </Button>
       }
     >
-      <ul className="grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="grid items-stretch gap-4 overflow-visible pt-3 pr-3 sm:grid-cols-2 lg:grid-cols-3">
         {latest.map((tor) => (
-          <li key={tor.id} className="h-full">
+          <li key={tor.id} className="relative h-full overflow-visible">
             <ListingFrostCard tor={tor} />
           </li>
         ))}

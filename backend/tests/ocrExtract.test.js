@@ -44,11 +44,15 @@ test("plain-text extract keeps visible lines and does not invent a deadline", ()
 });
 
 test("model JSON can be read from a fenced response", () => {
-  const raw = parseModelJson('```json\n{"summaryTh":"แผน","summaryEn":"Plan","requirements":["A"]}\n```');
+  const raw = parseModelJson(
+    '```json\n{"summaryTh":"แผน","summaryEn":"Plan","requirementItems":[{"category":"technical","text":"A","textEn":"A en"}]}\n```',
+  );
   const extract = normalizeExtract(raw);
   assert.equal(extract.summaryTh, "แผน");
   assert.equal(extract.summary, "Plan");
   assert.deepEqual(extract.requirements, ["A"]);
+  assert.deepEqual(extract.requirementsEn, ["A en"]);
+  assert.equal(extract.requirementItems[0].category, "technical");
 });
 
 test("already extracted rows skip the same plan file", () => {

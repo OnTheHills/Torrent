@@ -103,8 +103,10 @@ export async function apiBlob(path: string): Promise<Blob> {
 }
 
 async function requestTors(): Promise<Tor[]> {
-  // TOR data can change immediately after manual sync, so do not reuse stale data.
-  const response = await fetch(apiUrl("/tors"), { cache: "no-store" });
+  // Short revalidate — catalog is large; avoid hammering Mongo on every navigation.
+  const response = await fetch(apiUrl("/tors"), {
+    next: { revalidate: 60 },
+  });
 
   if (!response.ok) {
     throw new Error(`Failed to fetch TORs (${response.status} ${response.statusText})`);
@@ -127,6 +129,32 @@ export async function fetchTors(): Promise<Tor[]> {
 // the backend container is still completing its optional startup synchronization.
 export function fetchTorsForQuery(): Promise<Tor[]> {
   return requestTors();
+}
+
+/** Category budgets only — for detail-page medians without downloading the catalog. */
+export async function fetchBudgetPeers(
+  category: string,
+): Promise<Array<{ category: string; budgetThb: number }>> {
+  const trimmed = category.trim();
+  if (!trimmed) return [];
+  try {
+    const response = await fetch(
+      apiUrl(`/tors/budget-peers?category=${encodeURIComponent(trimmed)}`),
+      { next: { revalidate: 60 } },
+    );
+    if (!response.ok) return [];
+    const data = await response.json();
+    if (!Array.isArray(data)) return [];
+    return data
+      .map((row: { category?: string; budgetThb?: number }) => ({
+        category: String(row.category || trimmed),
+        budgetThb: Number(row.budgetThb) || 0,
+      }))
+      .filter((row) => row.budgetThb > 0);
+  } catch (error) {
+    console.error(`Error fetching budget peers for ${trimmed}:`, error);
+    return [];
+  }
 }
 
 export type StoredMatch = {
@@ -172,6 +200,23 @@ export async function fetchPendingMatchIds(): Promise<string[]> {
   }
   const data = await response.json();
   return Array.isArray(data) ? data.map(String) : [];
+}
+
+/** Ask the matcher to score these open TORs (no-ops for ineligible ids). */
+export async function ensureTorMatchScores(torIds: string[]): Promise<number> {
+  const ids = [...new Set(torIds.filter(Boolean))];
+  if (!ids.length) return 0;
+  try {
+    const result = await api<{ queued?: number }>("/tor-matches/ensure", {
+      method: "POST",
+      body: JSON.stringify({ torIds: ids }),
+    });
+    return Number(result.queued) || 0;
+  } catch (error) {
+    const status = (error as { status?: number }).status;
+    if (status === 401 || status === 403) return 0;
+    throw error;
+  }
 }
 
 export type StoredMatchSummary = {
@@ -303,6 +348,15 @@ function mapBackendTorToFrontendTor(data: any): Tor {
       data.integrityStatus === "flagged" || data.integrityStatus === "confirmed"
         ? "suspicious"
         : "ok",
+    integrityFlags: Array.isArray(data.integrityFlags)
+      ? data.integrityFlags.filter((flag: unknown): flag is string => typeof flag === "string")
+      : undefined,
+    integrityReason:
+      typeof data.integrityReason === "string" ? data.integrityReason : undefined,
+    integrityNote:
+      typeof data.integrityNote === "string" ? data.integrityNote : undefined,
+    integrityNoteEn:
+      typeof data.integrityNoteEn === "string" ? data.integrityNoteEn : undefined,
     budgetThb: data.budgetThb || 0,
     budgetYear: data.budgetYear || inferBudgetYear(data),
     publishedAt: data.publishedAt
@@ -315,10 +369,40 @@ function mapBackendTorToFrontendTor(data: any): Tor {
     listedBecause: ingestEn.listedBecause || ingestTh.listedBecause || undefined,
     skills: ocr?.skills?.length ? ocr.skills : data.skillNeededList || [],
     requirements: Array.isArray(ocr?.requirements)
-      ? ocr.requirements
+      ? ocr.requirements.filter((item: unknown): item is string => typeof item === "string")
       : Array.isArray(data.requirements)
-        ? data.requirements
+        ? data.requirements.filter((item: unknown): item is string => typeof item === "string")
         : [],
+    requirementsEn: Array.isArray(ocr?.requirementsEn)
+      ? ocr.requirementsEn.filter((item: unknown): item is string => typeof item === "string")
+      : undefined,
+    requirementItems: Array.isArray(ocr?.requirementItems)
+      ? ocr.requirementItems
+          .map((row: any) => {
+            const category = String(row?.category || "other").trim();
+            const text = String(row?.text || "").trim();
+            const textEn = String(row?.textEn || "").trim();
+            if (!text && !textEn) return null;
+            const allowed = new Set([
+              "technical",
+              "delivery",
+              "compliance",
+              "team",
+              "other",
+            ]);
+            return {
+              category: (allowed.has(category) ? category : "other") as
+                | "technical"
+                | "delivery"
+                | "compliance"
+                | "team"
+                | "other",
+              text,
+              textEn: textEn || undefined,
+            };
+          })
+          .filter(Boolean)
+      : undefined,
     egpUrl: isAnnouncementPdf(data.egpUrl) ? "" : data.egpUrl || "",
     pdfUrl:
       data.torPdfPath ||

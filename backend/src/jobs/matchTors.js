@@ -43,9 +43,10 @@ function bangkokDateString(date = new Date()) {
 }
 
 // Same stages the listing cards call open, closing soon, and draft.
-// Awarded, cancelled, and past-deadline notices are not scored.
+// Awarded, cancelled, past-deadline, and SME-GP notices are not scored.
 function fitScoreApplies(tor, today = bangkokDateString()) {
-  if (!tor || tor.source !== "EGP-PROCESS5") return false;
+  if (!tor) return false;
+  if (String(tor.source || "").trim().toUpperCase() === "SME-GP") return false;
   const status = String(tor.status || "").trim().toLowerCase();
   if (status === "awarded" || status === "cancelled") return false;
   if (!status || status === "draft") return true;
@@ -71,7 +72,7 @@ function scoreableStatusFilter() {
 }
 
 async function findScoreableTors(ids) {
-  const query = { source: "EGP-PROCESS5", ...scoreableStatusFilter() };
+  const query = { source: { $ne: "SME-GP" }, ...scoreableStatusFilter() };
   if (ids) query._id = { $in: ids };
   const tors = await TOR.find(query).select("_id source status deadline ocr.deadline").lean();
   return tors.filter((tor) => fitScoreApplies(tor));
@@ -81,7 +82,7 @@ async function enqueueTor(torId) {
   return enqueueTors([torId]);
 }
 
-async function enqueueTors(torIds = []) {
+async function enqueueTors(torIds = [], { wake = true } = {}) {
   const ids = [...new Set(torIds.filter(Boolean).map(String))];
   if (!ids.length) return 0;
 
@@ -101,8 +102,21 @@ async function enqueueTors(torIds = []) {
     { torId: { $in: eligibleIds }, status: "waiting" },
     { $set: { cursor: null } },
   );
-  kick();
+  if (wake) kick();
   return eligibleIds.length;
+}
+
+/** Queue any open scoreable TORs that never got a match job. */
+async function ensureScoreableJobs() {
+  const tors = await findScoreableTors();
+  const ids = tors.map((tor) => String(tor._id));
+  if (!ids.length) return 0;
+  const existing = await TorMatchJob.find({ torId: { $in: ids } }).select("torId").lean();
+  const have = new Set(existing.map((job) => String(job.torId)));
+  const missing = ids.filter((id) => !have.has(id));
+  if (!missing.length) return 0;
+  // wake:false — drain already owns the worker loop.
+  return enqueueTors(missing, { wake: false });
 }
 
 async function retireIneligibleJobs() {
@@ -344,15 +358,12 @@ async function processJob(job) {
     });
     if (!stillOwned) return "lost-lease";
 
-    if (result.matchPercent >= minimumMatchPercent()) {
-      await TORMatch.updateOne(
-        { userId: profile.userId, torId: tor._id },
-        { $set: { matchPercent: result.matchPercent, matchReason: result.matchReason } },
-        { upsert: true },
-      );
-    } else {
-      await TORMatch.deleteOne({ userId: profile.userId, torId: tor._id });
-    }
+    // Always store so open listing cards can show a fit % (inbox filters low scores).
+    await TORMatch.updateOne(
+      { userId: profile.userId, torId: tor._id },
+      { $set: { matchPercent: result.matchPercent, matchReason: result.matchReason } },
+      { upsert: true },
+    );
 
     cursor = profile.userId;
     if (!await advanceCursor(job, cursor)) return "lost-lease";
@@ -363,6 +374,7 @@ async function drain() {
   if (draining) return;
   draining = true;
   try {
+    await ensureScoreableJobs();
     await retireIneligibleJobs();
     let job;
     while ((job = await claimJob())) {
@@ -392,7 +404,9 @@ module.exports = {
   drain,
   enqueueTor,
   enqueueTors,
+  ensureScoreableJobs,
   fitScoreApplies,
   kick,
+  minimumMatchPercent,
   nextPacificMidnight,
 };

@@ -32,7 +32,13 @@ test("quota exhaustion pauses one TOR at the unfinished vendor", async () => {
       ),
     },
     "@/models/VendorProfile": {
-      findOne: ({ userId }) => queryResult({ userId, techSkills: ["Node.js"] }),
+      findOne: (query) => {
+        const after = query.userId?.$gt;
+        const next = vendors.find((user) => !after || user._id > after);
+        return queryResult(
+          next ? { userId: next._id, techSkills: ["Node.js"] } : null,
+        );
+      },
     },
     "@/models/TOR": {
       findById: () => queryResult(tor),
@@ -43,22 +49,47 @@ test("quota exhaustion pauses one TOR at the unfinished vendor", async () => {
       deleteOne: async () => {},
     },
     "@/models/TorMatchJob": {
-      find: (query) => queryResult(query.status?.$in ? [] : [job]),
-      findOneAndUpdate: () => ({
-        lean: async () => {
-          if (claimed || job.status === "complete") return null;
-          claimed = true;
-          job.status = "running";
-          job.lockId = "worker-1";
-          return { ...job };
-        },
-      }),
+      find: (query) => {
+        if (query.status?.$in) {
+          return queryResult(
+            ["pending", "running", "waiting"].includes(job.status) ? [job] : [],
+          );
+        }
+        if (query.$or) {
+          return queryResult(
+            job.status === "pending" || job.status === "waiting" || job.status === "running"
+              ? [job]
+              : [],
+          );
+        }
+        if (query.torId) return queryResult([job]);
+        return queryResult([job]);
+      },
+      findOneAndUpdate: (filter, update) => {
+        if (update?.$inc) {
+          return Promise.resolve({ ...job, ...update.$set });
+        }
+        return {
+          lean: async () => {
+            if (claimed || job.status === "complete") return null;
+            if (job.status !== "pending" && job.status !== "waiting" && job.status !== "running") {
+              return null;
+            }
+            claimed = true;
+            job.status = "running";
+            job.lockId = "worker-1";
+            Object.assign(job, update?.$set || {});
+            return { ...job };
+          },
+        };
+      },
       findOne: () => queryResult(null),
       exists: async () => job.status === "running",
       updateOne: async (_filter, update) => {
         Object.assign(job, update.$set);
         return { matchedCount: 1 };
       },
+      updateMany: async () => ({ matchedCount: 0 }),
     },
     "@/services/tor/matchWithVertex": {
       matchWithVertex: async (_profile, matchedTor) => {
@@ -77,10 +108,10 @@ test("quota exhaustion pauses one TOR at the unfinished vendor", async () => {
     {
       module,
       process: { env: {} },
-      console: { warn() {}, error() {} },
-      setImmediate,
-      setTimeout,
-      clearTimeout,
+      console: { info() {}, warn() {}, error() {} },
+      setImmediate: (fn) => fn(),
+      setTimeout: () => 0,
+      clearTimeout() {},
       require: (name) => dependencies[name],
     },
   );
@@ -99,17 +130,20 @@ test("quota exhaustion pauses one TOR at the unfinished vendor", async () => {
   assert.equal(matches.length, 2);
 });
 
-test("default keeps existing eligibility while any includes every status and deadline", () => {
+test("open notices from any source are eligible; SME-GP, closed, and past deadline are not", () => {
   const tors = [
     [{ status: "published", deadline: "2999-01-01" }, true],
+    [{ status: "published", source: "BMA-EGP2", deadline: "2999-01-01" }, true],
+    [{ status: "published", source: "EGP-PROCESS5", deadline: "2999-01-01" }, true],
     [{ status: "published", deadline: "2000-01-01" }, false],
     [{ status: "awarded" }, false],
     [{ status: "cancelled" }, false],
     [{ status: "closed" }, false],
     [{ status: "draft" }, true],
+    [{ source: "SME-GP", status: "published", deadline: "2999-01-01" }, false],
     [{}, true],
   ];
-  for (const mode of [undefined, "default", "published", "any"]) {
+  for (const mode of [undefined, "default", "published"]) {
     const module = { exports: {} };
     vm.runInNewContext(
       readFileSync(path.join(__dirname, "../src/jobs/matchTors.js"), "utf8"),
@@ -121,7 +155,11 @@ test("default keeps existing eligibility while any includes every status and dea
       },
     );
     for (const [tor, eligible] of tors) {
-      assert.equal(module.exports.fitScoreApplies(tor), mode === "any" || eligible, `${mode}: ${tor.status}`);
+      assert.equal(
+        module.exports.fitScoreApplies(tor),
+        eligible,
+        `${mode || "default"}: ${tor.source || "any"} ${tor.status}`,
+      );
     }
     assert.equal(module.exports.fitScoreApplies(null), false);
   }

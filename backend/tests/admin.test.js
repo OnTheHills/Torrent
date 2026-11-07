@@ -140,13 +140,33 @@ test("resolveIntegrityFields marks Watch out from rules or Vertex", () => {
   assert.equal(resolveIntegrityFields([]).integrityStatus, "clear");
   assert.equal(resolveIntegrityFields(["short-window"]).integrityStatus, "flagged");
   assert.equal(
-    resolveIntegrityFields([], { ok: true, integrity: "watch", integrityFlags: ["other"], integrityReason: "ช่วงรับสั้นผิดปกติ" })
-      .integrityStatus,
+    resolveIntegrityFields([], {
+      ok: true,
+      integrity: "watch",
+      integrityFlags: ["other"],
+      integrityReason: "ช่วงรับสั้นผิดปกติ",
+      integrityReasonEn: "Unusually short bidding window",
+    }).integrityStatus,
     "flagged",
   );
+  assert.equal(
+    resolveIntegrityFields([], {
+      ok: true,
+      integrity: "watch",
+      integrityFlags: ["other"],
+      integrityReason: "ช่วงรับสั้นผิดปกติ",
+      integrityReasonEn: "Unusually short bidding window",
+    }).integrityNoteEn,
+    "Unusually short bidding window",
+  );
   assert.match(
-    resolveIntegrityFields(["budget-high"], { ok: true, integrity: "clear", integrityFlags: [], integrityReason: "" })
-      .integrityNote,
+    resolveIntegrityFields(["budget-high"], {
+      ok: true,
+      integrity: "clear",
+      integrityFlags: [],
+      integrityReason: "",
+      integrityReasonEn: "",
+    }).integrityNote,
     /3×/,
   );
 });
