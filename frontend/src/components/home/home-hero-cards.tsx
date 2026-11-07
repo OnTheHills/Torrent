@@ -65,14 +65,16 @@ export function HomeHeroCards({ className }: { className?: string }) {
               "motion-reduce:transition-none motion-reduce:hover:transform-none",
             )}
           >
-            <HugeiconsIcon
-              icon={card.icon}
-              strokeWidth={1.75}
-              className="size-5 text-foreground"
-            />
-            <h2 className="mt-5 text-base font-semibold tracking-tight md:text-lg">
-              {t(card.title)}
-            </h2>
+            <div className="flex items-center gap-2.5">
+              <HugeiconsIcon
+                icon={card.icon}
+                strokeWidth={1.75}
+                className="size-5 shrink-0 text-foreground"
+              />
+              <h2 className="min-w-0 text-base font-semibold tracking-tight md:text-lg">
+                {t(card.title)}
+              </h2>
+            </div>
             <p className="mt-2 flex-1 text-sm leading-[1.65] text-hero-muted">
               {t(card.body)}
             </p>

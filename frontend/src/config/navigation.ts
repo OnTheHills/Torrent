@@ -1,11 +1,11 @@
 import {
+  AiMail02Icon,
   Alert02Icon,
   Analytics01Icon,
   File01Icon,
   HeartIcon,
   Home03Icon,
   MoneyBag02Icon,
-  Notification03Icon,
   Pulse01Icon,
   Shield01Icon,
   SourceCodeIcon,
@@ -90,7 +90,7 @@ export const VENDOR_NAV: NavGroup[] = [
       {
         labelKey: "navAlerts",
         href: routes.app.alerts,
-        icon: Notification03Icon,
+        icon: AiMail02Icon,
       },
     ],
   },
