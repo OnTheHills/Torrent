@@ -16,12 +16,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AGENCIES, agencyName } from "@/config/agencies";
 import type { ListingStage } from "@/lib/listing-stage";
 import { cn } from "@/lib/utils";
 import { TOR_CATEGORIES } from "@/lib/tor-categories";
 import type {
-  AgencyId,
   IntegrityStatus,
   ListingSort,
   ListingSource,
@@ -38,7 +36,6 @@ export type SourceFilter = Extract<
 export type BudgetAvailability = "specified" | "missing";
 
 export type TorFilterState = {
-  agencies: AgencyId[];
   categories: string[];
   sources: SourceFilter[];
   budgetYears: string[];
@@ -51,7 +48,6 @@ export type TorFilterState = {
 };
 
 export const DEFAULT_FILTERS: TorFilterState = {
-  agencies: [],
   categories: [],
   sources: [],
   budgetYears: [],
@@ -83,11 +79,7 @@ export function FrostCheckbox({
   return (
     <span
       aria-hidden
-      className={cn(
-        frostCheckbox,
-        checked && frostCheckboxChecked,
-        className,
-      )}
+      className={cn(frostCheckbox, checked && frostCheckboxChecked, className)}
     >
       {checked ? (
         <HugeiconsIcon
@@ -116,7 +108,7 @@ export function FilterChecks<T extends string>({
   return (
     <fieldset className="flex flex-col gap-0.5">
       {label ? (
-        <legend className="text-[0.6rem] uppercase tracking-[0.14em] text-muted-foreground">
+        <legend className="px-2.5 text-[0.6rem] uppercase tracking-[0.14em] text-muted-foreground">
           {label}
         </legend>
       ) : null}
@@ -129,7 +121,7 @@ export function FilterChecks<T extends string>({
               key={item.value}
               className={cn(
                 // Flat rounded pill; selected stays flat (no glass hover). Slimmer than sidebar nav.
-                "flex h-8 cursor-pointer items-center gap-2 overflow-hidden rounded-full px-2.5 text-xs font-medium leading-snug text-sidebar-foreground outline-none transition-[background-color,box-shadow,color] duration-150 ease-out",
+                "flex h-8 cursor-pointer items-center gap-2 overflow-hidden rounded-full py-0 pl-4 pr-3 text-xs font-medium leading-snug text-sidebar-foreground outline-none transition-[background-color,box-shadow,color] duration-150 ease-out",
                 checked
                   ? frostSelectedItem
                   : "hover:bg-sidebar-hover hover:shadow-[inset_0_1px_0_0_rgb(255_255_255_/_0.5)]",
@@ -180,8 +172,14 @@ export function TorSort({
   const { t } = useLocale();
 
   return (
-    <Select value={value} onValueChange={(sort) => onChange(sort as ListingSort)}>
-      <SelectTrigger aria-label={t("sort")} className={cn("h-10! rounded-full", className)}>
+    <Select
+      value={value}
+      onValueChange={(sort) => onChange(sort as ListingSort)}
+    >
+      <SelectTrigger
+        aria-label={t("sort")}
+        className={cn("h-10! rounded-full", className)}
+      >
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -207,7 +205,7 @@ export function TorFilters({
   budgetYears?: string[];
   showMatchFilter?: boolean;
 }) {
-  const { locale, t } = useLocale();
+  const { t } = useLocale();
 
   return (
     <FilterPanelStack>
@@ -294,21 +292,6 @@ export function TorFilters({
           onChange({
             ...value,
             categories: toggleMany(value.categories, category, checked),
-          })
-        }
-      />
-
-      <FilterChecks
-        label={t("agency")}
-        items={AGENCIES.map((agency) => ({
-          value: agency.id,
-          label: agencyName(agency.id, locale),
-        }))}
-        isChecked={(agency) => value.agencies.includes(agency)}
-        onToggle={(agency, checked) =>
-          onChange({
-            ...value,
-            agencies: toggleMany(value.agencies, agency, checked),
           })
         }
       />

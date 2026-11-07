@@ -28,7 +28,19 @@ export const chromeFrostMist =
  */
 export const chromeFrostGlaze = "liquid-glass-control";
 
-/** Liquid glass button with a soft dim — for white / flat panels. */
+/**
+ * liquidGlassClear — clear glass with frost-pill finish
+ * (Status / Collapse vibes): light rim, soft lift, translucent over chroma.
+ */
+export const liquidGlassClear =
+  "liquid-glass-control liquid-glass-clear";
+
+/**
+ * liquidGlassDim — liquidGlassClear, slightly cooler/darker for white panels.
+ */
+export const liquidGlassDim = "liquid-glass-control liquid-glass-dim";
+
+/** Legacy smoke dim — prefer liquidGlassDim for frost-pill vibes on flat panels. */
 export const chromeFrostGlazeDim =
   "liquid-glass-control liquid-glass-control-dim";
 

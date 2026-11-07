@@ -45,6 +45,7 @@
   --palette-orange-100: #fbe6d8;
   --palette-orange-150: #f9d7c0;
   --palette-orange-200: #f6c7a8;
+  --palette-orange-250: #f3b48b;
   --palette-orange-300: #f0a06e;
   --palette-orange-400: #ea8348;
   --palette-orange-500: #e46c31;
@@ -119,18 +120,18 @@
   --palette-blue-800: #0a4470;
   --palette-blue-900: #0b2d4d;
 
-  /* Deep navy — muted slate undertone, distinct from azure blue. */
-  --palette-navy-50: #f3f5f9;
-  --palette-navy-75: #e8ecf3;
-  --palette-navy-100: #d8deed;
-  --palette-navy-200: #b4bfd6;
-  --palette-navy-300: #8494b8;
-  --palette-navy-400: #5a6f99;
-  --palette-navy-500: #3a5280;
-  --palette-navy-600: #2a3f66;
-  --palette-navy-700: #1e2f4d;
-  --palette-navy-800: #142038;
-  --palette-navy-900: #0b1424;
+  /* Deep navy — blue undertone (not slate-gray), distinct from azure blue. */
+  --palette-navy-50: #f1f5fc;
+  --palette-navy-75: #e3ebf9;
+  --palette-navy-100: #d0ddf5;
+  --palette-navy-200: #a8bde8;
+  --palette-navy-300: #7594d4;
+  --palette-navy-400: #4a70bd;
+  --palette-navy-500: #2f549e;
+  --palette-navy-600: #224080;
+  --palette-navy-700: #1a3063;
+  --palette-navy-800: #122148;
+  --palette-navy-900: #0b1530;
 
   /* Blue-leaning purple / indigo — cooler than the old magenta-violet. */
   --palette-purple-50: #f3f4ff;
@@ -144,6 +145,20 @@
   --palette-purple-700: #4338ca;
   --palette-purple-800: #3730a3;
   --palette-purple-900: #312e81;
+
+  /* Warm earth brown — umber, distinct from brighter orange. */
+  --palette-brown-50: #faf7f4;
+  --palette-brown-75: #f4ebe3;
+  --palette-brown-100: #ebe0d4;
+  --palette-brown-200: #d6c2ab;
+  --palette-brown-250: #c7ab8d;
+  --palette-brown-300: #b8946f;
+  --palette-brown-400: #9a6f45;
+  --palette-brown-500: #7d5530;
+  --palette-brown-600: #664326;
+  --palette-brown-700: #4f331d;
+  --palette-brown-800: #382314;
+  --palette-brown-900: #22150c;
 
   --background: var(--palette-gray-25);
   --foreground: var(--palette-gray-900);

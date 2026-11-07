@@ -25,6 +25,19 @@ async function getAllTors(request, response) {
   }
 }
 
+async function getBudgetPeers(request, response) {
+  try {
+    const category = String(request.query.category || "").trim();
+    if (!category) {
+      return response.status(400).json({ message: "category is required." });
+    }
+    const peers = await torCrudService.getBudgetPeers(category);
+    return response.status(200).json(peers);
+  } catch (error) {
+    return response.status(500).json({ message: error.message });
+  }
+}
+
 async function getTorById(request, response) {
   try {
     const tor = await torCrudService.getTorById(request.params.id);
@@ -61,4 +74,11 @@ async function deleteTor(request, response) {
   }
 }
 
-module.exports = { createTor, deleteTor, getAllTors, getTorById, updateTor };
+module.exports = {
+  createTor,
+  deleteTor,
+  getAllTors,
+  getBudgetPeers,
+  getTorById,
+  updateTor,
+};

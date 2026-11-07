@@ -155,6 +155,10 @@ const torSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    integrityNoteEn: {
+      type: String,
+      trim: true,
+    },
     sources: {
       type: [
         {
@@ -239,6 +243,20 @@ const torSchema = new mongoose.Schema(
       },
       requirements: {
         type: [String],
+        default: undefined,
+      },
+      requirementsEn: {
+        type: [String],
+        default: undefined,
+      },
+      requirementItems: {
+        type: [
+          {
+            category: { type: String, trim: true },
+            text: { type: String, trim: true },
+            textEn: { type: String, trim: true },
+          },
+        ],
         default: undefined,
       },
       deadline: {

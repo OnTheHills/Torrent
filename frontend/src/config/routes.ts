@@ -42,18 +42,32 @@ export const routes = {
 export function listingHref(
   id: string,
   audience: "public" | "vendor" | "admin",
-  from?: "matches",
+  from?: "matches" | { from?: "matches"; returnTo?: string },
 ) {
   const path = audience === "vendor" ? routes.app.tor(id) : routes.tor(id);
-  if (from === "matches" && audience === "vendor") return `${path}?from=matches`;
-  return path;
+  const options = typeof from === "string" ? { from } : from;
+  const params = new URLSearchParams();
+  if (options?.from === "matches" && audience === "vendor") {
+    params.set("from", "matches");
+  }
+  if (options?.returnTo) params.set("return", options.returnTo);
+  const qs = params.toString();
+  return qs ? `${path}?${qs}` : path;
+}
+
+/** Only allow back-nav to the TOR browse routes (keeps filter query intact). */
+export function safeListingsReturn(value?: string | null) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
+  if (value.includes("://")) return null;
+  const path = value.split("?")[0] ?? "";
+  if (path !== routes.tors && path !== routes.app.tors) return null;
+  return value;
 }
 
 export function dashboardHref(audience: "public" | "vendor" | "admin") {
   return audience === "vendor" ? routes.app.dashboard : routes.dashboard;
 }
 
-export function listingsHref(agency?: AgencyId | "all") {
-  if (!agency || agency === "all") return routes.tors;
-  return `${routes.tors}?agency=${agency}`;
+export function listingsHref(_agency?: AgencyId | "all") {
+  return routes.tors;
 }

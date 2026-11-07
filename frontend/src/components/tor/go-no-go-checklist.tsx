@@ -14,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { stripLeadingListMarker } from "@/lib/requirement-text";
 import { cn } from "@/lib/utils";
 
 export function GoNoGoChecklist({ requirements }: { requirements: string[] }) {
@@ -48,7 +49,9 @@ export function GoNoGoChecklist({ requirements }: { requirements: string[] }) {
                   )}
                 >
                   <FrostCheckbox checked={on} className="mt-0.5" />
-                  <span className="leading-relaxed text-foreground">{item}</span>
+                  <span className="leading-relaxed text-foreground">
+                    {stripLeadingListMarker(item)}
+                  </span>
                 </button>
               </li>
             );

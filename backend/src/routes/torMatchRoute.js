@@ -1,6 +1,7 @@
 const express = require("express");
 const {
   createTorMatch,
+  ensureTorMatchScores,
   getAllTorMatches,
   getPendingTorMatchIds,
   getMyTorMatches,
@@ -16,6 +17,7 @@ const torMatchRouter = express.Router();
 torMatchRouter.post("/", createTorMatch);
 torMatchRouter.get("/mine", requireAuth, getMyTorMatches);
 torMatchRouter.patch("/mine/:id", requireAuth, setMyMatchDismissed);
+torMatchRouter.post("/ensure", requireAuth, ensureTorMatchScores);
 torMatchRouter.get("/pending", getPendingTorMatchIds);
 torMatchRouter.get("/", getAllTorMatches);
 torMatchRouter.get("/:id", getTorMatchById);

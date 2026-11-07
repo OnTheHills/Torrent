@@ -15,8 +15,17 @@ const RESPONSE_SCHEMA = {
       items: { type: "string" },
     },
     integrityReason: { type: "string" },
+    integrityReasonEn: { type: "string" },
   },
-  required: ["confidence", "issues", "reason", "integrity", "integrityFlags", "integrityReason"],
+  required: [
+    "confidence",
+    "issues",
+    "reason",
+    "integrity",
+    "integrityFlags",
+    "integrityReason",
+    "integrityReasonEn",
+  ],
   additionalProperties: false,
 };
 
@@ -77,6 +86,7 @@ function scorePrompt(tor, heuristic = {}, now = new Date()) {
     "Set integrity to watch when something looks odd for vendors; clear when nothing noteworthy.",
     "integrityFlags: short English tags (short-window, deadline-before-publish, awarded-without-budget, budget-high, budget-low, other).",
     "integrityReason: under 40 words in Thai (ภาษาไทย) summarizing why vendors should watch out, or empty string when clear.",
+    "integrityReasonEn: literal 1:1 English translation of integrityReason (same facts and sentence order). Never substitute a generic label like \"Other procurement signal\". Empty string when clear.",
     "Return confidence 0-100, issues as short English field tags (budget, deadline, category, department, publishedAt, ocr, title, other), and a reason under 40 words in Thai (ภาษาไทย).",
     `Record: ${JSON.stringify(record)}`,
   ].join("\n");
@@ -105,6 +115,7 @@ async function scoreWithVertex(tor, heuristic = {}) {
           .slice(0, 12)
       : [];
     const integrityReason = String(parsed.integrityReason || "").trim();
+    const integrityReasonEn = String(parsed.integrityReasonEn || "").trim();
     if (!Number.isInteger(confidence) || confidence < 0 || confidence > 100 || !reason) {
       throw new Error("Invalid score result");
     }
@@ -116,6 +127,7 @@ async function scoreWithVertex(tor, heuristic = {}) {
       integrity,
       integrityFlags,
       integrityReason: integrityReason.slice(0, 500),
+      integrityReasonEn: integrityReasonEn.slice(0, 500),
     };
   } catch {
     return {

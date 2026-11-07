@@ -21,7 +21,11 @@ import {
   storedMatchTorId as matchTorId,
   type StoredMatch,
 } from "@/lib/api";
-import { fitScoreApplies, listingStage } from "@/lib/listing-stage";
+import {
+  fitScoreApplies,
+  listingStage,
+  MATCH_INBOX_MIN_PERCENT,
+} from "@/lib/listing-stage";
 import type { DictionaryKey } from "@/lib/i18n/dictionary";
 import type { Tor } from "@/types/tor";
 
@@ -89,6 +93,7 @@ async function fetchInboxRows(): Promise<InboxRow[]> {
     })
     .filter((row): row is InboxRow => row !== null)
     .filter((row) => fitScoreApplies(row.tor))
+    .filter((row) => rowScore(row) >= MATCH_INBOX_MIN_PERCENT)
     .sort(
       (a, b) =>
         matchScore(b.match.matchPercent) - matchScore(a.match.matchPercent),
@@ -331,7 +336,7 @@ function InboxGrid({
   onBadResult: (row: InboxRow) => void;
 }) {
   return (
-    <div className="grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid items-stretch gap-4 overflow-visible pt-3 pr-3 sm:grid-cols-2 lg:grid-cols-3">
       {rows.map((row) => (
         <ListingFrostCard
           key={row.match._id}

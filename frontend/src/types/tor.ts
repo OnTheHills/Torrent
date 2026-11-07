@@ -63,6 +63,13 @@ export interface Tor {
   category: TorCategory;
   lifecycle: TorLifecycle;
   integrity: IntegrityStatus;
+  /** Flag codes from integrity review when status is suspicious. */
+  integrityFlags?: string[];
+  integrityReason?: string;
+  /** Thai Watch out prose from Vertex (or English flag labels when heuristic-only). */
+  integrityNote?: string;
+  /** English Watch out prose matching integrityNote. */
+  integrityNoteEn?: string;
   budgetThb: number;
   budgetYear?: string;
   publishedAt: string;
@@ -72,7 +79,16 @@ export interface Tor {
   /** Ingest search term that put this row in the catalog — not a project brief. */
   listedBecause?: string;
   skills: string[];
+  /** Thai / source-language requirement lines. */
   requirements: string[];
+  /** 1:1 English translations of requirements when available. */
+  requirementsEn?: string[];
+  /** Categorized requirement rows (preferred for detail UI). */
+  requirementItems?: Array<{
+    category: "technical" | "delivery" | "compliance" | "team" | "other";
+    text: string;
+    textEn?: string;
+  }>;
   /** Public listing the vendor should open (e-GP project page, OCDS page, etc.). */
   egpUrl: string;
   /** Announcement or TOR PDF, separate from the listing page. */

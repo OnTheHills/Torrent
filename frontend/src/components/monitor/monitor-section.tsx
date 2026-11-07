@@ -26,7 +26,7 @@ export function MonitorSection({
     <section className={cn(showHeading && "space-y-6", className)}>
       {showHeading ? (
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="max-w-3xl space-y-2">
+          <div className="min-w-0 flex-1 space-y-2">
             {title ? (
               <h2 className="text-2xl font-semibold tracking-tight md:text-[2rem] md:leading-[1.2]">
                 {title}
