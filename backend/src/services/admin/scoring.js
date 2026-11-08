@@ -1,4 +1,5 @@
 const { BUDGET_YEAR } = require("@/constants/bmaConstants");
+const { isGenericIntegrityNoteEn } = require("@/services/tor/translateIntegrityNote");
 
 const DAY = 24 * 60 * 60 * 1000;
 const OPEN_STATUSES = new Set(["open", "published", "draft", "closing"]);
@@ -192,6 +193,7 @@ const INTEGRITY_FLAG_LABELS = {
   "awarded-without-budget": "Awarded with no budget",
   "budget-high": "Budget is more than 3× the category median",
   "budget-low": "Budget is under a quarter of the category median",
+  other: "Other procurement signal",
 };
 
 /** Deterministic procurement anomaly flags (Watch out). Always recomputed on score. */
@@ -217,6 +219,7 @@ function integrityLabel(flag) {
 /**
  * Merge rule flags with optional Vertex judgment into TOR integrity fields.
  * Watch out when any rule fires or Vertex returns integrity "watch".
+ * integrityNote = Thai summary; integrityNoteEn = matching English summary.
  */
 function resolveIntegrityFields(heuristicFlags = [], vertex = null) {
   const vertexFlags = Array.isArray(vertex?.integrityFlags)
@@ -224,14 +227,28 @@ function resolveIntegrityFields(heuristicFlags = [], vertex = null) {
     : [];
   const flags = [...new Set([...heuristicFlags, ...vertexFlags])].slice(0, 12);
   const watch = flags.length > 0 || vertex?.integrity === "watch";
-  const note =
-    (vertex?.ok && String(vertex.integrityReason || "").trim()) ||
-    (flags.length ? flags.map(integrityLabel).join(" · ") : "");
+  const flagNote = flags.length ? flags.map(integrityLabel).join(" · ") : "";
+  const noteTh =
+    (vertex?.ok && String(vertex.integrityReason || "").trim()) || "";
+  const vertexEn = vertex?.ok
+    ? String(vertex.integrityReasonEn || "").trim()
+    : "";
+  // English must be real prose (1:1 of Thai). Never persist flag labels as the note.
+  const noteEn =
+    vertexEn && !isGenericIntegrityNoteEn(vertexEn)
+      ? vertexEn
+      : noteTh
+        ? ""
+        : flagNote && !isGenericIntegrityNoteEn(flagNote)
+          ? flagNote
+          : "";
   return {
     integrityStatus: watch ? "flagged" : "clear",
     integrityFlags: flags,
     integrityReason: flags[0] || (watch ? "other" : ""),
-    integrityNote: String(note || "").slice(0, 500),
+    // Keep integrityNote as the Thai/primary prose note (Vertex TH, else EN flags).
+    integrityNote: String(noteTh || noteEn || "").slice(0, 500),
+    integrityNoteEn: String(noteEn || "").slice(0, 500),
   };
 }
 

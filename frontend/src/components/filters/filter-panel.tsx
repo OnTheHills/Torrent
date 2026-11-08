@@ -2,16 +2,20 @@
 
 import type { ComponentProps, ReactNode } from "react";
 
-import { Surface } from "@/components/ui/surface";
+import { liquidGlassDim } from "@/components/ui/appbar";
 import type { ListingStage } from "@/lib/listing-stage";
 import { cn } from "@/lib/utils";
 
 /** Slim filter + results grid used by listings, records, review, and users. */
 export const filterPanelGridClass =
-  "grid items-start gap-8 lg:grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[18.5rem_minmax(0,1fr)]";
+  "grid items-start gap-8 lg:grid-cols-[15rem_minmax(0,1fr)] xl:grid-cols-[16.5rem_minmax(0,1fr)]";
 
-export const frostClearButton =
-  "inline-flex h-8 shrink-0 items-center rounded-full border-0 bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))] px-3 text-sm text-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] backdrop-blur-md backdrop-saturate-150 transition-transform duration-200 ease-out hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:transform-none";
+export const frostClearButton = cn(
+  "liquid-glass-control liquid-glass-dim liquid-glass-dim-strong",
+  "inline-flex h-8 shrink-0 items-center rounded-full px-3 text-sm font-medium",
+  "transition-[transform,background] duration-200 ease-out hover:-translate-y-0.5",
+  "motion-reduce:transition-none motion-reduce:hover:transform-none",
+);
 
 /** Flat selected fill — matches sidebar active tab. */
 export const filterSelectedFill =
@@ -26,7 +30,7 @@ export const ADMIN_STATUS_FILTER_ITEMS: {
   { value: "closing", label: "Closing soon (< 7 days)" },
   { value: "draft", label: "Draft TOR" },
   { value: "closed", label: "Closed" },
-  { value: "awarded", label: "Winner announced" },
+  { value: "awarded", label: "Awarded" },
   { value: "cancelled", label: "Cancelled" },
 ];
 
@@ -69,9 +73,14 @@ export function FilterPanelAside({
         className,
       )}
     >
-      <Surface className="bg-surface p-3.5 ring-transparent md:p-4">
+      <div
+        className={cn(
+          liquidGlassDim,
+          "rounded-xl p-3.5 text-foreground md:p-4",
+        )}
+      >
         {children}
-      </Surface>
+      </div>
     </aside>
   );
 }

@@ -7,7 +7,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 
 import { useSession } from "@/components/providers/session-provider";
 import { useLocale } from "@/components/providers/locale-provider";
-import { chromeFrostBar, chromeFrostGlazeDim } from "@/components/ui/appbar";
+import { chromeFrostBar, liquidGlassClear } from "@/components/ui/appbar";
 import {
   FrostPopup,
   FrostPopupContent,
@@ -44,7 +44,7 @@ export function AccountControl() {
       <Link
         href={routes.login}
         className={cn(
-          chromeFrostGlazeDim,
+          liquidGlassClear,
           "inline-flex h-9 shrink-0 items-center justify-center rounded-full px-4 text-sm font-medium",
           "transition-[transform,background] duration-200 ease-out",
           "hover:-translate-y-0.5",

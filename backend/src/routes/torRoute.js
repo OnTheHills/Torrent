@@ -2,6 +2,7 @@ const express = require("express");
 const {
   createTor,
   getAllTors,
+  getBudgetPeers,
   getTopDepartmentsByBudget,
   getCategoryDistribution,
   getTorById,
@@ -16,6 +17,7 @@ const adminOnly = [requireAuth, requireRole("admin")];
 
 torRouter.post("/", ...adminOnly, createTor);
 torRouter.get("/", getAllTors);
+torRouter.get("/budget-peers", getBudgetPeers);
 torRouter.get("/top-departments-by-budget", getTopDepartmentsByBudget);
 torRouter.get("/category-distribution", getCategoryDistribution);
 torRouter.get("/:id", getTorById);

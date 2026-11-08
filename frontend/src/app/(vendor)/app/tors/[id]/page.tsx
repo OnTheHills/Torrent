@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { TorDetail } from "@/components/tor/tor-detail";
-import { fetchTorById, fetchTors } from "@/lib/api";
+import { fetchBudgetPeers, fetchTorById } from "@/lib/api";
 
 type Props = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ from?: string }>;
+  searchParams: Promise<{ from?: string; return?: string }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -17,14 +17,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function VendorTorDetailPage({ params, searchParams }: Props) {
   const { id } = await params;
-  const { from } = await searchParams;
-  const [tor, tors] = await Promise.all([fetchTorById(id), fetchTors()]);
+  const { from, return: listingsReturn } = await searchParams;
+  const tor = await fetchTorById(id);
   if (!tor) notFound();
+  const peers = await fetchBudgetPeers(tor.category);
   return (
     <TorDetail
-      benchmarkTors={tors}
+      benchmarkTors={peers}
       tor={tor}
       returnTo={from === "matches" ? "matches" : undefined}
+      listingsReturn={listingsReturn}
     />
   );
 }

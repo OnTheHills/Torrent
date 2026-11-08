@@ -138,6 +138,7 @@ function present(tor) {
         : [],
     integrityReason: tor.integrityReason,
     integrityNote: tor.integrityNote,
+    integrityNoteEn: tor.integrityNoteEn,
     mergeStatus: tor.mergeStatus || null,
     mergeConflicts: Array.isArray(tor.mergeConflicts) ? tor.mergeConflicts : [],
     sources: Array.isArray(tor.sources)
@@ -604,12 +605,18 @@ async function searchTors(query) {
 }
 
 async function getTor(id) {
-  const tor = await TOR.findById(id).lean();
+  let tor = await TOR.findById(id).lean();
   if (!tor) {
     const error = new Error("TOR not found.");
     error.statusCode = 404;
     throw error;
   }
+  const {
+    ensureIntegrityNoteEn,
+    ensureRequirementGroups,
+  } = require("@/services/tor/torCrudService");
+  tor = await ensureIntegrityNoteEn(tor);
+  tor = await ensureRequirementGroups(tor);
   return { ...present(tor), summary: tor.summary, summaryTh: tor.summaryTh, titleEn: tor.title };
 }
 

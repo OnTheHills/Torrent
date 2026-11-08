@@ -7,13 +7,48 @@ async function create(data) {
   return TOR.create(data);
 }
 
+/** Fields the public catalog list does not need (keeps /tors payloads small). */
+const LIST_EXCLUDE = {
+  description: 0,
+  requirements: 0,
+  sources: 0,
+  mergeConflicts: 0,
+  reviewNote: 0,
+  reviewScoreReason: 0,
+  integrityNote: 0,
+  integrityNoteEn: 0,
+  "ocr.requirements": 0,
+  "ocr.requirementsEn": 0,
+  "ocr.requirementItems": 0,
+  "ocr.summary": 0,
+  "ocr.summaryTh": 0,
+  "ocr.error": 0,
+};
+
 async function findAll() {
   // Public catalog: every non-hidden software TOR from all active feeds.
-  return TOR.find({ hidden: { $ne: true } }).sort({ publishedAt: -1 });
+  // lean + projection — full OCR text / merge history only load on detail.
+  return TOR.find({ hidden: { $ne: true } })
+    .select(LIST_EXCLUDE)
+    .sort({ publishedAt: -1 })
+    .lean();
+}
+
+/** Budgets for one category — enough for detail-page medians without the full catalog. */
+async function findBudgetPeers(category) {
+  if (!category) return [];
+  return TOR.find(
+    {
+      hidden: { $ne: true },
+      category,
+      budgetThb: { $gt: 0 },
+    },
+    { budgetThb: 1, category: 1 },
+  ).lean();
 }
 
 async function findById(id) {
-  return TOR.findById(id);
+  return TOR.findById(id).lean();
 }
 
 async function update(id, data) {
@@ -131,6 +166,7 @@ module.exports = {
   create,
   deleteMissingFromSource,
   findAll,
+  findBudgetPeers,
   findById,
   findBySource,
   findEgpDeptIds,

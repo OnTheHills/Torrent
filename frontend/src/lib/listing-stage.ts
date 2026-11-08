@@ -44,6 +44,7 @@ export function listingStage(
   if (tor.sourceKind === "sme-gp") return "closed";
   if (tor.lifecycle === "cancelled") return "cancelled";
   if (tor.lifecycle === "awarded") return "awarded";
+  if (tor.lifecycle === "closed") return "closed";
   if (tor.lifecycle === "draft") return "draft";
 
   const days = tor.deadline ? daysUntil(tor.deadline, today) : null;
@@ -55,15 +56,18 @@ export function listingStage(
 
 const FIT_SCORE_STAGES = new Set<ListingStage>(["open", "closing", "draft"]);
 
+/** Fit scores belong on open / closing / draft cards — stage drives the UI. */
 export function fitScoreApplies(tor: {
   lifecycle: string;
   deadline?: string;
   sourceKind?: string;
   matchEligible?: boolean;
 }) {
-  if (typeof tor.matchEligible === "boolean") return tor.matchEligible;
   return FIT_SCORE_STAGES.has(listingStage(tor));
 }
+
+/** Inbox keeps stronger fits; listing cards still show lower scores. */
+export const MATCH_INBOX_MIN_PERCENT = 60;
 
 export function parseListingStages(values: string[]): ListingStage[] {
   return [...new Set(values.filter((item): item is ListingStage => STAGE_SET.has(item)))];

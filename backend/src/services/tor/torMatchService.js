@@ -1,5 +1,5 @@
 const TOR = require("@/models/TOR");
-const { fitScoreApplies } = require("@/jobs/matchTors");
+const { enqueueTors, fitScoreApplies, kick } = require("@/jobs/matchTors");
 const torMatchRepository = require("@/repositories/torMatchRepository");
 
 async function createTorMatch(data) {
@@ -12,6 +12,13 @@ async function getAllTorMatches() {
 
 async function getPendingTorIds() {
   return torMatchRepository.findPendingTorIds();
+}
+
+/** Re-queue open TORs so listing cards can get a fit score. */
+async function ensureTorScores(torIds = []) {
+  const queued = await enqueueTors(torIds);
+  if (queued) kick();
+  return queued;
 }
 
 async function getTorMatchesByUserId(userId) {
@@ -60,6 +67,7 @@ async function deleteTorMatch(id) {
 module.exports = {
   createTorMatch,
   deleteTorMatch,
+  ensureTorScores,
   getAllTorMatches,
   getPendingTorIds,
   getTorMatchesByUserId,

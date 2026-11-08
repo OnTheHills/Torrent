@@ -27,6 +27,16 @@ async function getPendingTorMatchIds(_request, response) {
   }
 }
 
+async function ensureTorMatchScores(request, response) {
+  try {
+    const torIds = Array.isArray(request.body?.torIds) ? request.body.torIds : [];
+    const queued = await torMatchService.ensureTorScores(torIds);
+    return response.status(200).json({ queued });
+  } catch (error) {
+    return response.status(500).json({ message: error.message });
+  }
+}
+
 async function getMyTorMatches(request, response) {
   try {
     const torMatches = await torMatchService.getTorMatchesByUserId(request.user.sub);
@@ -107,6 +117,7 @@ async function deleteTorMatch(request, response) {
 
 module.exports = {
   createTorMatch,
+  ensureTorMatchScores,
   getAllTorMatches,
   getPendingTorMatchIds,
   getMyTorMatches,

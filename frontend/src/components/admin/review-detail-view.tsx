@@ -78,6 +78,7 @@ type TorRecord = {
   integrityFlags?: string[];
   integrityReason?: string;
   integrityNote?: string;
+  integrityNoteEn?: string;
   egpUrl?: string;
   pdfUrl?: string;
   summary?: string;
