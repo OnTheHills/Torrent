@@ -239,6 +239,45 @@ The backend provides JSON CRUD routes for:
 
 Each collection supports `POST /`, `GET /`, `GET /:id`, `PATCH /:id`, and `DELETE /:id`. Basic checks are available at `/` and `/api/hello`.
 
+### Session and CSRF protection
+
+POST, PUT, PATCH, and DELETE require a valid `torrent_session` JWT, except Google
+login (which verifies a Google credential) and LINE webhooks (which verify an HMAC).
+Existing private GET routes retain their authentication and role/owner checks;
+public GET routes remain public.
+
+Browser writes, including Google login and multipart uploads, additionally require
+an exact allowed `Origin` from `CORS_ORIGIN` and a signed double-submit CSRF token:
+
+1. Fetch `GET /api/auth/csrf` with cookies enabled and `cache: "no-store"`.
+2. Keep the returned `csrfToken` in memory and include it in `x-csrf-token` on writes.
+3. Send cookies with `credentials: "include"`. The server validates both the CSRF
+   cookie and header, binding the token to the current JWT or a random browser
+   identifier before login. Missing/invalid CSRF tokens and untrusted/missing
+   origins return `403` before body parsing and route handlers.
+
+The shared frontend `api()` helper performs these steps for JSON and FormData,
+clears its cached token after login/logout, and retries a specifically identified
+stale-CSRF rejection once. It does not retry permission/origin errors. GET requests
+do not fetch CSRF tokens. LINE webhooks alone bypass the browser Origin/CSRF policy
+and continue to require their valid `x-line-signature`.
+
+CSRF cookies are HttpOnly and SameSite=Lax. HTTPS (`COOKIE_SECURE=true`) or production
+mode uses Secure, host-only `__Host-` cookies; local HTTP uses unprefixed cookies.
+Set `CSRF_SECRET` to a private random value to use a separate HMAC key; otherwise
+`COOKIE_SECRET`, then `JWT_SECRET`, supplies the key. There is no hardcoded default.
+Secret values must stay in deployment configuration, never frontend code or docs.
+
+Command-line writes must also send an allowed Origin, the cookie jar, and the
+`x-csrf-token` obtained from the token endpoint. See
+[Open API.md](<x-docs/project_details/Open API.md>) for examples and error codes.
+
+Run backend protection tests with
+`cd backend && node --require module-alias/register --test tests/mutationAuth.test.js`.
+Run frontend request tests with `cd frontend && node --test tests/csrf-api.test.mjs`.
+The backend protection tests stub controllers and do not access development data
+or external providers.
+
 ### Vendor profile certificates
 
 Saving `/app/profile` submits profile details and selected certificate images together.

@@ -1,6 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const { requireMutationAuth } = require("@/middleware/requireMutationAuth");
+const { createCsrfProtection, isLineWebhook } = require("@/middleware/csrfProtection");
 const authRouter = require("@/routes/authRoute");
 const userRouter = require("@/routes/userRoute");
 const vendorProfileRouter = require("@/routes/vendorProfileRoute");
@@ -25,11 +27,17 @@ app.use(
   }),
 );
 app.use(cookieParser());
+const csrf = createCsrfProtection(corsOrigins);
+app.get("/api/auth/csrf", csrf.issueToken);
+
+// Reject unauthenticated writes before parsing JSON or accepting file uploads.
+app.use(requireMutationAuth);
+app.use(csrf.protect);
 // Preserve raw bytes for LINE webhook HMAC (x-line-signature).
 app.use(
   express.json({
     verify: (req, _res, buf) => {
-      if (req.originalUrl?.startsWith("/api/line/webhook")) {
+      if (isLineWebhook(req)) {
         req.rawBody = buf;
       }
     },

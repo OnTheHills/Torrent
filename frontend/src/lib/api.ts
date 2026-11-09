@@ -51,22 +51,61 @@ export function apiUrl(path: string) {
   return `${base}${normalizedPath}`;
 }
 
+let csrfToken: string | undefined;
+let csrfTokenRequest: Promise<string> | undefined;
+
+function resetCsrfToken() {
+  csrfToken = undefined;
+  csrfTokenRequest = undefined;
+}
+
+async function getCsrfToken(): Promise<string> {
+  if (csrfToken) return csrfToken;
+  if (!csrfTokenRequest) {
+    csrfTokenRequest = (async () => {
+      const response = await fetch(apiUrl("/auth/csrf"), {
+        credentials: "include",
+        cache: "no-store",
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || typeof data.csrfToken !== "string" || !data.csrfToken) {
+        throw new Error("Could not establish request protection. Refresh and try again.");
+      }
+      const token: string = data.csrfToken;
+      csrfToken = token;
+      return token;
+    })();
+  }
+  const pending = csrfTokenRequest;
+  try {
+    return await pending;
+  } finally {
+    if (csrfTokenRequest === pending) csrfTokenRequest = undefined;
+  }
+}
+
 export async function api<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
-  // Use this generic client for session-protected JSON endpoints. It includes
-  // browser cookies and turns API error bodies into normal JavaScript errors.
-  const response = await fetch(apiUrl(path), {
-    ...options,
-    credentials: "include",
-    headers: {
-      ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
-      ...(options.headers ?? {}),
-    },
-  });
-
-  const data = await response.json().catch(() => ({}));
+  const mutation = ["POST", "PUT", "PATCH", "DELETE"].includes((options.method || "GET").toUpperCase());
+  const send = async () => {
+    const headers = new Headers(options.headers);
+    if (!(options.body instanceof FormData) && !headers.has("Content-Type")) {
+      headers.set("Content-Type", "application/json");
+    }
+    if (mutation) headers.set("x-csrf-token", await getCsrfToken());
+    const response = await fetch(apiUrl(path), { ...options, credentials: "include", headers });
+    const data = await response.json().catch(() => ({}));
+    return { response, data };
+  };
+  let { response, data } = await send();
+  // Another tab may have logged in/out or renewed the CSRF cookie. A CSRF
+  // rejection happens before the handler, so retry it once with a fresh token.
+  if (mutation && response.status === 403 && data.code === "INVALID_CSRF_TOKEN") {
+    resetCsrfToken();
+    ({ response, data } = await send());
+  }
 
   if (!response.ok) {
     const message =
@@ -86,6 +125,7 @@ export async function api<T>(
     throw error;
   }
 
+  if (mutation && /\/auth\/(google|logout|dev-admin)\/?$/.test(apiUrl(path))) resetCsrfToken();
   return data as T;
 }
 
