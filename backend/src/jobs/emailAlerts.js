@@ -3,6 +3,7 @@ const TOR = require("@/models/TOR");
 const TORMatch = require("@/models/TORMatch");
 const EmailAlert = require("@/models/EmailAlert");
 const { fitScoreApplies } = require("@/jobs/matchTors");
+const { alertMessage } = require("@/services/email/alertTemplate");
 const {
   EMAIL_PREF_BY_KIND,
   MIN_EMAIL_MATCH_PERCENT,
@@ -14,8 +15,6 @@ const {
   EMAIL_RETRY_EXPONENT_CAP,
   EMAIL_REQUEST_TIMEOUT_MS,
   RESEND_EMAILS_URL,
-  DEFAULT_EMAIL_FRONTEND_URL,
-  EMAIL_SUBJECT_TITLE_MAX_LENGTH,
 } = require("@/constants/emailAlertConstants");
 
 function matchesPreferences(tor, prefs) {
@@ -25,31 +24,9 @@ function matchesPreferences(tor, prefs) {
   return Number.isFinite(budget) && budget >= prefs.budgetMinThb && budget <= prefs.budgetMaxThb;
 }
 
-function torLink(torId) {
-  const base = process.env.FRONTEND_URL?.trim() || process.env.CORS_ORIGIN?.split(",")[0]?.trim() || DEFAULT_EMAIL_FRONTEND_URL;
-  return `${base.replace(/\/+$/, "")}/app/tors/${torId}`;
-}
-
-function message(kind, tor, score) {
-  const title = String(tor.titleTh || tor.title || "TOR").replace(/[\r\n]+/g, " ").slice(0, EMAIL_SUBJECT_TITLE_MAX_LENGTH);
-  const url = torLink(tor._id);
-  if (kind === "match") return {
-    subject: `Torrent match: ${title}`,
-    text: `A TOR matches your vendor profile (${score}% fit).\n\n${title}\n${url}\n\nManage email alerts in Torrent Smart Alert.`,
-  };
-  if (kind === "deadline") return {
-    subject: `Torrent deadline approaching: ${title}`,
-    text: `A matched TOR closes within 3 days.\n\n${title}\n${url}\n\nManage email alerts in Torrent Smart Alert.`,
-  };
-  return {
-    subject: `Torrent integrity update: ${title}`,
-    text: `A matched TOR has an integrity warning. Review its details before proceeding.\n\n${title}\n${url}\n\nManage email alerts in Torrent Smart Alert.`,
-  };
-}
-
 async function queueAlert(user, match, tor, kind, detail) {
   const key = `${kind}:${user._id}:${tor._id}:${detail}`;
-  const body = message(kind, tor, Number(match.matchPercent));
+  const body = alertMessage(kind, tor, match);
   try {
     const result = await EmailAlert.updateOne(
       { key },
@@ -73,11 +50,11 @@ async function queueEligibleAlerts(now = new Date()) {
     const prefs = user.emailAlertPrefs;
     if (!prefs.emailMatches && !prefs.emailDeadlines && !prefs.emailIntegrity) continue;
     const matches = await TORMatch.find({ userId: user._id, dismissedAt: null, badResultAt: null })
-      .select("_id torId matchPercent createdAt").lean();
+      .select("_id torId matchPercent matchReason createdAt").lean();
     const eligible = matches.filter((match) => Number(match.matchPercent) >= MIN_EMAIL_MATCH_PERCENT);
     if (!eligible.length) continue;
     const tors = await TOR.find({ _id: { $in: eligible.map((match) => match.torId) } })
-      .select("_id title titleTh hidden status source category budgetThb ocr.budgetThb deadline ocr.deadline integrityStatus updatedAt")
+      .select("_id title titleTh description summary summaryTh department departmentTh hidden status source category budgetThb ocr.budgetThb ocr.summary ocr.summaryTh deadline ocr.deadline integrityStatus updatedAt")
       .lean();
     const byId = new Map(tors.map((tor) => [String(tor._id), tor]));
     for (const match of eligible) {
@@ -109,11 +86,15 @@ async function sendEmail(alert) {
       "Content-Type": "application/json",
       "Idempotency-Key": alert.key,
     },
-    body: JSON.stringify({ from: process.env.EMAIL_FROM, to: [alert.to], subject: alert.subject, text: alert.text }),
+    body: JSON.stringify({ from: process.env.EMAIL_FROM, to: [alert.to], subject: alert.subject, text: alert.text, ...(alert.html ? { html: alert.html } : {}) }),
     signal: AbortSignal.timeout(EMAIL_REQUEST_TIMEOUT_MS),
   });
   if (!response.ok) {
-    const error = new Error(`Resend HTTP ${response.status}`);
+    const details = await response.json().catch(() => null);
+    const reason = typeof details?.message === "string"
+      ? details.message.replace(/[\r\n]+/g, " ").slice(0, 300)
+      : "";
+    const error = new Error(`Resend HTTP ${response.status}${reason ? `: ${reason}` : ""}`);
     error.permanent = response.status >= 400 && response.status < 500 && response.status !== 429;
     throw error;
   }
@@ -170,4 +151,4 @@ async function runEmailAlerts() {
   return { queued, sent };
 }
 
-module.exports = { matchesPreferences, queueEligibleAlerts, deliverPendingAlerts, runEmailAlerts, sendEmail };
+module.exports = { runEmailAlerts };

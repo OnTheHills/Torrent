@@ -8,6 +8,7 @@ const emailAlertSchema = new mongoose.Schema({
   to: { type: String, required: true },
   subject: { type: String, required: true },
   text: { type: String, required: true },
+  html: String,
   status: { type: String, enum: ["pending", "sending", "sent", "failed"], default: "pending" },
   retryAt: { type: Date, default: Date.now },
   leaseUntil: Date,

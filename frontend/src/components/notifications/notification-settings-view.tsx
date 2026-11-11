@@ -48,8 +48,6 @@ export function NotificationSettingsView() {
   const [emailBusy, setEmailBusy] = useState(false);
   const [emailError, setEmailError] = useState("");
   const [emailAvailable, setEmailAvailable] = useState(true);
-  const [testBusy, setTestBusy] = useState(false);
-  const [testResult, setTestResult] = useState("");
   const [lineStatus, setLineStatus] = useState<LineStatus | null>(null);
   const [lineBusy, setLineBusy] = useState(false);
   const [lineError, setLineError] = useState("");
@@ -121,19 +119,6 @@ export function NotificationSettingsView() {
       setEmailError(error instanceof Error ? error.message : "Could not save email settings.");
     } finally {
       setEmailBusy(false);
-    }
-  };
-
-  const handleTestEmail = async () => {
-    setTestBusy(true);
-    setTestResult("");
-    try {
-      await api("/email-alerts/test", { method: "POST" });
-      setTestResult(t("emailTestSent"));
-    } catch (error) {
-      setTestResult(error instanceof Error ? error.message : t("emailTestFailed"));
-    } finally {
-      setTestBusy(false);
     }
   };
 
@@ -285,13 +270,6 @@ export function NotificationSettingsView() {
               </div>
             ))}
           </CardContent>
-          <div className="flex flex-wrap items-center gap-3 border-t border-border px-6 py-4">
-            <Button type="button" variant="outline" disabled={!emailReady || !emailAvailable || testBusy} onClick={() => void handleTestEmail()}>
-              {testBusy ? t("emailTestBusy") : t("emailSendTest")}
-            </Button>
-            <p className="text-xs text-muted-foreground">{t("emailTestHint")}</p>
-            {testResult ? <p className="w-full text-sm" role="status">{testResult}</p> : null}
-          </div>
         </Card>
 
         <Card className={FROST_PANEL}>
