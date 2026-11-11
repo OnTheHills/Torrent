@@ -116,6 +116,18 @@ without a downloadable TOR remain `discovered` and are not matched. Set
 daily sync at **00:00 Asia/Bangkok**, regardless of the container timezone.
 The older process3 RSS path remains available through
 `POST /api/sync/process3-process5` for manual comparison.
+
+Smart Alert email is enabled when `RESEND_API_KEY` and `EMAIL_FROM` are set in
+`backend/.env`. Use a sender address on a domain verified in Resend and set
+`FRONTEND_URL` to the public site origin for links in messages. Vendors opt in
+by saving email preferences in `/app/alerts`; the worker checks for new matches,
+TORs closing within three days, and integrity warnings every ten minutes. It
+sends only matched TORs within the saved budget and category range. Existing
+matches are not emailed when a user first opts in. Delivery needs a verified
+user email address.
+For a quick delivery check, a signed-in vendor can press **Send test email** on
+`/app/alerts`; it sends immediately to that account's verified email, without
+waiting for a new TOR. The button is limited to one send every five minutes.
 Apply a changed setting with `docker compose up -d --force-recreate backend`.
 An initial fetch failure is logged and the backend still starts with the nightly
 schedule enabled. For npm development, set `FETCH_ON_STARTUP` in `backend/.env`.

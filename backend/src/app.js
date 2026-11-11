@@ -12,6 +12,7 @@ const torMatchRouter = require("@/routes/torMatchRoute");
 const syncRouter = require("@/routes/syncRoute");
 const adminRouter = require("@/routes/adminRoute");
 const lineRouter = require("@/routes/lineRoute");
+const emailAlertRouter = require("@/routes/emailAlertRoute");
 
 // Configure the HTTP application. Database connection and jobs start in server.js.
 const app = express();
@@ -52,6 +53,7 @@ app.use("/api/tor-matches", torMatchRouter);
 app.use("/api/sync", syncRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/line", lineRouter);
+app.use("/api/email-alerts", emailAlertRouter);
 
 app.get("/", (req, res) => {
   res.json({ message: "Backend is running" });

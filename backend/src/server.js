@@ -6,6 +6,7 @@ const { connectDatabase } = require("@/utils/connectDatabase");
 const { startSyncScheduler } = require("@/scheduler/syncScheduler");
 const { startMatchScheduler } = require("@/scheduler/matchScheduler");
 const { startLineDigestScheduler } = require("@/scheduler/lineDigestScheduler");
+const { startEmailAlertScheduler } = require("@/scheduler/emailAlertScheduler");
 const PORT = process.env.PORT;
 
 async function startServer() {
@@ -24,6 +25,7 @@ async function startServer() {
     await startSyncScheduler();
     // Start LINE digest scheduler
     await startLineDigestScheduler();
+    startEmailAlertScheduler();
   } catch (error) {
     console.error("Backend startup failed:", error);
     process.exit(1);
