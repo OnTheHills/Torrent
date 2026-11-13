@@ -5,7 +5,7 @@ const {
   getUserBioById,
   updateUserBio,
   deleteUserBio,
-} = require("@/controllers/userBioController");
+} = require("@/controllers/user/userBioController");
 
 const userBioRouter = express.Router();
 

@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 const require = createRequire(import.meta.url);
 const backendRequire = createRequire(new URL("../../backend/package.json", import.meta.url));
 backendRequire("module-alias").addAlias("@", fileURLToPath(new URL("../../backend/src", import.meta.url)));
-const TOR = backendRequire("./src/models/TOR");
+const TOR = backendRequire("./src/models/tor/TOR");
 const router = backendRequire("./src/routes/torRoute");
 const React = require("react");
 const { renderToStaticMarkup } = require("react-dom/server");

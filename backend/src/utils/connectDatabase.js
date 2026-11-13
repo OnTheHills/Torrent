@@ -1,10 +1,11 @@
 const mongoose = require("mongoose");
-const User = require("@/models/User");
-const VendorProfile = require("@/models/VendorProfile");
-const UserBio = require("@/models/UserBio");
-const TOR = require("@/models/TOR");
-const TORMatch = require("@/models/TORMatch");
-const TorMatchJob = require("@/models/TorMatchJob");
+const User = require("@/models/user/User");
+const VendorProfile = require("@/models/vendor/VendorProfile");
+const UserBio = require("@/models/user/UserBio");
+const TOR = require("@/models/tor/TOR");
+const TORMatch = require("@/models/tor/TORMatch");
+const TorMatchJob = require("@/models/tor/TorMatchJob");
+const EmailAlert = require("@/models/email/EmailAlert");
 const { migrateVendorProfileFields } = require("./migrateVendorProfileFields");
 
 async function connectDatabase() {
@@ -21,6 +22,7 @@ async function connectDatabase() {
     TOR.init(),
     TORMatch.init(),
     TorMatchJob.init(),
+    EmailAlert.init(),
   ]);
   await migrateVendorProfileFields();
   console.log("Connected to MongoDB");

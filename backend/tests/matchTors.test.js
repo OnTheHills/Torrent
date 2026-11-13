@@ -26,12 +26,12 @@ test("quota exhaustion pauses one TOR at the unfinished vendor", async () => {
   });
   const dependencies = {
     "node:crypto": { randomUUID: () => "worker-1" },
-    "@/models/User": {
+    "@/models/user/User": {
       findOne: (query) => queryResult(
         vendors.find((user) => !query._id || user._id > query._id.$gt) || null,
       ),
     },
-    "@/models/VendorProfile": {
+    "@/models/vendor/VendorProfile": {
       findOne: (query) => {
         const after = query.userId?.$gt;
         const next = vendors.find((user) => !after || user._id > after);
@@ -40,15 +40,15 @@ test("quota exhaustion pauses one TOR at the unfinished vendor", async () => {
         );
       },
     },
-    "@/models/TOR": {
+    "@/models/tor/TOR": {
       findById: () => queryResult(tor),
       find: () => queryResult([tor]),
     },
-    "@/models/TORMatch": {
+    "@/models/tor/TORMatch": {
       updateOne: async (filter, update) => matches.push({ filter, update }),
       deleteOne: async () => {},
     },
-    "@/models/TorMatchJob": {
+    "@/models/tor/TorMatchJob": {
       find: (query) => {
         if (query.status?.$in) {
           return queryResult(

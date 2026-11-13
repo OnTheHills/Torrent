@@ -4,7 +4,7 @@ const dataGo = require("@/services/tor/api/dataGo/fetch");
 const pipeline = require("@/services/tor/api/dataGoProcess5/fetch");
 const { adapt } = require("@/services/tor/api/dataGoProcess5/adapter");
 const { documentForProject } = require("@/services/tor/api/dataGoProcess5/document");
-const torRepository = require("@/repositories/torRepository");
+const torRepository = require("@/repositories/tor/torRepository");
 
 test("data.go IDs are verified against process5 before mapping budgets", async (t) => {
   t.mock.method(dataGo, "fetch", async () => ({

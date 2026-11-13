@@ -6,10 +6,6 @@ import { useEffect, useState } from "react";
 import { Tick02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
-import {
-  useNotificationPrefs,
-  type NotificationPrefs,
-} from "@/components/providers/notification-prefs-provider";
 import { useLocale } from "@/components/providers/locale-provider";
 import { frostSelectedItem } from "@/components/tor/tor-filters";
 import { Button } from "@/components/ui/button";
@@ -29,42 +25,58 @@ import {
   unlinkLine,
   type LineStatus,
 } from "@/lib/line";
+import { api } from "@/lib/api";
+import { TOR_CATEGORIES } from "@/lib/tor-categories";
 import { cn } from "@/lib/utils";
 import type { TorCategory } from "@/types/tor";
 
 const FROST_PANEL =
   "rounded-lg bg-[color-mix(in_srgb,var(--palette-gray-50)_62%,transparent)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_88%,transparent)] ring-1 ring-[color-mix(in_srgb,white_72%,transparent)] backdrop-blur-md backdrop-saturate-150";
 
-const CATEGORIES: TorCategory[] = [
-  "Software Development",
-  "Web Application",
-  "Mobile Application",
-  "Data Platform",
-  "Digital Platform",
-  "AI / Analytics",
-  "Cybersecurity",
-  "GIS",
-  "Others",
-];
+type NotificationPrefs = {
+  emailMatches: boolean;
+  emailDeadlines: boolean;
+  emailIntegrity: boolean;
+  budgetMinThb: number;
+  budgetMaxThb: number;
+  categories: TorCategory[];
+};
+
+type EmailPrefsResponse = NotificationPrefs & { deliveryConfigured: boolean };
 
 export function NotificationSettingsView() {
   const { t } = useLocale();
-  const { prefs, setPrefs, ready } = useNotificationPrefs();
-  const [draft, setDraft] = useState<NotificationPrefs>(prefs);
+  const [draft, setDraft] = useState<NotificationPrefs>({
+    emailMatches: false,
+    emailDeadlines: false,
+    emailIntegrity: false,
+    budgetMinThb: 0,
+    budgetMaxThb: 0,
+    categories: [],
+  });
   const [savedFlash, setSavedFlash] = useState(false);
+  const [emailReady, setEmailReady] = useState(false);
+  const [emailBusy, setEmailBusy] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  const [emailAvailable, setEmailAvailable] = useState(true);
   const [lineStatus, setLineStatus] = useState<LineStatus | null>(null);
   const [lineBusy, setLineBusy] = useState(false);
   const [lineError, setLineError] = useState("");
 
   useEffect(() => {
-    if (!ready) return;
-
-    const timer = window.setTimeout(() => {
-      setDraft(prefs);
-    }, 0);
-
-    return () => window.clearTimeout(timer);
-  }, [ready, prefs]);
+    let cancelled = false;
+    void api<EmailPrefsResponse>("/email-alerts/preferences")
+      .then((saved) => {
+        if (cancelled) return;
+        setEmailAvailable(saved.deliveryConfigured);
+        setDraft(saved);
+        setEmailReady(true);
+      })
+      .catch((error) => {
+        if (!cancelled) setEmailError(error instanceof Error ? error.message : "Could not load email settings.");
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -91,10 +103,22 @@ export function NotificationSettingsView() {
     update({ categories: next });
   };
 
-  const handleSave = () => {
-    setPrefs(draft);
-    setSavedFlash(true);
-    window.setTimeout(() => setSavedFlash(false), 2000);
+  const handleSave = async () => {
+    setEmailBusy(true);
+    setEmailError("");
+    try {
+      const saved = await api<EmailPrefsResponse>("/email-alerts/preferences", {
+        method: "PUT", body: JSON.stringify(draft),
+      });
+      setEmailAvailable(saved.deliveryConfigured);
+      setDraft(saved);
+      setSavedFlash(true);
+      window.setTimeout(() => setSavedFlash(false), 2000);
+    } catch (error) {
+      setEmailError(error instanceof Error ? error.message : "Could not save email settings.");
+    } finally {
+      setEmailBusy(false);
+    }
   };
 
   const runLineAction = async (action: () => Promise<LineStatus>) => {
@@ -219,6 +243,7 @@ export function NotificationSettingsView() {
         <Card className={FROST_PANEL}>
           <CardHeader className="border-b border-border pb-5">
             <CardTitle className="text-lg">{t("emailNotifications")}</CardTitle>
+            {emailReady && !emailAvailable ? <CardDescription>{t("emailUnavailable")}</CardDescription> : null}
           </CardHeader>
           <CardContent className="divide-y divide-border p-0">
             {(
@@ -238,7 +263,7 @@ export function NotificationSettingsView() {
                 <Switch
                   id={key}
                   checked={draft[key]}
-                  disabled={!ready}
+                  disabled={!emailReady || emailBusy}
                   onCheckedChange={(checked) => update({ [key]: checked })}
                 />
               </div>
@@ -261,7 +286,7 @@ export function NotificationSettingsView() {
                 min={0}
                 step={100000}
                 value={draft.budgetMinThb}
-                disabled={!ready}
+                disabled={!emailReady || emailBusy}
                 onChange={(event) =>
                   update({ budgetMinThb: Number(event.target.value) || 0 })
                 }
@@ -277,7 +302,7 @@ export function NotificationSettingsView() {
                 min={0}
                 step={100000}
                 value={draft.budgetMaxThb}
-                disabled={!ready}
+                disabled={!emailReady || emailBusy}
                 onChange={(event) =>
                   update({ budgetMaxThb: Number(event.target.value) || 0 })
                 }
@@ -292,14 +317,14 @@ export function NotificationSettingsView() {
           <CardTitle className="text-lg">{t("categoriesInterest")}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2 pt-5">
-          {CATEGORIES.map((category) => {
+          {TOR_CATEGORIES.map((category) => {
             const selected = draft.categories.includes(category);
             return (
               <button
                 key={category}
                 type="button"
                 aria-pressed={selected}
-                disabled={!ready}
+                disabled={!emailReady || emailBusy}
                 onClick={() => toggleCategory(category)}
                 className={cn(
                   "inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium",
@@ -326,7 +351,7 @@ export function NotificationSettingsView() {
       </Card>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="button" size="lg" disabled={!ready} onClick={handleSave}>
+        <Button type="button" size="lg" disabled={!emailReady || emailBusy} onClick={() => void handleSave()}>
           {t("saveSettings")}
         </Button>
         {savedFlash ? (
@@ -334,6 +359,7 @@ export function NotificationSettingsView() {
             {t("settingsSaved")}
           </p>
         ) : null}
+        {emailError ? <p className="text-sm text-destructive" role="alert">{emailError}</p> : null}
       </div>
       </div>
       </ShellContent>

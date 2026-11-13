@@ -1,8 +1,8 @@
 const assert = require("node:assert/strict");
 const { test } = require("node:test");
-const VendorProfile = require("../src/models/VendorProfile");
+const VendorProfile = require("../src/models/vendor/VendorProfile");
 const service = require("../src/services/vendor/vendorProfileService");
-const controller = require("../src/controllers/vendorProfileController");
+const controller = require("../src/controllers/vendor/vendorProfileController");
 const { matchPrompt } = require("../src/services/tor/matchWithVertex");
 
 const USER = "507f1f77bcf86cd799439011";

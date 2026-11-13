@@ -1,6 +1,6 @@
 const { unzipSync } = require("fflate");
 const { extractPlanPdf, SUMMARY_VERSION } = require("@/services/tor/ocr/extractPlanPdf");
-const torRepository = require("@/repositories/torRepository");
+const torRepository = require("@/repositories/tor/torRepository");
 
 const SOURCE = "EGP-PROCESS5";
 

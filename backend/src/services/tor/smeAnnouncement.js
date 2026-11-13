@@ -7,7 +7,7 @@ const { promisify } = require("node:util");
 
 const execFileAsync = promisify(execFile);
 
-const torRepository = require("@/repositories/torRepository");
+const torRepository = require("@/repositories/tor/torRepository");
 const { readPdfText } = require("@/services/tor/ocr/readPdfText");
 const { parseAnnouncementBudget } = require("@/utils/torUtils");
 

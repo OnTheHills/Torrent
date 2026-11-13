@@ -1,4 +1,4 @@
-const vendorProfiles = require("@/repositories/vendorProfileRepository");
+const vendorProfiles = require("@/repositories/vendor/vendorProfileRepository");
 
 async function requireVendorProfileOwner(request, response, next) {
   if (!/^[a-f0-9]{24}$/i.test(request.params.id)) return response.status(400).json({ message: "Invalid profile ID." });

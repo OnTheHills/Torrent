@@ -1,7 +1,7 @@
 const assert = require("node:assert/strict");
 const { test } = require("node:test");
 const { zipSync } = require("fflate");
-const torRepository = require("@/repositories/torRepository");
+const torRepository = require("@/repositories/tor/torRepository");
 const source = require("@/services/tor/api/process3Process5/fetch");
 const { adapt } = require("@/services/tor/api/process3Process5/adapter");
 const { downloadTor } = require("@/services/tor/ocr/ocrEgp");

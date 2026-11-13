@@ -7,7 +7,7 @@ const {
   getVendorProfileByUserId,
   updateVendorProfile,
   deleteVendorProfile,
-} = require("@/controllers/vendorProfileController");
+} = require("@/controllers/vendor/vendorProfileController");
 const { requireAuth } = require("@/middleware/requireAuth");
 const { requireSelfOrAdminByUserId } = require("@/middleware/requireRole");
 const { requireVendorProfileOwner } = require("@/middleware/requireVendorProfileOwner");

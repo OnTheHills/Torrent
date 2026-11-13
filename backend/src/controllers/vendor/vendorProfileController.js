@@ -1,5 +1,7 @@
 const vendorProfileService = require("@/services/vendor/vendorProfileService");
-const { badRequest, CERTIFICATE_FIELDS, FILE_PATTERN, UPLOAD_DIRECTORY } = require("@/services/vendor/certificateStorage");
+const { badRequest } = require("@/services/vendor/certificateStorage");
+const { CERTIFICATE_FIELDS, FILE_PATTERN, UPLOAD_DIRECTORY } = require("@/constants/vendorCertificateConstants");
+const { PROFILE_FIELDS } = require("@/constants/vendorProfileConstants");
 
 function profileData(request) {
   const body = request.body;
@@ -7,10 +9,7 @@ function profileData(request) {
   if (body.userId && String(body.userId) !== String(request.vendorProfile?.userId || request.user.sub)) {
     throw badRequest("You cannot change the profile owner.", 403);
   }
-  const allowed = ["vendorType", "vendorName", "vendorEmail", "vendorCapDescription", "teamSize", "techSkills",
-    "pastProjects", "website", "vendorPhone", "bio", "location",
-    "securityCertificates", "aiCertificates", "otherCertificates"];
-  return Object.fromEntries(allowed.filter((field) => Object.hasOwn(body, field)).map((field) => [field, body[field]]));
+  return Object.fromEntries(PROFILE_FIELDS.filter((field) => Object.hasOwn(body, field)).map((field) => [field, body[field]]));
 }
 
 function saveError(response, error) {

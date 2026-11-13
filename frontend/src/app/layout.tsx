@@ -4,7 +4,6 @@ import { IBM_Plex_Sans_Thai, Inter, Prompt } from "next/font/google";
 import type { Metadata } from "next";
 
 import { LocaleProvider } from "@/components/providers/locale-provider";
-import { NotificationPrefsProvider } from "@/components/providers/notification-prefs-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { SavedProvider } from "@/components/providers/saved-provider";
 import { SessionProvider } from "@/components/providers/session-provider";
@@ -57,7 +56,7 @@ export default function RootLayout({
           <LocaleProvider>
             <SessionProvider>
               <SavedProvider>
-                <NotificationPrefsProvider>{children}</NotificationPrefsProvider>
+                {children}
               </SavedProvider>
             </SessionProvider>
           </LocaleProvider>

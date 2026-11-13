@@ -1,6 +1,6 @@
-const TOR = require("@/models/TOR");
+const TOR = require("@/models/tor/TOR");
 const { enqueueTors, fitScoreApplies, kick } = require("@/jobs/matchTors");
-const torMatchRepository = require("@/repositories/torMatchRepository");
+const torMatchRepository = require("@/repositories/tor/torMatchRepository");
 
 async function createTorMatch(data) {
   return torMatchRepository.create(data);

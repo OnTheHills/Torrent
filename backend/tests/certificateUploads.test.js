@@ -20,8 +20,8 @@ test("certificate uploads persist with their profile and enforce ownership and P
   });
   process.env.CERTIFICATE_UPLOAD_DIR = directory;
   process.env.JWT_SECRET = "certificate-upload-test-secret";
-  const VendorProfile = require("../src/models/VendorProfile");
-  const repository = require("../src/repositories/vendorProfileRepository");
+  const VendorProfile = require("../src/models/vendor/VendorProfile");
+  const repository = require("../src/repositories/vendor/vendorProfileRepository");
   const matching = require("../src/jobs/matchTors");
   const { signUserToken } = require("../src/utils/session");
   let stored = null;

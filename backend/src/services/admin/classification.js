@@ -1,4 +1,4 @@
-const AdminSettings = require("@/models/AdminSettings");
+const AdminSettings = require("@/models/admin/AdminSettings");
 const { INCLUDE_KEYWORDS, EXCLUDE_KEYWORDS } = require("@/constants/dataGoConstants");
 const { matchingSoftwareTerms } = require("@/services/tor/api/dataGo/adapter");
 

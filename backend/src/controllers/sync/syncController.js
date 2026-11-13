@@ -2,7 +2,7 @@ const { syncAPI, syncSource } = require("@/jobs/syncAPI");
 const smeAnnouncements = require("@/services/tor/smeAnnouncement");
 const ocrEgp = require("@/services/tor/ocr/ocrEgp");
 const ocrBmaPlans = require("@/services/tor/ocr/ocrBmaPlans");
-const torRepository = require("@/repositories/torRepository");
+const torRepository = require("@/repositories/tor/torRepository");
 const torMatching = require("@/jobs/matchTors");
 const syncRuns = require("@/services/admin/syncRuns");
 

@@ -146,7 +146,7 @@ test("mergeByRefIds hides secondary and updates survivor", async () => {
       module,
       console,
       require(name) {
-        if (name === "@/models/TOR") {
+        if (name === "@/models/tor/TOR") {
           return {
             find: (query) => ({
               lean: async () =>
@@ -172,7 +172,7 @@ test("mergeByRefIds hides secondary and updates survivor", async () => {
             aggregate: async () => [],
           };
         }
-        if (name === "@/models/TORMatch") {
+        if (name === "@/models/tor/TORMatch") {
           return {
             deleteMany: async (filter) => {
               deletes.push(["match", filter]);
@@ -180,7 +180,7 @@ test("mergeByRefIds hides secondary and updates survivor", async () => {
             },
           };
         }
-        if (name === "@/models/TorMatchJob") {
+        if (name === "@/models/tor/TorMatchJob") {
           return {
             deleteMany: async (filter) => {
               deletes.push(["job", filter]);

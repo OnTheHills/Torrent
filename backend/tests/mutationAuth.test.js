@@ -35,12 +35,13 @@ test("the application requires a session for mutations and preserves public exce
 
   // Exercise the real application, routes, JWT, role checks, and LINE signature
   // verification while keeping controllers away from databases/external APIs.
-  for (const name of ["auth", "user", "userBio", "vendorProfile", "tor", "torMatch", "sync", "admin", "line"]) {
-    stubModule(`@/controllers/${name}Controller`, new Proxy({}, {
+  const controllerGroups = {
+    auth: "auth", user: "user", userBio: "user", vendorProfile: "vendor",
+    tor: "tor", torMatch: "tor", sync: "sync", admin: "admin",
+  };
+  for (const [name, group] of Object.entries(controllerGroups)) {
+    stubModule(`@/controllers/${group}/${name}Controller`, new Proxy({}, {
       get(_target, action) {
-        if (name === "line" && action === "processWebhookEvents") {
-          return async () => { calls.push("line.processWebhookEvents"); };
-        }
         return (request, response) => {
           calls.push(`${name}.${String(action)}`);
           return response.json({ action, user: request.user || null });
@@ -48,8 +49,8 @@ test("the application requires a session for mutations and preserves public exce
       },
     }));
   }
-  stubModule("@/jobs/lineWeeklyDigest", { runLineWeeklyDigest: async () => ({ ok: true }) });
-
+  const lineService = require("@/services/line/lineService");
+  t.mock.method(lineService, "processWebhookEvents", async () => { calls.push("line.processWebhookEvents"); });
   const app = require("@/app");
   // No production PUT route currently exists; this also checks that a future
   // route is automatically covered without adding a route-local auth guard.

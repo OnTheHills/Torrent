@@ -1,8 +1,8 @@
 const assert = require("node:assert/strict");
 const { test } = require("node:test");
 const { MongoClient } = require("mongodb");
-const TOR = require("@/models/TOR");
-const controller = require("@/controllers/torController");
+const TOR = require("@/models/tor/TOR");
+const controller = require("@/controllers/tor/torController");
 
 function response() {
   return {

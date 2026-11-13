@@ -8,7 +8,7 @@ const {
   getTorById,
   updateTor,
   deleteTor,
-} = require("@/controllers/torController");
+} = require("@/controllers/tor/torController");
 const { requireAuth } = require("@/middleware/requireAuth");
 const { requireRole } = require("@/middleware/requireRole");
 

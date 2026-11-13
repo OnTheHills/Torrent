@@ -1,4 +1,4 @@
-const LINE_API = "https://api.line.me/v2/bot";
+const { LINE_API } = require("@/constants/lineConstants");
 
 function authHeaders() {
   const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;

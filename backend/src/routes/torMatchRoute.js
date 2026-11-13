@@ -9,7 +9,7 @@ const {
   getTorMatchById,
   updateTorMatch,
   deleteTorMatch,
-} = require("@/controllers/torMatchController");
+} = require("@/controllers/tor/torMatchController");
 const { requireAuth } = require("@/middleware/requireAuth");
 
 const torMatchRouter = express.Router();

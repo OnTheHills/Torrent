@@ -1,4 +1,4 @@
-const userRepository = require("@/repositories/userRepository");
+const userRepository = require("@/repositories/user/userRepository");
 const { verifyGoogleIdToken } = require("@/utils/googleAuth");
 
 function signupRole(role) {

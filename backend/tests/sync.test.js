@@ -136,7 +136,7 @@ test("sync job saves data.go projects but waits for a TOR document before matchi
       const file = parts.at(-1);
       return file === "fetch" || file === "adapter" ? `${file}:${name}` : "api";
     } },
-    "@/repositories/torRepository": {
+    "@/repositories/tor/torRepository": {
       findBySource: async () => saved.map((refId) => ({ refId, source: "EGP-PROCESS5" })),
       saveChanged: async (tors) => {
         saved.push(...tors.map(({ refId }) => refId));
@@ -175,7 +175,7 @@ test("data.go project enters matching only after its TOR has been extracted", as
   const queued = [];
   const job = loadModule("../src/jobs/syncAPI.js", {
     "node:path": { join: (...parts) => `${parts.at(-1)}:${parts.at(-2)}` },
-    "@/repositories/torRepository": {
+    "@/repositories/tor/torRepository": {
       saveChanged: async () => ({ changedTorIds: ["project-id"], createdTorIds: ["project-id"], created: 1 }),
       findBySource: async () => [{ refId: "egp-1", documentUrl: "https://process5.gprocurement.go.th/tor.zip" }],
     },
@@ -194,7 +194,7 @@ test("data.go rate limit still processes saved TOR ZIPs", async () => {
   const saved = [{ refId: "egp-1", documentUrl: "https://process5.gprocurement.go.th/tor.zip" }];
   const job = loadModule("../src/jobs/syncAPI.js", {
     "node:path": { join: (...parts) => `${parts.at(-1)}:${parts.at(-2)}` },
-    "@/repositories/torRepository": {
+    "@/repositories/tor/torRepository": {
       saveChanged: async () => ({ created: 0, updated: 0, unchanged: 0, changedTorIds: [], createdTorIds: [] }),
       findBySource: async () => saved,
     },
@@ -222,17 +222,17 @@ test("TOR persistence bulk-writes new and changed records but skips identical re
       _id: pair.refId === "data-1" ? "tor-1" : "tor-2",
     }));
   }
-  const repository = loadModule("../src/repositories/torRepository.js", {
+  const repository = loadModule("../src/repositories/tor/torRepository.js", {
     "node:util": require("node:util"),
-    "@/models/TOR": {
+    "@/models/tor/TOR": {
       find: (query) => ({
         lean: async () => idsFor(query),
         select: () => ({ lean: async () => idsFor(query) }),
       }),
       bulkWrite: async (operations) => writes.push(...operations),
     },
-    "@/models/TORMatch": { deleteMany: async () => ({ deletedCount: 0 }) },
-    "@/models/TorMatchJob": { deleteMany: async () => ({ deletedCount: 0 }), deleteOne: async () => ({ deletedCount: 0 }) },
+    "@/models/tor/TORMatch": { deleteMany: async () => ({ deletedCount: 0 }) },
+    "@/models/tor/TorMatchJob": { deleteMany: async () => ({ deletedCount: 0 }), deleteOne: async () => ({ deletedCount: 0 }) },
   });
 
   const same = { refId: "data-1", source: "DATA-GO-EGP", title: "Original" };

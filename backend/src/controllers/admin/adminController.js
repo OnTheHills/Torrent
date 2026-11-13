@@ -1,4 +1,5 @@
 const admin = require("@/services/admin/adminService");
+const { runLineWeeklyDigest } = require("@/services/line/lineDigestService");
 
 function send(work) {
   return async function (request, response) {
@@ -11,6 +12,14 @@ function send(work) {
 }
 
 module.exports = {
+  runLineDigest: async (_request, response) => {
+    try {
+      return response.json(await runLineWeeklyDigest());
+    } catch (error) {
+      console.error("line-digest/run failed", error);
+      return response.status(500).json({ message: error.message || "Digest failed" });
+    }
+  },
   applyRules: send((request) => admin.applyRules(request.user, request.body)),
   auditLog: send((request) => admin.auditLog(request.query)),
   bulkTors: send((request) => admin.bulkTors(request.user, request.body)),
