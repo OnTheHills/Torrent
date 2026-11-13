@@ -1,3 +1,4 @@
+const { SOURCES, EDITABLE, REVIEW_FIELDS, REVIEW_SORT, RECORDS_SORT, PDF_USER_AGENT, TH_MONTHS } = require("@/constants/adminConstants");
 const { execFile } = require("node:child_process");
 const { randomBytes } = require("node:crypto");
 const { readFile, rm } = require("node:fs/promises");
@@ -5,13 +6,13 @@ const { tmpdir } = require("node:os");
 const { join } = require("node:path");
 const { promisify } = require("node:util");
 
-const TOR = require("@/models/TOR");
-const User = require("@/models/User");
-const VendorProfile = require("@/models/VendorProfile");
-const SyncRun = require("@/models/SyncRun");
-const AuditLog = require("@/models/AuditLog");
-const AdminSettings = require("@/models/AdminSettings");
-const TorMatchJob = require("@/models/TorMatchJob");
+const TOR = require("@/models/tor/TOR");
+const User = require("@/models/user/User");
+const VendorProfile = require("@/models/vendor/VendorProfile");
+const SyncRun = require("@/models/sync/SyncRun");
+const AuditLog = require("@/models/admin/AuditLog");
+const AdminSettings = require("@/models/admin/AdminSettings");
+const TorMatchJob = require("@/models/tor/TorMatchJob");
 const { classifyCategory } = require("@/utils/torUtils");
 const { matchingSoftwareTerms } = require("@/services/tor/api/dataGo/adapter");
 const classification = require("@/services/admin/classification");
@@ -34,31 +35,6 @@ const {
 const { isConfigured: vertexConfigured } = require("@/services/ai/vertexClient");
 const { scoreWithVertex } = require("@/services/tor/scoreWithVertex");
 const { categoryMedians } = require("@/services/admin/scoreReviewTors");
-
-const SOURCES = [
-  { key: "dataGo", label: "data.go e-GP", source: "DATA-GO-EGP" },
-  { key: "bmaEgp2", label: "BMA e-GP2", source: "BMA-EGP2" },
-  { key: "egpRss", label: "e-GP RSS", source: "EGP-RSS" },
-  { key: "smeAnnouncements", label: "SME-GP", source: "SME-GP" },
-];
-
-const EDITABLE = [
-  "title",
-  "titleTh",
-  "category",
-  "budgetThb",
-  "budgetYear",
-  "deadline",
-  "publishedAt",
-  "status",
-  "department",
-  "departmentTh",
-  "summary",
-  "summaryTh",
-  "hidden",
-];
-
-const REVIEW_FIELDS = ["budgetThb", "deadline", "category", "department", "departmentTh", "status", "publishedAt"];
 
 function thaiDate(value) {
   const text = String(value);
@@ -157,15 +133,6 @@ function present(tor) {
       : [],
   };
 }
-
-const REVIEW_SORT = {
-  closingFirst: null,
-  confidenceAsc: { confidence: 1, publishedAt: -1 },
-  confidenceDesc: { confidence: -1, publishedAt: -1 },
-  newest: { publishedAt: -1 },
-  deadlineAsc: { deadline: 1, confidence: 1 },
-  budgetDesc: { budgetThb: -1, confidence: 1 },
-};
 
 async function mapPool(items, concurrency, worker) {
   const results = new Array(items.length);
@@ -514,14 +481,6 @@ async function reviewTor(id, user, body) {
   return present(updated.toObject());
 }
 
-const RECORDS_SORT = {
-  newest: { publishedAt: -1 },
-  oldest: { publishedAt: 1 },
-  budgetDesc: { budgetThb: -1, publishedAt: -1 },
-  confidenceDesc: { confidence: -1, publishedAt: -1 },
-  confidenceAsc: { confidence: 1, publishedAt: -1 },
-};
-
 async function searchTors(query) {
   const filter = {};
   const extras = [];
@@ -619,24 +578,6 @@ async function getTor(id) {
   tor = await ensureRequirementGroups(tor);
   return { ...present(tor), summary: tor.summary, summaryTh: tor.summaryTh, titleEn: tor.title };
 }
-
-const PDF_USER_AGENT =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
-
-const TH_MONTHS = {
-  มกราคม: "Jan",
-  กุมภาพันธ์: "Feb",
-  มีนาคม: "Mar",
-  เมษายน: "Apr",
-  พฤษภาคม: "May",
-  มิถุนายน: "Jun",
-  กรกฎาคม: "Jul",
-  สิงหาคม: "Aug",
-  กันยายน: "Sep",
-  ตุลาคม: "Oct",
-  พฤศจิกายน: "Nov",
-  ธันวาคม: "Dec",
-};
 
 function decodeHtmlEntities(value) {
   return String(value || "")

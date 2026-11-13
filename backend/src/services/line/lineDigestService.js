@@ -1,20 +1,10 @@
-const User = require("@/models/User");
-const Tor = require("@/models/TOR");
-const { pushText, getQuota } = require("@/services/line/lineClient");
+const lineRepository = require("@/repositories/line/lineRepository");
+const torRepository = require("@/repositories/tor/torRepository");
+const lineClient = require("@/services/line/lineClient");
+const { MAX_DIGEST_RECIPIENTS } = require("@/constants/lineConstants");
 
 function weekAgo() {
   return new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-}
-
-async function findNewTorsSince(since) {
-  return Tor.find({
-    hidden: { $ne: true },
-    $or: [{ publishedAt: { $gte: since } }, { createdAt: { $gte: since } }],
-  })
-    .sort({ publishedAt: -1, createdAt: -1 })
-    .limit(10)
-    .select("title titleTh refId _id publishedAt createdAt")
-    .lean();
 }
 
 function frontendBaseUrl() {
@@ -51,7 +41,7 @@ async function runLineWeeklyDigest() {
     return { sent: 0, skipped: true };
   }
 
-  const quota = await getQuota();
+  const quota = await lineClient.getQuota();
   if (quota.type === "limited" && quota.value != null) {
     const remaining = quota.value - quota.totalUsage;
     if (remaining <= 0) {
@@ -60,26 +50,16 @@ async function runLineWeeklyDigest() {
     }
   }
 
-  const tors = await findNewTorsSince(weekAgo());
+  const tors = await torRepository.findNewTorsSince(weekAgo());
   const text = formatDigest(tors);
 
   // Free-plan safety: hard cap recipients for practice
-  const MAX_RECIPIENTS = 50;
-
-  const users = await User.find({
-    lineDigestEnabled: true,
-    lineUserId: { $ne: null },
-    disabled: { $ne: true },
-    role: { $in: ["vendor", "admin"] },
-  })
-    .select("lineUserId email")
-    .limit(MAX_RECIPIENTS)
-    .lean();
+  const users = await lineRepository.findDigestRecipients(MAX_DIGEST_RECIPIENTS);
 
   let sent = 0;
   for (const user of users) {
     try {
-      await pushText(user.lineUserId, text);
+      await lineClient.pushText(user.lineUserId, text);
       sent += 1;
     } catch (err) {
       console.error("LINE push failed for", user.email, err.message);

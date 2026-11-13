@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict");
 const { test } = require("node:test");
-const VendorProfile = require("../src/models/VendorProfile");
+const VendorProfile = require("../src/models/vendor/VendorProfile");
 const { matchPrompt } = require("../src/services/tor/matchWithVertex");
 
 test("structured past projects retain types and optional completion date", async () => {

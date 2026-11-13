@@ -6,10 +6,6 @@ import { useEffect, useState } from "react";
 import { Tick02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
-import {
-  useNotificationPrefs,
-  type NotificationPrefs,
-} from "@/components/providers/notification-prefs-provider";
 import { useLocale } from "@/components/providers/locale-provider";
 import { frostSelectedItem } from "@/components/tor/tor-filters";
 import { Button } from "@/components/ui/button";
@@ -37,12 +33,27 @@ import type { TorCategory } from "@/types/tor";
 const FROST_PANEL =
   "rounded-lg bg-[color-mix(in_srgb,var(--palette-gray-50)_62%,transparent)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_88%,transparent)] ring-1 ring-[color-mix(in_srgb,white_72%,transparent)] backdrop-blur-md backdrop-saturate-150";
 
+type NotificationPrefs = {
+  emailMatches: boolean;
+  emailDeadlines: boolean;
+  emailIntegrity: boolean;
+  budgetMinThb: number;
+  budgetMaxThb: number;
+  categories: TorCategory[];
+};
+
 type EmailPrefsResponse = NotificationPrefs & { deliveryConfigured: boolean };
 
 export function NotificationSettingsView() {
   const { t } = useLocale();
-  const { prefs, setPrefs, ready } = useNotificationPrefs();
-  const [draft, setDraft] = useState<NotificationPrefs>(prefs);
+  const [draft, setDraft] = useState<NotificationPrefs>({
+    emailMatches: false,
+    emailDeadlines: false,
+    emailIntegrity: false,
+    budgetMinThb: 0,
+    budgetMaxThb: 0,
+    categories: [],
+  });
   const [savedFlash, setSavedFlash] = useState(false);
   const [emailReady, setEmailReady] = useState(false);
   const [emailBusy, setEmailBusy] = useState(false);
@@ -53,31 +64,19 @@ export function NotificationSettingsView() {
   const [lineError, setLineError] = useState("");
 
   useEffect(() => {
-    if (!ready) return;
-
-    const timer = window.setTimeout(() => {
-      setDraft(prefs);
-    }, 0);
-
-    return () => window.clearTimeout(timer);
-  }, [ready, prefs]);
-
-  useEffect(() => {
-    if (!ready) return;
     let cancelled = false;
     void api<EmailPrefsResponse>("/email-alerts/preferences")
       .then((saved) => {
         if (cancelled) return;
         setEmailAvailable(saved.deliveryConfigured);
         setDraft(saved);
-        setPrefs(saved);
         setEmailReady(true);
       })
       .catch((error) => {
         if (!cancelled) setEmailError(error instanceof Error ? error.message : "Could not load email settings.");
       });
     return () => { cancelled = true; };
-  }, [ready, setPrefs]);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -112,7 +111,7 @@ export function NotificationSettingsView() {
         method: "PUT", body: JSON.stringify(draft),
       });
       setEmailAvailable(saved.deliveryConfigured);
-      setPrefs(saved);
+      setDraft(saved);
       setSavedFlash(true);
       window.setTimeout(() => setSavedFlash(false), 2000);
     } catch (error) {

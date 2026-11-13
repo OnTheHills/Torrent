@@ -1,6 +1,6 @@
-const TOR = require("@/models/TOR");
-const TORMatch = require("@/models/TORMatch");
-const TorMatchJob = require("@/models/TorMatchJob");
+const TOR = require("@/models/tor/TOR");
+const TORMatch = require("@/models/tor/TORMatch");
+const TorMatchJob = require("@/models/tor/TorMatchJob");
 const { isDeepStrictEqual } = require("node:util");
 
 async function create(data) {
@@ -49,6 +49,23 @@ async function findBudgetPeers(category) {
 
 async function findById(id) {
   return TOR.findById(id).lean();
+}
+
+async function findEmailAlertTorsByIds(ids) {
+  return TOR.find({ _id: { $in: ids } })
+    .select("_id title titleTh description summary summaryTh department departmentTh hidden status source category budgetThb ocr.budgetThb ocr.summary ocr.summaryTh deadline ocr.deadline integrityStatus updatedAt")
+    .lean();
+}
+
+async function findNewTorsSince(since) {
+  return TOR.find({
+    hidden: { $ne: true },
+    $or: [{ publishedAt: { $gte: since } }, { createdAt: { $gte: since } }],
+  })
+    .sort({ publishedAt: -1, createdAt: -1 })
+    .limit(10)
+    .select("title titleTh refId _id publishedAt createdAt")
+    .lean();
 }
 
 async function update(id, data) {
@@ -168,6 +185,8 @@ module.exports = {
   findAll,
   findBudgetPeers,
   findById,
+  findEmailAlertTorsByIds,
+  findNewTorsSince,
   findBySource,
   findEgpDeptIds,
   remove,

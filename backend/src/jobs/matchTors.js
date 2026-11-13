@@ -1,8 +1,8 @@
 const { randomUUID } = require("node:crypto");
-const VendorProfile = require("@/models/VendorProfile");
-const TOR = require("@/models/TOR");
-const TORMatch = require("@/models/TORMatch");
-const TorMatchJob = require("@/models/TorMatchJob");
+const VendorProfile = require("@/models/vendor/VendorProfile");
+const TOR = require("@/models/tor/TOR");
+const TORMatch = require("@/models/tor/TORMatch");
+const TorMatchJob = require("@/models/tor/TorMatchJob");
 const { matchWithVertex } = require("@/services/tor/matchWithVertex");
 
 const LEASE_MS = Math.max(5 * 60_000, (Number(process.env.VERTEX_MATCH_TIMEOUT_MS) || 60_000) + 60_000);

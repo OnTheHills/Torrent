@@ -2,16 +2,7 @@ const path = require("node:path");
 const fs = require("node:fs/promises");
 const { constants } = require("node:fs");
 const { validateCertificatePng } = require("@/utils/certificatePng");
-
-const UPLOAD_DIRECTORY = path.resolve(process.env.CERTIFICATE_UPLOAD_DIR || path.join(__dirname, "../../../upload"));
-const CERTIFICATE_FIELDS = {
-  securityCertificates: "security",
-  aiCertificates: "ai",
-  otherCertificates: "other",
-};
-const MAX_CERTIFICATES = 5;
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const FILE_PATTERN = /^\d+_(security|ai|other)_[a-f0-9]{24}\.png$/;
+const { UPLOAD_DIRECTORY, CERTIFICATE_FIELDS, MAX_CERTIFICATES, MAX_FILE_SIZE, FILE_PATTERN } = require("@/constants/vendorCertificateConstants");
 
 function badRequest(message, status = 400) {
   return Object.assign(new Error(message), { status });

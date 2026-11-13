@@ -1,6 +1,6 @@
 const { decodeRss, parseRssItems } = require("@/services/tor/api/egpRss/parse");
 const { matchingKeyword } = require("@/services/tor/api/egpRss/adapter");
-const torRepository = require("@/repositories/torRepository");
+const torRepository = require("@/repositories/tor/torRepository");
 
 const RSS_URL = "https://process3.gprocurement.go.th/EPROCRssFeedWeb/egpannouncerss.xml";
 const DETAIL_URL = "https://process5.gprocurement.go.th/egp-oann10-service/pb/a-egp-allt-project/announcement";

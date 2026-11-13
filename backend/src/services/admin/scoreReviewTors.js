@@ -1,4 +1,4 @@
-const TOR = require("@/models/TOR");
+const TOR = require("@/models/tor/TOR");
 const classification = require("@/services/admin/classification");
 const {
   confidenceOf,

@@ -1,4 +1,4 @@
-const SyncRun = require("@/models/SyncRun");
+const SyncRun = require("@/models/sync/SyncRun");
 const { record } = require("@/services/admin/audit");
 
 function total(rows, field) {

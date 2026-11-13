@@ -2,8 +2,8 @@ const assert = require("node:assert/strict");
 const { test } = require("node:test");
 const { MongoClient } = require("mongodb");
 const express = require("express");
-const TOR = require("@/models/TOR");
-const { getCategoryDistribution } = require("@/controllers/torController");
+const TOR = require("@/models/tor/TOR");
+const { getCategoryDistribution } = require("@/controllers/tor/torController");
 
 function response() {
   return {

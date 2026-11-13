@@ -1,9 +1,10 @@
-const User = require("@/models/User");
-const TOR = require("@/models/TOR");
-const TORMatch = require("@/models/TORMatch");
-const EmailAlert = require("@/models/EmailAlert");
+const { createHash } = require("node:crypto");
+const userRepository = require("@/repositories/user/userRepository");
+const torRepository = require("@/repositories/tor/torRepository");
+const torMatchRepository = require("@/repositories/tor/torMatchRepository");
+const emailAlertRepository = require("@/repositories/email/emailAlertRepository");
 const { fitScoreApplies } = require("@/jobs/matchTors");
-const { alertMessage } = require("@/services/email/alertTemplate");
+const { alertMessage } = require("@/utils/email/alertTemplate");
 const {
   EMAIL_PREF_BY_KIND,
   MIN_EMAIL_MATCH_PERCENT,
@@ -26,36 +27,19 @@ function matchesPreferences(tor, prefs) {
 
 async function queueAlert(user, match, tor, kind, detail) {
   const key = `${kind}:${user._id}:${tor._id}:${detail}`;
-  const body = alertMessage(kind, tor, match);
-  try {
-    const result = await EmailAlert.updateOne(
-      { key },
-      { $setOnInsert: { key, userId: user._id, torId: tor._id, kind, to: user.email, ...body } },
-      { upsert: true },
-    );
-    return result?.upsertedCount || 0;
-  } catch (error) {
-    if (error.code === 11000) return 0;
-    throw error;
-  }
+  return emailAlertRepository.queue({ key, userId: user._id, torId: tor._id, kind });
 }
 
 async function queueEligibleAlerts(now = new Date()) {
-  const users = await User.find({
-    role: { $in: ["vendor", "admin"] }, disabled: { $ne: true }, emailVerified: true,
-    "emailAlertPrefs.savedAt": { $exists: true },
-  }).select("_id email emailAlertPrefs").lean();
+  const users = await userRepository.findUsersEligibleForEmailAlerts();
   let queued = 0;
   for (const user of users) {
     const prefs = user.emailAlertPrefs;
     if (!prefs.emailMatches && !prefs.emailDeadlines && !prefs.emailIntegrity) continue;
-    const matches = await TORMatch.find({ userId: user._id, dismissedAt: null, badResultAt: null })
-      .select("_id torId matchPercent matchReason createdAt").lean();
+    const matches = await torMatchRepository.findActiveEmailMatchesByUserId(user._id);
     const eligible = matches.filter((match) => Number(match.matchPercent) >= MIN_EMAIL_MATCH_PERCENT);
     if (!eligible.length) continue;
-    const tors = await TOR.find({ _id: { $in: eligible.map((match) => match.torId) } })
-      .select("_id title titleTh description summary summaryTh department departmentTh hidden status source category budgetThb ocr.budgetThb ocr.summary ocr.summaryTh deadline ocr.deadline integrityStatus updatedAt")
-      .lean();
+    const tors = await torRepository.findEmailAlertTorsByIds(eligible.map((match) => match.torId));
     const byId = new Map(tors.map((tor) => [String(tor._id), tor]));
     for (const match of eligible) {
       const tor = byId.get(String(match.torId));
@@ -78,15 +62,18 @@ async function queueEligibleAlerts(now = new Date()) {
   return queued;
 }
 
-async function sendEmail(alert) {
+async function sendEmail(alert, user, tor, match) {
+  const body = alertMessage(alert.kind, tor, match);
+  // Keep retries idempotent per recipient when a user's email changes.
+  const recipientKey = createHash("sha256").update(user.email).digest("hex").slice(0, 16);
   const response = await fetch(RESEND_EMAILS_URL, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
       "Content-Type": "application/json",
-      "Idempotency-Key": alert.key,
+      "Idempotency-Key": `${alert.key}:${recipientKey}`,
     },
-    body: JSON.stringify({ from: process.env.EMAIL_FROM, to: [alert.to], subject: alert.subject, text: alert.text, ...(alert.html ? { html: alert.html } : {}) }),
+    body: JSON.stringify({ from: process.env.EMAIL_FROM, to: [user.email], ...body }),
     signal: AbortSignal.timeout(EMAIL_REQUEST_TIMEOUT_MS),
   });
   if (!response.ok) {
@@ -103,40 +90,40 @@ async function sendEmail(alert) {
 async function deliverPendingAlerts(now = new Date()) {
   let sent = 0;
   for (let i = 0; i < MAX_EMAIL_SENDS_PER_RUN; i++) {
-    const alert = await EmailAlert.findOneAndUpdate(
-      { $or: [
-        { status: "pending", retryAt: { $lte: now } },
-        { status: "sending", leaseUntil: { $lte: now } },
-      ] },
-      { $set: { status: "sending", leaseUntil: new Date(Date.now() + EMAIL_SEND_LEASE_MS) }, $inc: { attempts: 1 } },
-      { sort: { createdAt: 1 }, returnDocument: "after" },
-    ).lean();
+    const alert = await emailAlertRepository.claimNext(now, new Date(Date.now() + EMAIL_SEND_LEASE_MS));
     if (!alert) break;
     try {
-      const user = await User.findById(alert.userId).select("email emailVerified disabled emailAlertPrefs").lean();
+      const user = await userRepository.findEmailDeliveryUserById(alert.userId);
       const enabled = EMAIL_PREF_BY_KIND[alert.kind];
       const [tor, match] = await Promise.all([
-        TOR.findById(alert.torId).lean(),
-        TORMatch.findOne({ userId: alert.userId, torId: alert.torId, dismissedAt: null, badResultAt: null }).lean(),
+        torRepository.findById(alert.torId),
+        torMatchRepository.findActiveEmailMatch(alert.userId, alert.torId),
       ]);
       const deadline = tor?.deadline || tor?.ocr?.deadline;
-      const stillRelevant = user && !user.disabled && user.emailVerified && user.email === alert.to &&
+      const deadlineAt = deadline ? new Date(deadline).getTime() : NaN;
+      const stillRelevant = user && !user.disabled && user.emailVerified && user.email &&
         user.emailAlertPrefs?.[enabled] && match && Number(match.matchPercent) >= MIN_EMAIL_MATCH_PERCENT &&
         matchesPreferences(tor, user.emailAlertPrefs) &&
-        (alert.kind !== "deadline" || (deadline && new Date(deadline) > new Date())) &&
-        (alert.kind !== "integrity" || ["flagged", "confirmed"].includes(tor.integrityStatus));
+        (alert.kind !== "deadline" || (
+          deadlineAt > Date.now() && deadlineAt <= Date.now() + EMAIL_DEADLINE_WINDOW_MS &&
+          alert.key.endsWith(`:${new Date(deadline).toISOString().slice(0, 10)}`)
+        )) &&
+        (alert.kind !== "integrity" || (
+          ["flagged", "confirmed"].includes(tor.integrityStatus) &&
+          alert.key.endsWith(`:${tor.integrityStatus}`)
+        ));
       if (!stillRelevant) {
-        await EmailAlert.updateOne({ _id: alert._id, status: "sending" }, { $set: { status: "failed", leaseUntil: null, lastError: "Alert no longer relevant" } });
+        await emailAlertRepository.updateSending(alert._id, { status: "failed", lastError: "Alert no longer relevant" });
         continue;
       }
-      await sendEmail(alert);
-      await EmailAlert.updateOne({ _id: alert._id, status: "sending" }, { $set: { status: "sent", sentAt: new Date(), leaseUntil: null } });
+      await sendEmail(alert, user, tor, match);
+      await emailAlertRepository.updateSending(alert._id, { status: "sent", sentAt: new Date() });
       sent++;
     } catch (error) {
       const status = error.permanent ? "failed" : "pending";
       const backoff = Math.min(EMAIL_RETRY_MAX_MINUTES, 2 ** Math.min(alert.attempts, EMAIL_RETRY_EXPONENT_CAP)) * EMAIL_RETRY_BASE_MS;
-      await EmailAlert.updateOne({ _id: alert._id, status: "sending" }, {
-        $set: { status, leaseUntil: null, retryAt: new Date(Date.now() + backoff), lastError: error.message },
+      await emailAlertRepository.updateSending(alert._id, {
+        status, retryAt: new Date(Date.now() + backoff), lastError: error.message,
       });
       console.error("Email alert delivery failed", { key: alert.key, message: error.message });
     }

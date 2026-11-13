@@ -1,4 +1,4 @@
-const AuditLog = require("@/models/AuditLog");
+const AuditLog = require("@/models/admin/AuditLog");
 
 function actorFrom(user) {
   if (!user) return {};

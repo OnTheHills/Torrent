@@ -1,7 +1,5 @@
-const { CERTIFICATE_FIELDS, MAX_CERTIFICATES, MAX_FILE_SIZE, badRequest } = require("@/services/vendor/certificateStorage");
-
-const MAX_PROFILE_SIZE = 1024 * 1024;
-const MAX_UPLOAD_SIZE = MAX_FILE_SIZE * MAX_CERTIFICATES * Object.keys(CERTIFICATE_FIELDS).length + MAX_PROFILE_SIZE;
+const { badRequest } = require("@/services/vendor/certificateStorage");
+const { CERTIFICATE_FIELDS, MAX_CERTIFICATES, MAX_FILE_SIZE, MAX_PROFILE_SIZE, MAX_UPLOAD_SIZE } = require("@/constants/vendorCertificateConstants");
 
 async function readForm(request) {
   if (Number(request.headers["content-length"]) > MAX_UPLOAD_SIZE) {

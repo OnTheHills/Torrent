@@ -9,7 +9,7 @@ const {
   triggerDataGoSync,
   triggerSmeAnnouncements,
   triggerSyncAll,
-} = require("@/controllers/syncController");
+} = require("@/controllers/sync/syncController");
 const { requireAuth } = require("@/middleware/requireAuth");
 const { requireRole } = require("@/middleware/requireRole");
 

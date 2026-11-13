@@ -1,6 +1,6 @@
-const TOR = require("@/models/TOR");
-const TORMatch = require("@/models/TORMatch");
-const TorMatchJob = require("@/models/TorMatchJob");
+const TOR = require("@/models/tor/TOR");
+const TORMatch = require("@/models/tor/TORMatch");
+const TorMatchJob = require("@/models/tor/TorMatchJob");
 
 const MERGEABLE_SOURCES = ["EGP-PROCESS5", "DATA-GO-EGP", "EGP-RSS", "SME-GP"];
 

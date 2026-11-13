@@ -1,5 +1,5 @@
-const TORMatch = require("@/models/TORMatch");
-const TorMatchJob = require("@/models/TorMatchJob");
+const TORMatch = require("@/models/tor/TORMatch");
+const TorMatchJob = require("@/models/tor/TorMatchJob");
 
 async function create(data) {
   return TORMatch.create(data);
@@ -20,6 +20,15 @@ async function findPendingTorIds() {
 
 async function findByUserId(userId) {
   return TORMatch.find({ userId }).sort({ updatedAt: -1 });
+}
+
+async function findActiveEmailMatchesByUserId(userId) {
+  return TORMatch.find({ userId, dismissedAt: null, badResultAt: null })
+    .select("_id torId matchPercent matchReason createdAt").lean();
+}
+
+async function findActiveEmailMatch(userId, torId) {
+  return TORMatch.findOne({ userId, torId, dismissedAt: null, badResultAt: null }).lean();
 }
 
 async function findById(id) {
@@ -59,6 +68,8 @@ module.exports = {
   findAll,
   findById,
   findByUserId,
+  findActiveEmailMatchesByUserId,
+  findActiveEmailMatch,
   findPendingTorIds,
   setDismissedForUser,
   setBadResultForUser,

@@ -1,4 +1,4 @@
-const VendorProfile = require("@/models/VendorProfile");
+const VendorProfile = require("@/models/vendor/VendorProfile");
 
 async function create(data) {
   return VendorProfile.create(data);

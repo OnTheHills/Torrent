@@ -1,5 +1,5 @@
 const cron = require("node-cron");
-const { runEmailAlerts } = require("@/jobs/emailAlerts");
+const { runEmailAlerts } = require("@/services/email/alertDeliveryService");
 const { EMAIL_ALERT_CRON, EMAIL_ALERT_TIME_ZONE } = require("@/constants/emailAlertConstants");
 
 function startEmailAlertScheduler() {

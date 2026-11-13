@@ -1,4 +1,4 @@
-const VendorProfile = require("@/models/VendorProfile");
+const VendorProfile = require("@/models/vendor/VendorProfile");
 
 // Run before serving requests so lean reads also use the renamed fields.
 // Preserve an existing vendor field when both old and new keys are present.

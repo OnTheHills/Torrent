@@ -1,5 +1,5 @@
 const cron = require("node-cron");
-const { runLineWeeklyDigest } = require("@/jobs/lineWeeklyDigest");
+const { runLineWeeklyDigest } = require("@/services/line/lineDigestService");
 
 async function startLineDigestScheduler() {
   // Every Monday 09:00 Asia/Bangkok

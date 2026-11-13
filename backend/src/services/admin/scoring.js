@@ -1,10 +1,6 @@
+const { DAY, OPEN_STATUSES, CLOSED_STATUSES, RECENT_WITHOUT_DEADLINE_MS, OPEN_STAGES, TERMINAL_STAGES, INTEGRITY_FLAG_LABELS } = require("@/constants/adminConstants");
 const { BUDGET_YEAR } = require("@/constants/bmaConstants");
 const { isGenericIntegrityNoteEn } = require("@/services/tor/translateIntegrityNote");
-
-const DAY = 24 * 60 * 60 * 1000;
-const OPEN_STATUSES = new Set(["open", "published", "draft", "closing"]);
-const CLOSED_STATUSES = new Set(["awarded", "cancelled", "closed", "winner"]);
-const RECENT_WITHOUT_DEADLINE_MS = 90 * DAY;
 
 function bangkokStartOfToday(now = new Date()) {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -22,9 +18,6 @@ function closingWindow(now = new Date()) {
   const today = bangkokStartOfToday(now);
   return { today, until: new Date(today.getTime() + 7 * DAY) };
 }
-
-const OPEN_STAGES = new Set(["closing", "open", "draft"]);
-const TERMINAL_STAGES = new Set(["closed", "awarded", "cancelled"]);
 
 function stageClauses(stages = [], now = new Date()) {
   const wanted = stages.filter(
@@ -186,15 +179,6 @@ function sourceVerdict(run, now = Date.now()) {
   if (run.sourceKey !== "smeAnnouncements" && run.fetched === 0) return "red";
   return "green";
 }
-
-const INTEGRITY_FLAG_LABELS = {
-  "short-window": "Bidding window under 3 days",
-  "deadline-before-publish": "Deadline is before the announcement",
-  "awarded-without-budget": "Awarded with no budget",
-  "budget-high": "Budget is more than 3× the category median",
-  "budget-low": "Budget is under a quarter of the category median",
-  other: "Other procurement signal",
-};
 
 /** Deterministic procurement anomaly flags (Watch out). Always recomputed on score. */
 function integrityReasons(tor, median) {

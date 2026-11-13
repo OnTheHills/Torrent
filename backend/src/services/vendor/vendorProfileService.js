@@ -1,5 +1,5 @@
-const vendorProfileRepository = require("@/repositories/vendorProfileRepository");
-const TORMatch = require("@/models/TORMatch");
+const vendorProfileRepository = require("@/repositories/vendor/vendorProfileRepository");
+const TORMatch = require("@/models/tor/TORMatch");
 const { saveCertificates } = require("./certificateStorage");
 
 async function createVendorProfile(data, files) {

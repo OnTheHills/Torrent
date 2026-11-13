@@ -98,7 +98,7 @@ Each CRUD controller follows the same shape: read `request.body` or
 | `services/tor/api/bmaEgp2/fetch.js` + `adapter.js` | Calls BMA e-GP2 with `GET`; walks API pages, applies stricter software filters, and maps rows to the same TOR shape. |
 | `jobs/syncAPI.js` | Fetches every source, runs its adapter, saves normalized records using `refId` upserts, and returns sync summaries. |
 | `scheduler/syncScheduler.js` | Runs the optional startup sync and schedules daily sync at 00:00 Asia/Bangkok. |
-| `controllers/syncController.js` | The manual-sync HTTP entry point. |
+| `controllers/sync/syncController.js` | The manual-sync HTTP entry point. |
 | `scripts/probe-sources.js` | Standalone diagnostic script for testing source availability. |
 
 The two source modules are deliberately separate. Their APIs return different
@@ -238,7 +238,7 @@ analysis column sorts by `TOR budget / category median`, not by formatted text.
 ### Change login behaviour
 
 1. Browser action: `components/auth/google-button.tsx` and `lib/auth.ts`.
-2. API validation and account creation: `backend/src/controllers/authController.js`.
+2. API validation and account creation: `backend/src/controllers/auth/authController.js`.
 3. Cookie/JWT rules: `backend/src/utils/session.js`.
 4. Global UI state: `frontend/src/components/providers/session-provider.tsx`.
 

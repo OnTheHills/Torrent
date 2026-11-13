@@ -1,6 +1,6 @@
 const { isDeepStrictEqual } = require("node:util");
-const TOR = require("@/models/TOR");
-const torRepository = require("@/repositories/torRepository");
+const TOR = require("@/models/tor/TOR");
+const torRepository = require("@/repositories/tor/torRepository");
 const torMatching = require("@/jobs/matchTors");
 const {
   flatRequirements,

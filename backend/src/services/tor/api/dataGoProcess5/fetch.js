@@ -1,7 +1,7 @@
 const dataGo = require("@/services/tor/api/dataGo/fetch");
 const { matchingKeyword } = require("@/services/tor/api/egpRss/adapter");
 const { projectDetail } = require("@/services/tor/api/process3Process5/fetch");
-const torRepository = require("@/repositories/torRepository");
+const torRepository = require("@/repositories/tor/torRepository");
 const { documentForProject } = require("./document");
 
 async function fetchProjects() {

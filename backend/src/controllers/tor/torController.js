@@ -6,7 +6,7 @@ function withMatchEligibility(tor) {
 }
 
 const torCrudService = require("@/services/tor/torCrudService");
-const TOR = require("@/models/TOR");
+const TOR = require("@/models/tor/TOR");
 
 async function getCategoryDistribution(request, response) {
   try {
