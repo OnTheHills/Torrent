@@ -125,13 +125,15 @@ TORs closing within three days, and integrity warnings every ten minutes. It
 sends only matched TORs within the saved budget and category range. Existing
 matches are not emailed when a user first opts in. Delivery needs a verified
 user email address.
-Apply a changed setting with `docker compose up -d --force-recreate backend`.
+Apply changed secrets or settings with `./process.sh up backend`.
 An initial fetch failure is logged and the backend still starts with the nightly
 schedule enabled. For npm development, set `FETCH_ON_STARTUP` in `backend/.env`.
 
 ### Prerequisites
 
-Install Docker Desktop, or Docker Engine with the Docker Compose v2 plugin. Node.js, npm, and MongoDB do **not** need to be installed on the host for this workflow.
+Install Docker Desktop, or Docker Engine with Docker Compose v2.30 or newer.
+Secret setup and all application services run through Docker. Node.js, npm,
+and MongoDB do not need to be installed on the host.
 
 ### 1. Configure the backend for Compose
 
@@ -150,13 +152,19 @@ MONGO_URI=mongodb://mongo:27017/csp_project
 
 `mongo` is the Compose service name. Do not use `localhost` here: inside the backend container, `localhost` means the backend container itself. An external MongoDB/Atlas URI also works if the container can reach it.
 
-### 2. Build and start everything
+### 2. Create secrets, build, and start everything
 
 From the repository root:
 
 ```bash
-docker compose up --build
+./process.sh
 ```
+
+This reads `backend/.env`, prepares Docker Compose secrets, and starts the stack
+in the background. The root shell script runs the backend's setup code in the
+Compose `secrets-init` helper, then builds and starts the application services.
+Run `./process.sh secrets` to prepare files without restarting anything, or
+`./process.sh up backend` to prepare files and recreate just the backend.
 
 Compose will:
 
@@ -166,12 +174,64 @@ Compose will:
 4. wait for MongoDB's health check before starting the backend; and
 5. expose the frontend on port 3000 and the backend on port 5175.
 
-Open http://localhost:3000. To run in the background instead, use:
+Open http://localhost:3000. Follow startup logs with:
 
 ```bash
-docker compose up --build -d
 docker compose logs -f
 ```
+
+### Secret storage and rotation
+
+Put real values in the ignored `backend/.env`, then run `./process.sh`.
+It parses the file as data and writes owner-only files to the ignored
+`backend/.secrets/` directory (directory mode `0700`, files `0600`). It never
+prints values or passes them as command arguments.
+
+| Input setting | Backend secret file |
+| --- | --- |
+| `JWT_SECRET` | `/run/secrets/jwt_secret` |
+| `MONGO_URI` | `/run/secrets/mongo_uri` |
+| `LINE_CHANNEL_ACCESS_TOKEN` | `/run/secrets/line_channel_access_token` |
+| `LINE_CHANNEL_SECRET` | `/run/secrets/line_channel_secret` |
+| `COOKIE_SECRET` | `/run/secrets/cookie_secret` |
+| `DATA_GO_API_KEY` | `/run/secrets/data_go_api_key` |
+| `CSRF_SECRET` | `/run/secrets/csrf_secret` |
+| `RESEND_API_KEY` | `/run/secrets/resend_api_key` |
+
+`JWT_SECRET` and `MONGO_URI` must be nonempty. Blank integration secrets remain
+blank and retain the existing disabled/unconfigured behavior. Set the LINE
+token and signing secret together when enabling LINE. A blank `CSRF_SECRET`
+uses `COOKIE_SECRET`, then `JWT_SECRET`, as before. Use a long random value for
+each signing secret, for example from `openssl rand -base64 32`.
+
+Other settings are copied into `backend/.secrets/backend.env` and loaded with
+Compose's raw env format. The listed secrets, their input `*_FILE` overrides,
+and the host-only `MONGO_URI_HOST` are excluded. Only the backend receives the
+secret mounts. In Docker, `SECRETS_ONLY=true` requires file paths and forbids
+falling back to raw env values. The backend does not load `.env`, and its
+development mounts expose only source, scripts, uploads, and the existing
+read-only Vertex credentials directory. Env files and credential directories
+are excluded from the backend build context. Direct npm development can still
+read `backend/.env`, or use `*_FILE` variables explicitly.
+
+After any env change, regenerate and recreate the backend:
+
+```bash
+./process.sh up backend
+```
+
+Recreation is required because Compose secrets are file bind mounts, and setup
+replaces each file atomically. Changing the JWT secret invalidates existing
+sessions; changing the CSRF/cookie secret requires clients to fetch new tokens.
+The Mongo URI is now taken from your input without the old hardcoded override;
+use `mongo` as the hostname for the included database, or your external URI.
+
+Compose secrets keep these values out of the container environment and images,
+but their host files and the input env file remain plaintext. Protect both on
+the host. This workflow uses Compose file-backed secrets, not `docker secret
+create`; Docker's encrypted secret store requires Swarm services. See
+[Docker's Compose secrets documentation](https://docs.docker.com/compose/how-tos/use-secrets/)
+and [Swarm secrets documentation](https://docs.docker.com/engine/swarm/secrets/).
 
 Stop the stack while preserving database data:
 
@@ -230,6 +290,9 @@ docker compose up
 | `npm run start` | `frontend/` | Serve an existing production build |
 | `npm run lint` | `frontend/` | Run ESLint |
 | `npm run dev` | `backend/` | Start Express with nodemon reload |
+| `./process.sh secrets` | repository root | Prepare Compose secrets and non-secret runtime settings from `backend/.env` |
+| `./process.sh` | repository root | Regenerate secrets and rebuild/recreate the complete Docker stack |
+| `./process.sh up backend` | repository root | Regenerate secrets and rebuild/recreate the backend |
 | `npm run start` | `backend/` | Start Express without nodemon |
 | `npm run probe` | `backend/` | Probe configured public procurement sources |
 | `docker compose ps` | repository root | Show container and health status |

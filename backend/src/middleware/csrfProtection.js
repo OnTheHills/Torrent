@@ -1,13 +1,14 @@
 const { randomBytes } = require("node:crypto");
 const { doubleCsrf } = require("csrf-csrf");
 const { COOKIE_NAME } = require("@/utils/session");
+const { readSecret } = require("@/config/secrets");
 
 function isLineWebhook(request) {
   return request.method === "POST" && /^\/api\/line\/webhook\/?$/i.test(request.path);
 }
 
 function createCsrfProtection(origins) {
-  const secret = process.env.CSRF_SECRET || process.env.COOKIE_SECRET || process.env.JWT_SECRET;
+  const secret = readSecret("CSRF_SECRET") || readSecret("COOKIE_SECRET") || readSecret("JWT_SECRET");
   if (!secret || secret === "default-fallback-secret-key-change-me") {
     throw new Error("Configure CSRF_SECRET, COOKIE_SECRET, or JWT_SECRET for CSRF protection.");
   }
