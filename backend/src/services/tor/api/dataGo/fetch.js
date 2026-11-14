@@ -8,6 +8,7 @@ const {
   YEARS,
 } = require("@/constants/dataGoConstants");
 const { wait } = require("@/utils/torUtils");
+const { readSecret } = require("@/config/secrets");
 
 async function fetchPage({ apiKey, year, keyword, offset }) {
   const url = new URL(API_URL);
@@ -65,7 +66,7 @@ async function mapPool(items, limit, worker) {
 }
 
 async function fetchDataGo() {
-  const apiKey = process.env.DATA_GO_API_KEY;
+  const apiKey = readSecret("DATA_GO_API_KEY");
   if (!apiKey) throw new Error("DATA_GO_API_KEY is required for the data.go e-GP API");
 
   const projects = new Map();
