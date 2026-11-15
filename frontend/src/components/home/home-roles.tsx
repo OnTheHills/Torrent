@@ -18,6 +18,7 @@ import {
 
 import { HomeSection } from "@/components/home/home-section";
 import { useLocale } from "@/components/providers/locale-provider";
+import { useSession } from "@/components/providers/session-provider";
 import { chromeFrostGlaze } from "@/components/ui/appbar";
 import { routes } from "@/config/routes";
 import type { DictionaryKey } from "@/lib/i18n/dictionary";
@@ -105,6 +106,7 @@ const toneStyles = {
 
 export function HomeRoles() {
   const { t } = useLocale();
+  const { user } = useSession();
   const [front, setFront] = useState<RoleTone>("orange");
   const [shake, setShake] = useState<{ tone: RoleTone; tick: number } | null>(
     null,
@@ -228,7 +230,7 @@ export function HomeRoles() {
                 </ul>
 
                 <Link
-                  href={role.href}
+                  href={role.href === routes.login && (user?.role === "vendor" || user?.role === "admin") ? routes.app.landing : role.href}
                   onClick={(event) => event.stopPropagation()}
                   className={cn(
                     chromeFrostGlaze,
