@@ -1,10 +1,11 @@
 const crypto = require("crypto");
+const { readSecret } = require("@/config/secrets");
 const lineRepository = require("@/repositories/line/lineRepository");
 const lineClient = require("@/services/line/lineClient");
 const { LINK_CODE_TTL_MS, CODE_ALPHABET } = require("@/constants/lineConstants");
 
 function verifySignature(rawBody, signature) {
-  const secret = process.env.LINE_CHANNEL_SECRET || "";
+  const secret = readSecret("LINE_CHANNEL_SECRET");
   if (!secret || !signature || !rawBody) return false;
   const hash = crypto.createHmac("SHA256", secret).update(rawBody).digest("base64");
   const expected = Buffer.from(hash);

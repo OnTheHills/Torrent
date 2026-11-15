@@ -1,5 +1,6 @@
-require("dotenv").config();
+if (process.env.SECRETS_ONLY !== "true") require("dotenv").config();
 require("module-alias/register");
+require("@/config/secrets").validateSecrets();
 
 const app = require("@/app");
 const { connectDatabase } = require("@/utils/connectDatabase");

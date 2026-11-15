@@ -3,3 +3,6 @@ upload/
 .next/
 .git/
 .env*
+.secret/
+.secrets/
+*.json.key

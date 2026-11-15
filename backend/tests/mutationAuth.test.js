@@ -3,17 +3,32 @@ const { createHmac } = require("node:crypto");
 const { once } = require("node:events");
 const { test } = require("node:test");
 const jwt = require("jsonwebtoken");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const { SECRET_NAMES } = require("../src/config/secrets");
 
 test("the application requires a session for mutations and preserves public exceptions", { timeout: 15000 }, async (t) => {
   const environment = {
     CORS_ORIGIN: "https://torrent.example.test",
     JWT_SECRET: "mutation-auth-test-secret",
     LINE_CHANNEL_SECRET: "mutation-auth-line-test-secret",
-    CSRF_SECRET: "mutation-csrf-test-secret-used-only-by-tests",
+    CSRF_SECRET: "",
+    COOKIE_SECRET: "mutation-cookie-test-secret-used-only-by-tests",
     COOKIE_SECURE: "false",
     NODE_ENV: "test",
   };
-  for (const [key, value] of Object.entries(environment)) {
+  // Exercise Docker's strict file transport throughout the HTTP protection suite.
+  const secretDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "torrent-auth-secrets-"));
+  t.after(() => fs.rmSync(secretDirectory, { recursive: true, force: true }));
+  const runtimeEnvironment = { ...environment, SECRETS_ONLY: "true" };
+  for (const name of SECRET_NAMES) {
+    const filename = path.join(secretDirectory, name.toLowerCase());
+    fs.writeFileSync(filename, environment[name] || "");
+    runtimeEnvironment[`${name}_FILE`] = filename;
+    runtimeEnvironment[name] = "unused-raw-environment-value";
+  }
+  for (const [key, value] of Object.entries(runtimeEnvironment)) {
     const previous = process.env[key];
     process.env[key] = value;
     t.after(() => {

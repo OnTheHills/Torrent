@@ -79,6 +79,12 @@ export function GoogleButton({
   const readyRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  const roleRef = useRef(role);
+
+  // The Google callback must submit the role currently highlighted in React.
+  useLayoutEffect(() => {
+    roleRef.current = role;
+  }, [role]);
 
   // The Google script is loaded by the root layout. Poll briefly because this
   // client component may mount before Google's global object is available.
@@ -127,7 +133,7 @@ export function GoogleButton({
         client_id: clientId,
         callback: async ({ credential }) => {
           try {
-            const user = await googleLogin(credential, role);
+            const user = await googleLogin(credential, roleRef.current);
             await refresh();
             const href =
               user.role === "vendor" ? afterVendor : homeFor(user);
@@ -156,7 +162,7 @@ export function GoogleButton({
       window.clearInterval(timer);
       observer.disconnect();
     };
-  }, [role, afterVendor, router, refresh, clientId, t]);
+  }, [afterVendor, router, refresh, clientId, t]);
 
   // A later React render drops the nodes Google injects. Put the button back
   // before the browser paints — only after initialize() has run.

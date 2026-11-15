@@ -1,4 +1,15 @@
 services:
+  # Only invoked by process.sh; it never starts with the application stack.
+  secrets-init:
+    profiles: [setup]
+    build:
+      context: ./backend
+    user: "${SECRET_SETUP_UID:-1000}:${SECRET_SETUP_GID:-1000}"
+    entrypoint: ["node", "scripts/sync-docker-secrets.js"]
+    volumes:
+      - ./backend/.env:/app/.env:ro
+      - ./backend/.secrets:/app/.secrets
+
   backend:
     build:
       context: ./backend
@@ -7,19 +18,38 @@ services:
       - "5175:5175"
 
     volumes:
-      - ./backend:/app
+      # Mount development files individually so backend/.env is never exposed.
+      - ./backend/src:/app/src
+      - ./backend/scripts:/app/scripts
+      - ./backend/upload:/app/upload
+      - ./backend/.secret:/app/.secret:ro
       - /app/node_modules
 
     env_file:
-      - ./backend/.env
+      - path: ./backend/.secrets/backend.env
+        format: raw
+        required: false # Allows `docker compose up -d mongo` before secret setup.
 
     environment:
-      # env_file is snapshotted at container create. Host .env often has
-      # 127.0.0.1 (npm run dev) or a stale URI; inside Compose, Mongo is `mongo`.
-      MONGO_URI: mongodb://mongo:27017/Torrent
-      # Fetch once on startup; otherwise data can remain absent until the nightly job.
+      SECRETS_ONLY: "true"
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
+      MONGO_URI_FILE: /run/secrets/mongo_uri
+      LINE_CHANNEL_ACCESS_TOKEN_FILE: /run/secrets/line_channel_access_token
+      LINE_CHANNEL_SECRET_FILE: /run/secrets/line_channel_secret
+      COOKIE_SECRET_FILE: /run/secrets/cookie_secret
+      DATA_GO_API_KEY_FILE: /run/secrets/data_go_api_key
+      CSRF_SECRET_FILE: /run/secrets/csrf_secret
+      RESEND_API_KEY_FILE: /run/secrets/resend_api_key
 
-
+    secrets:
+      - jwt_secret
+      - mongo_uri
+      - line_channel_access_token
+      - line_channel_secret
+      - cookie_secret
+      - data_go_api_key
+      - csrf_secret
+      - resend_api_key
     depends_on:
       mongo:
         condition: service_healthy
@@ -61,3 +91,21 @@ services:
 
 volumes:
   mongo_data:
+
+secrets:
+  jwt_secret:
+    file: ./backend/.secrets/jwt_secret
+  mongo_uri:
+    file: ./backend/.secrets/mongo_uri
+  line_channel_access_token:
+    file: ./backend/.secrets/line_channel_access_token
+  line_channel_secret:
+    file: ./backend/.secrets/line_channel_secret
+  cookie_secret:
+    file: ./backend/.secrets/cookie_secret
+  data_go_api_key:
+    file: ./backend/.secrets/data_go_api_key
+  csrf_secret:
+    file: ./backend/.secrets/csrf_secret
+  resend_api_key:
+    file: ./backend/.secrets/resend_api_key

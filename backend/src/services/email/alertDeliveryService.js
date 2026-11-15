@@ -1,4 +1,5 @@
 const { createHash } = require("node:crypto");
+const { readSecret } = require("@/config/secrets");
 const userRepository = require("@/repositories/user/userRepository");
 const torRepository = require("@/repositories/tor/torRepository");
 const torMatchRepository = require("@/repositories/tor/torMatchRepository");
@@ -69,7 +70,7 @@ async function sendEmail(alert, user, tor, match) {
   const response = await fetch(RESEND_EMAILS_URL, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      Authorization: `Bearer ${readSecret("RESEND_API_KEY")}`,
       "Content-Type": "application/json",
       "Idempotency-Key": `${alert.key}:${recipientKey}`,
     },
@@ -132,7 +133,7 @@ async function deliverPendingAlerts(now = new Date()) {
 }
 
 async function runEmailAlerts() {
-  if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM) return { skipped: "email provider not configured" };
+  if (!readSecret("RESEND_API_KEY") || !process.env.EMAIL_FROM) return { skipped: "email provider not configured" };
   const queued = await queueEligibleAlerts();
   const sent = await deliverPendingAlerts();
   return { queued, sent };

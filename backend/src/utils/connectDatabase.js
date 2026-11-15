@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { readSecret } = require("@/config/secrets");
 const User = require("@/models/user/User");
 const VendorProfile = require("@/models/vendor/VendorProfile");
 const UserBio = require("@/models/user/UserBio");
@@ -9,10 +10,7 @@ const EmailAlert = require("@/models/email/EmailAlert");
 const { migrateVendorProfileFields } = require("./migrateVendorProfileFields");
 
 async function connectDatabase() {
-  const uri = process.env.MONGO_URI;
-  if (!uri) {
-    throw new Error("MONGO_URI is required. Add your MongoDB URI to backend/.env.");
-  }
+  const uri = readSecret("MONGO_URI", { required: true });
 
   await mongoose.connect(uri, { dbName: "Torrent" });
   await Promise.all([

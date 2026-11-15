@@ -1,4 +1,5 @@
 const userRepository = require("@/repositories/user/userRepository");
+const { readSecret } = require("@/config/secrets");
 const {
   EMAIL_ALERT_CATEGORIES,
   DEFAULT_EMAIL_ALERT_PREFS,
@@ -11,7 +12,7 @@ function httpError(status, message) {
 }
 
 function deliveryConfigured() {
-  return Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM);
+  return Boolean(readSecret("RESEND_API_KEY") && process.env.EMAIL_FROM);
 }
 
 function validPreferences(prefs) {
