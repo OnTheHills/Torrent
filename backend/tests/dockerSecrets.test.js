@@ -25,7 +25,7 @@ function setEnvironment(t, settings) {
   }
 }
 
-test("env setup preserves secret bytes and keeps them out of runtime settings", (t) => {
+test("env setup preserves secret bytes and writes only individual secret files", (t) => {
   const directory = temporaryDirectory(t);
   const envFile = path.join(directory, ".env");
   const outputDir = path.join(directory, "output");
@@ -46,7 +46,10 @@ test("env setup preserves secret bytes and keeps them out of runtime settings", 
     "JWT_SECRET_FILE=/untrusted/override",
     "MONGO_URI_HOST=mongodb://host-only-password@localhost/Torrent",
     "SECRETS_ONLY=false",
+    'MULTILINE_SETTING="line one\nline two"',
   ].join("\n"));
+  fs.mkdirSync(outputDir);
+  fs.writeFileSync(path.join(outputDir, "backend.env"), "LEGACY_SETTING=remove-me\n");
   syncSecrets({ envFile, outputDir });
   assert.equal(fs.statSync(outputDir).mode & 0o777, 0o700);
   for (const [key, value] of Object.entries(input)) {
@@ -54,35 +57,60 @@ test("env setup preserves secret bytes and keeps them out of runtime settings", 
     assert.equal(fs.readFileSync(filename, "utf8"), value);
     assert.equal(fs.statSync(filename).mode & 0o777, 0o600);
   }
-  const settings = fs.readFileSync(path.join(outputDir, "backend.env"), "utf8");
-  assert.match(settings, /^EMAIL_FROM=Torrent <alerts@example.test>$/m);
-  assert.match(settings, /^CUSTOM_SETTING=literal-\$value-#hash$/m);
-  for (const [key, value] of Object.entries(input)) {
-    assert.equal(settings.includes(key), false);
-    assert.equal(settings.includes(value), false);
-  }
-  assert.doesNotMatch(settings, /SECRETS_ONLY|MONGO_URI_HOST|_FILE/);
+  assert.deepEqual(fs.readdirSync(outputDir).sort(), SECRET_NAMES.map((name) => name.toLowerCase()).sort());
 
-  // Regeneration replaces values and clears removed optional credentials.
+  // Regeneration replaces supplied values and preserves omitted credentials.
+  const previousLineFile = fs.statSync(path.join(outputDir, "line_channel_access_token"));
   fs.writeFileSync(envFile, "JWT_SECRET=rotated-test-secret\nMONGO_URI=mongodb://mongo/Torrent\n");
   syncSecrets({ envFile, outputDir });
   assert.equal(fs.readFileSync(path.join(outputDir, "jwt_secret"), "utf8"), "rotated-test-secret");
+  assert.equal(fs.readFileSync(path.join(outputDir, "line_channel_access_token"), "utf8"), input.LINE_CHANNEL_ACCESS_TOKEN);
+  assert.equal(fs.statSync(path.join(outputDir, "line_channel_access_token")).ino, previousLineFile.ino);
+  assert.equal(fs.existsSync(path.join(outputDir, "backend.env")), false);
+
+  // Clearing an optional credential requires an explicit empty setting.
+  fs.writeFileSync(envFile, "LINE_CHANNEL_ACCESS_TOKEN=\n");
+  syncSecrets({ envFile, outputDir });
   assert.equal(fs.readFileSync(path.join(outputDir, "line_channel_access_token"), "utf8"), "");
-  assert.equal(fs.readFileSync(path.join(outputDir, "backend.env"), "utf8"), "\n");
 });
 
 test("invalid setup leaves the previous secrets untouched", (t) => {
   const directory = temporaryDirectory(t);
   const envFile = path.join(directory, ".env");
   const outputDir = path.join(directory, "output");
+  fs.writeFileSync(envFile, "PORT=5175\n");
+  assert.throws(() => syncSecrets({ envFile, outputDir }), /Set JWT_SECRET/);
+  assert.equal(fs.existsSync(outputDir), false);
   fs.writeFileSync(envFile, "JWT_SECRET=original\nMONGO_URI=mongodb://mongo/Torrent\n");
   syncSecrets({ envFile, outputDir });
-  fs.writeFileSync(envFile, "MONGO_URI=mongodb://mongo/Torrent\n");
+  fs.writeFileSync(envFile, "JWT_SECRET=\nMONGO_URI=mongodb://mongo/Torrent\n");
   assert.throws(() => syncSecrets({ envFile, outputDir }), /Set JWT_SECRET/);
   assert.equal(fs.readFileSync(path.join(outputDir, "jwt_secret"), "utf8"), "original");
-  fs.writeFileSync(envFile, 'JWT_SECRET=changed\nMONGO_URI=mongodb://mongo/Torrent\nSETTING="line one\nline two"');
-  assert.throws(() => syncSecrets({ envFile, outputDir }), /Unsupported non-secret setting: SETTING/);
+  fs.writeFileSync(envFile, 'JWT_SECRET=changed\nMONGO_URI="   "\n');
+  assert.throws(() => syncSecrets({ envFile, outputDir }), /Set MONGO_URI/);
   assert.equal(fs.readFileSync(path.join(outputDir, "jwt_secret"), "utf8"), "original");
+});
+
+test("setup works after secret inputs are commented out without changing existing files", (t) => {
+  const directory = temporaryDirectory(t);
+  const envFile = path.join(directory, ".env");
+  const outputDir = path.join(directory, "output");
+  fs.writeFileSync(envFile, "JWT_SECRET=initial-test-secret\nMONGO_URI=mongodb://mongo/Torrent\n");
+  syncSecrets({ envFile, outputDir });
+  const before = Object.fromEntries(SECRET_NAMES.map((name) => {
+    const filename = path.join(outputDir, name.toLowerCase());
+    return [name, { value: fs.readFileSync(filename, "utf8"), inode: fs.statSync(filename).ino }];
+  }));
+  const config = "# JWT_SECRET=commented-value-is-not-used\n# MONGO_URI=commented-value-is-not-used\nPORT=5175\nCORS_ORIGIN=http://localhost:3000\n";
+  fs.writeFileSync(envFile, config);
+  syncSecrets({ envFile, outputDir });
+  assert.equal(fs.readFileSync(envFile, "utf8"), config);
+  for (const name of SECRET_NAMES) {
+    const filename = path.join(outputDir, name.toLowerCase());
+    assert.equal(fs.readFileSync(filename, "utf8"), before[name].value);
+    assert.equal(fs.statSync(filename).ino, before[name].inode);
+  }
+  assert.equal(fs.existsSync(path.join(outputDir, "backend.env")), false);
 });
 
 test("secret reader supports local env, prioritizes files, and fails closed", (t) => {
