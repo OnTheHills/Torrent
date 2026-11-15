@@ -131,7 +131,7 @@ schedule enabled. For npm development, set `FETCH_ON_STARTUP` in `backend/.env`.
 
 ### Prerequisites
 
-Install Docker Desktop, or Docker Engine with Docker Compose v2.30 or newer.
+Install Docker Desktop, or Docker Engine with Docker Compose v2.24 or newer.
 Secret setup and all application services run through Docker. Node.js, npm,
 and MongoDB do not need to be installed on the host.
 
@@ -204,11 +204,18 @@ token and signing secret together when enabling LINE. A blank `CSRF_SECRET`
 uses `COOKIE_SECRET`, then `JWT_SECRET`, as before. Use a long random value for
 each signing secret, for example from `openssl rand -base64 32`.
 
-Other settings are copied into `backend/.secrets/backend.env` and loaded with
-Compose's raw env format. The listed secrets, their input `*_FILE` overrides,
-and the host-only `MONGO_URI_HOST` are excluded. Only the backend receives the
-secret mounts. In Docker, `SECRETS_ONLY=true` requires file paths and forbids
-falling back to raw env values. The backend does not load `.env`, and its
+After initial provisioning, omitted or commented secret settings preserve their
+existing files. An explicitly blank optional secret clears its file; required
+secrets cannot be blank. Provide a new active value to replace a secret.
+
+Ordinary settings such as `PORT`, `CORS_ORIGIN`, and feature flags stay active
+in `backend/.env` and are loaded directly through Compose's `env_file`. Setup
+creates only individual secret files; it does not generate a second env file.
+Compose explicitly overrides the raw secret variables and `MONGO_URI_HOST` with
+empty values, even if the input file still contains credentials. It also sets
+the `*_FILE` paths itself. Only the backend receives the secret mounts.
+In Docker, `SECRETS_ONLY=true` requires file paths and forbids falling back to
+raw env values. The backend does not load `.env` from disk, and its
 development mounts expose only source, scripts, uploads, and the existing
 read-only Vertex credentials directory. Env files and credential directories
 are excluded from the backend build context. Direct npm development can still
@@ -220,8 +227,9 @@ After any env change, regenerate and recreate the backend:
 ./process.sh up backend
 ```
 
-Recreation is required because Compose secrets are file bind mounts, and setup
-replaces each file atomically. Changing the JWT secret invalidates existing
+Recreation applies changed env settings and any replaced secret files. Compose
+secrets are file bind mounts; setup replaces updated files atomically while
+preserving omitted files. Changing the JWT secret invalidates existing
 sessions; changing the CSRF/cookie secret requires clients to fetch new tokens.
 The Mongo URI is now taken from your input without the old hardcoded override;
 use `mongo` as the hostname for the included database, or your external URI.
@@ -290,7 +298,7 @@ docker compose up
 | `npm run start` | `frontend/` | Serve an existing production build |
 | `npm run lint` | `frontend/` | Run ESLint |
 | `npm run dev` | `backend/` | Start Express with nodemon reload |
-| `./process.sh secrets` | repository root | Prepare Compose secrets and non-secret runtime settings from `backend/.env` |
+| `./process.sh secrets` | repository root | Create/update Compose secrets from `backend/.env`, preserving omitted values |
 | `./process.sh` | repository root | Regenerate secrets and rebuild/recreate the complete Docker stack |
 | `./process.sh up backend` | repository root | Regenerate secrets and rebuild/recreate the backend |
 | `npm run start` | `backend/` | Start Express without nodemon |

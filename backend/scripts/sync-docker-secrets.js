@@ -14,19 +14,28 @@ function syncSecrets({ envFile = path.join(backendRoot, ".env"), outputDir = pat
   } catch {
     throw new Error("Cannot read the backend env file. Copy backend/.env.example to backend/.env first.");
   }
-  for (const name of REQUIRED_SECRETS) {
-    if (!environment[name]?.trim()) throw new Error(`Set ${name} in the backend env file before creating secrets.`);
+  if (fs.existsSync(outputDir) && fs.lstatSync(outputDir).isSymbolicLink()) {
+    throw new Error("The secret output directory must not be a symbolic link.");
   }
-
-  const excluded = new Set([...SECRET_NAMES, ...SECRET_NAMES.map((name) => `${name}_FILE`), "SECRETS_ONLY", "MONGO_URI_HOST"]);
-  const settings = [];
-  for (const [name, value] of Object.entries(environment)) {
-    if (excluded.has(name)) continue;
-    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name) || /[\r\n\0]/.test(value)) {
-      throw new Error(`Unsupported non-secret setting: ${name}. Use a single-line value.`);
+  const writes = new Map();
+  for (const name of SECRET_NAMES) {
+    const filename = path.join(outputDir, name.toLowerCase());
+    let value;
+    if (Object.hasOwn(environment, name)) {
+      // An explicit blank clears an optional credential; an omitted/commented
+      // setting preserves the existing secret after initial provisioning.
+      value = environment[name];
+      writes.set(name, value);
+    } else if (fs.existsSync(filename)) {
+      if (!fs.lstatSync(filename).isFile()) throw new Error(`Existing ${name} must be a regular secret file.`);
+      value = fs.readFileSync(filename, "utf8");
+    } else {
+      value = "";
+      writes.set(name, value);
     }
-    // Compose's raw env format preserves $, #, quotes and backslashes literally.
-    settings.push(`${name}=${value}`);
+    if (REQUIRED_SECRETS.includes(name) && !value.trim()) {
+      throw new Error(`Set ${name} in the backend env file before creating secrets.`);
+    }
   }
 
   // Validate everything before changing existing files. The output directory is
@@ -36,13 +45,18 @@ function syncSecrets({ envFile = path.join(backendRoot, ".env"), outputDir = pat
   fs.chmodSync(outputDir, 0o700);
   const staging = fs.mkdtempSync(path.join(outputDir, ".sync-"));
   try {
+    for (const [name, value] of writes) {
+      fs.writeFileSync(path.join(staging, name.toLowerCase()), value, { mode: 0o600, flag: "wx" });
+    }
+    for (const name of writes.keys()) {
+      const filename = name.toLowerCase();
+      fs.renameSync(path.join(staging, filename), path.join(outputDir, filename));
+    }
     for (const name of SECRET_NAMES) {
-      fs.writeFileSync(path.join(staging, name.toLowerCase()), environment[name] || "", { mode: 0o600, flag: "wx" });
+      fs.chmodSync(path.join(outputDir, name.toLowerCase()), 0o600);
     }
-    fs.writeFileSync(path.join(staging, "backend.env"), `${settings.join("\n")}\n`, { mode: 0o600, flag: "wx" });
-    for (const name of [...SECRET_NAMES.map((name) => name.toLowerCase()), "backend.env"]) {
-      fs.renameSync(path.join(staging, name), path.join(outputDir, name));
-    }
+    // Remove the obsolete generated settings file from earlier versions.
+    fs.rmSync(path.join(outputDir, "backend.env"), { force: true });
   } finally {
     fs.rmSync(staging, { recursive: true, force: true });
   }
@@ -52,7 +66,7 @@ if (require.main === module) {
   try {
     if (process.argv.length > 3) throw new Error("Usage: node backend/scripts/sync-docker-secrets.js [path/to/backend.env]");
     syncSecrets({ envFile: process.argv[2] ? path.resolve(process.argv[2]) : undefined });
-    console.log("Docker Compose secrets and non-secret settings prepared in backend/.secrets/.");
+    console.log("Docker Compose secret files prepared in backend/.secrets/.");
   } catch (error) {
     console.error(`Secret setup failed: ${error.message}`);
     process.exitCode = 1;

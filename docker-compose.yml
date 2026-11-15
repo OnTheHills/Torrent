@@ -26,11 +26,21 @@ services:
       - /app/node_modules
 
     env_file:
-      - path: ./backend/.secrets/backend.env
-        format: raw
+      - path: ./backend/.env
         required: false # Allows `docker compose up -d mongo` before secret setup.
 
     environment:
+      # env_file supplies ordinary settings. Override every raw secret with an
+      # empty value, even when it is still present in .env during provisioning.
+      JWT_SECRET: ""
+      MONGO_URI: ""
+      LINE_CHANNEL_ACCESS_TOKEN: ""
+      LINE_CHANNEL_SECRET: ""
+      COOKIE_SECRET: ""
+      DATA_GO_API_KEY: ""
+      CSRF_SECRET: ""
+      RESEND_API_KEY: ""
+      MONGO_URI_HOST: ""
       SECRETS_ONLY: "true"
       JWT_SECRET_FILE: /run/secrets/jwt_secret
       MONGO_URI_FILE: /run/secrets/mongo_uri

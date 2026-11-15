@@ -18,7 +18,7 @@ case "$ACTION" in
   -h|--help)
     echo "Usage: ./process.sh [up [service ...] | secrets]"
     echo "  up       Prepare secrets and build/start services (default: entire stack)."
-    echo "  secrets  Only prepare secrets from backend/.env."
+    echo "  secrets  Create/update secrets from backend/.env; preserve omitted entries."
     exit 0
     ;;
   *)
