@@ -9,11 +9,12 @@ const {
   deleteVendorProfile,
 } = require("@/controllers/vendor/vendorProfileController");
 const { requireAuth } = require("@/middleware/requireAuth");
-const { requireSelfOrAdminByUserId } = require("@/middleware/requireRole");
+const { requireRole, requireSelfOrAdminByUserId } = require("@/middleware/requireRole");
 const { requireVendorProfileOwner } = require("@/middleware/requireVendorProfileOwner");
 const { certificateUpload } = require("@/middleware/certificateUpload");
 
 const vendorProfileRouter = express.Router();
+vendorProfileRouter.use(requireAuth, requireRole("vendor", "admin"));
 
 vendorProfileRouter.post("/", requireAuth, certificateUpload, createVendorProfile);
 vendorProfileRouter.get("/", getAllVendorProfiles);
