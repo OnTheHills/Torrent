@@ -2,7 +2,7 @@
 
 
 import { ShellContent } from "@/components/layout/shell-content";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Tick02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
@@ -44,6 +44,37 @@ type NotificationPrefs = {
 
 type EmailPrefsResponse = NotificationPrefs & { deliveryConfigured: boolean };
 
+function LineCodeExpiry({ expiresAt }: { expiresAt: string }) {
+  const { t } = useLocale();
+  const expiresAtMs = Date.parse(expiresAt);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!Number.isFinite(expiresAtMs) || expiresAtMs <= Date.now()) return;
+
+    const timer = window.setInterval(() => {
+      const currentTime = Date.now();
+      setNow(currentTime);
+      if (currentTime >= expiresAtMs) window.clearInterval(timer);
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [expiresAtMs]);
+
+  if (!Number.isFinite(expiresAtMs)) return null;
+
+  const secondsLeft = Math.max(0, Math.ceil((expiresAtMs - now) / 1000));
+  const timeLeft = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
+
+  return (
+    <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+      {secondsLeft > 0
+        ? t("lineCodeExpires").replace("{time}", timeLeft)
+        : t("lineCodeExpired")}
+    </p>
+  );
+}
+
 export function NotificationSettingsView() {
   const { t } = useLocale();
   const [draft, setDraft] = useState<NotificationPrefs>({
@@ -62,6 +93,8 @@ export function NotificationSettingsView() {
   const [lineStatus, setLineStatus] = useState<LineStatus | null>(null);
   const [lineBusy, setLineBusy] = useState(false);
   const [lineError, setLineError] = useState("");
+  const lineActionVersion = useRef(0);
+  const lineActionPending = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -80,12 +113,17 @@ export function NotificationSettingsView() {
 
   useEffect(() => {
     let cancelled = false;
+    const requestVersion = lineActionVersion.current;
     void getLineStatus()
       .then((status) => {
-        if (!cancelled) setLineStatus(status);
+        if (!cancelled && requestVersion === lineActionVersion.current) {
+          setLineStatus(status);
+        }
       })
       .catch(() => {
-        if (!cancelled) setLineStatus(null);
+        if (!cancelled && requestVersion === lineActionVersion.current) {
+          setLineStatus(null);
+        }
       });
     return () => {
       cancelled = true;
@@ -122,6 +160,10 @@ export function NotificationSettingsView() {
   };
 
   const runLineAction = async (action: () => Promise<LineStatus>) => {
+    if (lineActionPending.current) return;
+    lineActionPending.current = true;
+    // A status request started before this click must not replace its result.
+    lineActionVersion.current += 1;
     setLineBusy(true);
     setLineError("");
     try {
@@ -132,6 +174,7 @@ export function NotificationSettingsView() {
         error instanceof Error ? error.message : "LINE request failed",
       );
     } finally {
+      lineActionPending.current = false;
       setLineBusy(false);
     }
   };
@@ -209,9 +252,12 @@ export function NotificationSettingsView() {
               <p className="mt-2 font-mono text-2xl font-semibold tracking-[0.2em]">
                 {lineStatus.pendingCode}
               </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {t("lineCodeExpires")}
-              </p>
+              {lineStatus.pendingExpiresAt ? (
+                <LineCodeExpiry
+                  key={lineStatus.pendingExpiresAt}
+                  expiresAt={lineStatus.pendingExpiresAt}
+                />
+              ) : null}
             </div>
           ) : null}
 

@@ -11,7 +11,7 @@ export type LineStatus = {
 };
 
 export function getLineStatus() {
-  return api<LineStatus>("/api/line/status");
+  return api<LineStatus>("/api/line/status", { cache: "no-store" });
 }
 
 export function startLineLink() {
