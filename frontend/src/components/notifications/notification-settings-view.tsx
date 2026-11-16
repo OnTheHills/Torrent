@@ -6,16 +6,10 @@ import { useEffect, useRef, useState } from "react";
 import { Tick02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
+import { AlertsHero } from "@/components/notifications/alerts-hero";
 import { useLocale } from "@/components/providers/locale-provider";
 import { frostSelectedItem } from "@/components/tor/tor-filters";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -30,8 +24,27 @@ import { TOR_CATEGORIES } from "@/lib/tor-categories";
 import { cn } from "@/lib/utils";
 import type { TorCategory } from "@/types/tor";
 
-const FROST_PANEL =
-  "rounded-lg bg-[color-mix(in_srgb,var(--palette-gray-50)_62%,transparent)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_88%,transparent)] ring-1 ring-[color-mix(in_srgb,white_72%,transparent)] backdrop-blur-md backdrop-saturate-150";
+const settingsCard =
+  "liquid-glass-card liquid-glass-card-static liquid-glass-card-clear rounded-2xl p-5 md:p-6";
+
+function SettingsSectionHeading({
+  title,
+  description,
+}: {
+  title: string;
+  description?: string;
+}) {
+  return (
+    <div className="min-w-0 space-y-2">
+      <h2 className="text-2xl font-semibold tracking-tight md:text-[2rem] md:leading-[1.2]">
+        {title}
+      </h2>
+      {description ? (
+        <p className="text-base leading-[1.7] text-muted-foreground">{description}</p>
+      ) : null}
+    </div>
+  );
+}
 
 type NotificationPrefs = {
   emailMatches: boolean;
@@ -181,32 +194,16 @@ export function NotificationSettingsView() {
 
   return (
     <div>
-      <section className="relative -mt-[144px] overflow-hidden hero-atmosphere text-hero-foreground">
-        <ShellContent>
-        <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-[calc(144px+2rem)] sm:px-6 md:pb-12 md:pt-[calc(144px+3rem)]">
-          <div className="w-full max-w-2xl md:max-w-3xl lg:max-w-4xl">
-            <h1 className="text-3xl font-semibold tracking-tight md:text-5xl md:leading-[1.1]">
-              {t("settingsTitle")}
-            </h1>
-            <p className="mt-5 text-base leading-[1.7] text-hero-muted md:text-lg">
-              {t("settingsDescription")}
-            </p>
-          </div>
-        </div>
-        </ShellContent>
-        <div aria-hidden className="h-px bg-border" />
-      </section>
+      <AlertsHero />
 
       <ShellContent>
-      <div className="mx-auto max-w-6xl space-y-5 px-4 py-12 sm:px-6 md:py-16">
-      <Card className={FROST_PANEL}>
-        <CardHeader className="border-b border-border pb-5">
-          <CardTitle className="text-lg">{t("lineNotifications")}</CardTitle>
-          <CardDescription className="pt-2 text-sm leading-relaxed">
-            {t("lineNotificationsHint")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4 pt-5">
+      <div className="mx-auto max-w-6xl space-y-10 px-4 py-12 sm:px-6 md:space-y-12 md:py-16">
+      <section className="space-y-6">
+        <SettingsSectionHeading
+          title={t("lineNotifications")}
+          description={t("lineNotificationsHint")}
+        />
+        <div className={cn(settingsCard, "space-y-4")}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm font-medium">
               {lineStatus?.linked ? t("lineConnected") : t("lineNotConnected")}
@@ -282,121 +279,115 @@ export function NotificationSettingsView() {
               {lineError}
             </p>
           ) : null}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <Card className={FROST_PANEL}>
-          <CardHeader className="border-b border-border pb-5">
-            <CardTitle className="text-lg">{t("emailNotifications")}</CardTitle>
-            {emailReady && !emailAvailable ? <CardDescription>{t("emailUnavailable")}</CardDescription> : null}
-          </CardHeader>
-          <CardContent className="divide-y divide-border p-0">
-            {(
-              [
-                ["emailMatches", "emailMatchesLabel"],
-                ["emailDeadlines", "emailDeadlinesLabel"],
-                ["emailIntegrity", "emailIntegrityLabel"],
-              ] as const
-            ).map(([key, labelKey]) => (
-              <div
-                key={key}
-                className="flex items-center justify-between gap-4 px-6 py-4"
-              >
-                <label htmlFor={key} className="text-sm leading-snug">
-                  {t(labelKey)}
+      <section className="space-y-6">
+        <SettingsSectionHeading
+          title={t("emailNotifications")}
+          description={emailReady && !emailAvailable ? t("emailUnavailable") : undefined}
+        />
+        <div className={cn(settingsCard, "divide-y divide-border py-2 md:py-2")}>
+          {(
+            [
+              ["emailMatches", "emailMatchesLabel"],
+              ["emailDeadlines", "emailDeadlinesLabel"],
+              ["emailIntegrity", "emailIntegrityLabel"],
+            ] as const
+          ).map(([key, labelKey]) => (
+            <div
+              key={key}
+              className="flex items-center justify-between gap-4 py-4"
+            >
+              <label htmlFor={key} className="text-sm leading-snug">
+                {t(labelKey)}
+              </label>
+              <Switch
+                id={key}
+                checked={draft[key]}
+                disabled={!emailReady || emailBusy}
+                onCheckedChange={(checked) => update({ [key]: checked })}
+              />
+            </div>
+          ))}
+
+          <div className="space-y-3 py-5">
+            <p className="text-sm font-medium">{t("budgetInterest")}</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label htmlFor="budgetMin" className="text-xs text-muted-foreground">
+                  {t("budgetMin")}
                 </label>
-                <Switch
-                  id={key}
-                  checked={draft[key]}
+                <Input
+                  id="budgetMin"
+                  type="number"
+                  min={0}
+                  step={100000}
+                  value={draft.budgetMinThb}
                   disabled={!emailReady || emailBusy}
-                  onCheckedChange={(checked) => update({ [key]: checked })}
+                  onChange={(event) =>
+                    update({ budgetMinThb: Number(event.target.value) || 0 })
+                  }
                 />
               </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card className={FROST_PANEL}>
-          <CardHeader className="border-b border-border pb-5">
-            <CardTitle className="text-lg">{t("budgetInterest")}</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 pt-5 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label htmlFor="budgetMin" className="text-xs text-muted-foreground">
-                {t("budgetMin")}
-              </label>
-              <Input
-                id="budgetMin"
-                type="number"
-                min={0}
-                step={100000}
-                value={draft.budgetMinThb}
-                disabled={!emailReady || emailBusy}
-                onChange={(event) =>
-                  update({ budgetMinThb: Number(event.target.value) || 0 })
-                }
-              />
+              <div className="space-y-2">
+                <label htmlFor="budgetMax" className="text-xs text-muted-foreground">
+                  {t("budgetMax")}
+                </label>
+                <Input
+                  id="budgetMax"
+                  type="number"
+                  min={0}
+                  step={100000}
+                  value={draft.budgetMaxThb}
+                  disabled={!emailReady || emailBusy}
+                  onChange={(event) =>
+                    update({ budgetMaxThb: Number(event.target.value) || 0 })
+                  }
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <label htmlFor="budgetMax" className="text-xs text-muted-foreground">
-                {t("budgetMax")}
-              </label>
-              <Input
-                id="budgetMax"
-                type="number"
-                min={0}
-                step={100000}
-                value={draft.budgetMaxThb}
-                disabled={!emailReady || emailBusy}
-                onChange={(event) =>
-                  update({ budgetMaxThb: Number(event.target.value) || 0 })
-                }
-              />
+          </div>
+
+          <div className="space-y-3 pt-5 pb-3">
+            <p className="text-sm font-medium">{t("categoriesInterest")}</p>
+            <div className="flex flex-wrap gap-2">
+              {TOR_CATEGORIES.map((category) => {
+                const selected = draft.categories.includes(category);
+                return (
+                  <button
+                    key={category}
+                    type="button"
+                    aria-pressed={selected}
+                    disabled={!emailReady || emailBusy}
+                    onClick={() => toggleCategory(category)}
+                    className={cn(
+                      "inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium",
+                      "transition-[background-color,transform] duration-200 ease-out",
+                      "hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-60",
+                      "motion-reduce:transition-none motion-reduce:hover:transform-none",
+                      selected
+                        ? frostSelectedItem
+                        : "bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))] text-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] backdrop-blur-md backdrop-saturate-150 hover:bg-sidebar-hover",
+                    )}
+                  >
+                    {selected ? (
+                      <HugeiconsIcon
+                        icon={Tick02Icon}
+                        strokeWidth={2.25}
+                        className="size-3.5 shrink-0 text-foreground"
+                      />
+                    ) : null}
+                    {category}
+                  </button>
+                );
+              })}
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </div>
+      </section>
 
-      <Card className={FROST_PANEL}>
-        <CardHeader className="border-b border-border pb-5">
-          <CardTitle className="text-lg">{t("categoriesInterest")}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-2 pt-5">
-          {TOR_CATEGORIES.map((category) => {
-            const selected = draft.categories.includes(category);
-            return (
-              <button
-                key={category}
-                type="button"
-                aria-pressed={selected}
-                disabled={!emailReady || emailBusy}
-                onClick={() => toggleCategory(category)}
-                className={cn(
-                  "inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium",
-                  "transition-[background-color,transform] duration-200 ease-out",
-                  "hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-60",
-                  "motion-reduce:transition-none motion-reduce:hover:transform-none",
-                  selected
-                    ? frostSelectedItem
-                    : "bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))] text-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] backdrop-blur-md backdrop-saturate-150 hover:bg-sidebar-hover",
-                )}
-              >
-                {selected ? (
-                  <HugeiconsIcon
-                    icon={Tick02Icon}
-                    strokeWidth={2.25}
-                    className="size-3.5 shrink-0 text-foreground"
-                  />
-                ) : null}
-                {category}
-              </button>
-            );
-          })}
-        </CardContent>
-      </Card>
-
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-row-reverse flex-wrap items-center gap-3">
         <Button type="button" size="lg" disabled={!emailReady || emailBusy} onClick={() => void handleSave()}>
           {t("saveSettings")}
         </Button>

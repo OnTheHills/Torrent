@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 import { useLocale } from "@/components/providers/locale-provider";
+import { categoryGlass } from "@/components/tor/listing-badges";
 import { formatBudget } from "@/data/mock";
 import { cn } from "@/lib/utils";
 import type { BudgetBenchmark } from "@/types/tor";
@@ -45,12 +46,12 @@ export function BudgetChart({ data }: { data: BudgetBenchmark[] }) {
           </div>
 
           <ul className="relative space-y-3">
-            {data.map((item, index) => {
+            {data.map((item) => {
               const width = Math.max(
                 4,
                 Math.round((item.medianThb / maxMedian) * 100)
               );
-              const chartVar = `var(--chart-${(index % 5) + 1})`;
+              const tone = categoryGlass(item.category);
               const active = hovered === item.category;
 
               return (
@@ -64,44 +65,162 @@ export function BudgetChart({ data }: { data: BudgetBenchmark[] }) {
                     {item.category}
                   </p>
                   <div className="relative">
-                    <div className="h-8 rounded-md bg-muted/80">
-                      <div
-                        className={cn(
-                          "flex h-full items-center justify-end rounded-md border-0 px-2 shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_80%,transparent)] ring-1 ring-[color-mix(in_srgb,currentColor_32%,transparent)] backdrop-blur-md backdrop-saturate-150 transition-all duration-500",
-                          active && "brightness-110"
-                        )}
-                        style={{
-                          width: `${width}%`,
-                          color: chartVar,
-                          background: `color-mix(in srgb, ${chartVar} 36%, transparent)`,
-                        }}
-                      >
-                        <span className="text-[0.65rem] font-semibold">
-                          {formatBudget(item.medianThb)}
-                        </span>
-                      </div>
-                    </div>
-                    <div
-                      className={cn(
-                        "pointer-events-none absolute left-0 top-[calc(100%+0.35rem)] z-10 w-max max-w-[16rem] rounded-lg border-0 bg-[color-mix(in_srgb,var(--palette-gray-50)_62%,transparent)] px-2.5 py-2 text-xs text-popover-foreground shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_88%,transparent)] ring-1 ring-[color-mix(in_srgb,white_72%,transparent)] backdrop-blur-md backdrop-saturate-150 transition-opacity",
-                        active ? "opacity-100" : "opacity-0"
-                      )}
-                    >
+                    <CategoryBar
+                      label={formatBudget(item.medianThb)}
+                      width={width}
+                      fill={tone.fill}
+                      ink={tone.ink}
+                      active={active}
+                    />
+                    <BudgetTip active={active}>
                       <p className="font-medium">{item.category}</p>
-                      <p className="mt-1 text-muted-foreground">
-                        {t("chartMedian")} {formatBudget(item.medianThb)} ·{" "}
-                        {t("chartRange")} {formatBudget(item.minThb)} –{" "}
-                        {formatBudget(item.maxThb)}
-                      </p>
-                      <p className="text-muted-foreground">
-                        {item.count} {t("chartSample")}
-                      </p>
-                    </div>
+                      <ul className="mt-1 list-disc space-y-0.5 pl-4 text-muted-foreground marker:text-muted-foreground">
+                        <li>
+                          {t("chartMedian")} {formatBudget(item.medianThb)}
+                        </li>
+                        <li>
+                          {t("chartRange")} {formatBudget(item.minThb)} –{" "}
+                          {formatBudget(item.maxThb)}
+                        </li>
+                        <li>
+                          {item.count} {t("chartSample")}
+                        </li>
+                      </ul>
+                    </BudgetTip>
                   </div>
                 </li>
               );
             })}
           </ul>
         </div>
+  );
+}
+
+export function BudgetTip({
+  active,
+  children,
+}: {
+  active: boolean;
+  children: ReactNode;
+}) {
+  const tipRef = useRef<HTMLDivElement>(null);
+  const [place, setPlace] = useState({ below: false, left: 0 });
+
+  useLayoutEffect(() => {
+    if (!active) return;
+    const tip = tipRef.current;
+    const row = tip?.parentElement;
+    if (!tip || !row) return;
+
+    const measure = () => {
+      const bar = row.querySelector<HTMLElement>("[data-budget-bar]");
+      if (!bar) return;
+      const label = row.querySelector<HTMLElement>("[data-budget-label]");
+      const rowBox = row.getBoundingClientRect();
+      const barBox = bar.getBoundingClientRect();
+      const after = (label?.getBoundingClientRect().right ?? barBox.right) - rowBox.left;
+      const fits = after + 8 + tip.offsetWidth <= row.clientWidth + 1;
+      setPlace({
+        below: !fits,
+        left: fits ? after + 8 : barBox.right - rowBox.left,
+      });
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(row);
+    return () => observer.disconnect();
+  }, [active]);
+
+  if (!active) return null;
+
+  return (
+    <div
+      ref={tipRef}
+      role="tooltip"
+      className="pointer-events-none absolute z-10 w-max max-w-[16rem] rounded-xl bg-[rgb(255_255_255/0.7)] px-3 py-2 text-xs text-popover-foreground shadow-[inset_1px_1px_0_0_rgb(255_255_255/0.92),0_0_0_1px_color-mix(in_srgb,var(--palette-gray-300)_38%,transparent),0_8px_24px_rgb(0_0_0/0.07)] backdrop-blur-md backdrop-saturate-150"
+      style={
+        place.below
+          ? { left: place.left, top: "calc(100% + 8px)", transform: "translateX(-100%)" }
+          : { left: place.left, top: 0 }
+      }
+    >
+      {children}
+    </div>
+  );
+}
+
+function CategoryBar({
+  label,
+  width,
+  fill,
+  ink,
+  active,
+}: {
+  label: string;
+  width: number;
+  fill: string;
+  ink: string;
+  active: boolean;
+}) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const labelRef = useRef<HTMLSpanElement>(null);
+  const [outside, setOutside] = useState(false);
+
+  useLayoutEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+
+    const measure = () => {
+      const labelEl = labelRef.current;
+      if (!labelEl) return;
+      const barWidth = (track.clientWidth * width) / 100;
+      setOutside(labelEl.scrollWidth + 16 > barWidth);
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(track);
+    return () => observer.disconnect();
+  }, [width, label]);
+
+  return (
+    <div ref={trackRef} className="flex h-8 min-w-0 items-center">
+      <div
+        data-budget-bar
+        className={cn(
+          "flex h-full min-w-0 shrink-0 items-center justify-end overflow-hidden rounded-sm border-0 transition-[width,filter] duration-500",
+          outside ? "px-0" : "px-2",
+          active && "brightness-105",
+        )}
+        style={{
+          width: `${width}%`,
+          color: ink,
+          background: `color-mix(in srgb, ${fill} 92%, transparent)`,
+          boxShadow: "var(--liquid-glass-edge)",
+          WebkitBackdropFilter: "var(--liquid-glass-filter)",
+          backdropFilter: "var(--liquid-glass-filter)",
+        }}
+      >
+        {outside ? null : (
+          <span
+            ref={labelRef}
+            className="shrink-0 whitespace-nowrap text-[0.65rem] font-semibold"
+          >
+            {label}
+          </span>
+        )}
+      </div>
+      {outside ? (
+        <span
+          ref={labelRef}
+          data-budget-label
+          className="ml-2 shrink-0 whitespace-nowrap text-[0.65rem] font-semibold"
+          style={{ color: ink }}
+        >
+          {label}
+        </span>
+      ) : null}
+    </div>
   );
 }

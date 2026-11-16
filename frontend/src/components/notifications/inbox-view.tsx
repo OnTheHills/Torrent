@@ -212,11 +212,16 @@ export function InboxView() {
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[color-mix(in_srgb,white_40%,transparent)]"
+          className="pointer-events-none absolute inset-0 bg-[color-mix(in_srgb,white_22%,transparent)]"
           style={{ boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.55)" }}
         />
-        <ShellContent>
-        <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-[calc(144px+2rem)] sm:px-6 md:pb-12 md:pt-[calc(144px+3rem)]">
+        {/* Short seam only — the hero is too short for the home-page wash, which was covering the rainbow. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-32 bg-[linear-gradient(180deg,transparent_0%,color-mix(in_srgb,var(--background)_12%,transparent)_25%,color-mix(in_srgb,var(--background)_45%,transparent)_50%,color-mix(in_srgb,var(--background)_78%,transparent)_75%,var(--background)_100%)] md:h-40"
+        />
+        <ShellContent className="relative z-10">
+        <div className="relative mx-auto flex max-w-6xl flex-col justify-start px-4 pb-10 pt-[calc(144px+2.5rem)] sm:px-6 md:pb-12 md:pt-[calc(144px+3.5rem)]">
           <div className="w-full max-w-2xl md:max-w-3xl lg:max-w-4xl">
             <h1 className="text-3xl font-semibold tracking-tight md:text-5xl md:leading-[1.1]">
               {t("inboxTitle")}
@@ -230,7 +235,7 @@ export function InboxView() {
       </section>
 
       <ShellContent>
-      <div className="mx-auto max-w-6xl space-y-4 px-4 py-8 sm:px-6">
+      <div className="mx-auto max-w-6xl space-y-4 px-4 pb-8 pt-4 sm:px-6 md:pb-12 md:pt-6">
         {loading ? (
           <p className="text-sm text-muted-foreground">{t("matchesLoading")}</p>
         ) : null}

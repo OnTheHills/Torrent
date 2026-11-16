@@ -9,11 +9,7 @@ import type {
   SourceFilter,
 } from "@/components/tor/tor-filters";
 import type { ListingStage } from "@/lib/listing-stage";
-import type {
-  IntegrityStatus,
-  ListingSort,
-  Tor,
-} from "@/types/tor";
+import type { IntegrityStatus, ListingSort, Tor } from "@/types/tor";
 
 export function ListingsView({
   tors = [],

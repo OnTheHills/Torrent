@@ -61,6 +61,8 @@ function renderChart(file, componentName, data, clientFunction) {
     "@/components/providers/locale-provider": { useLocale: () => ({ locale: "en", t: (key) => dictionary.en[key] }) },
     "@/components/ui/button": { Button: ({ children }) => React.createElement("button", null, children) },
     "@/lib/api": api,
+    "@/components/tor/listing-badges": { categoryGlass: () => ({ fill: "var(--palette-gray-150)", ink: "var(--palette-gray-700)" }) },
+    "@/components/dashboard/dashboard-loading": { ChartSkeleton: ({ label }) => React.createElement("div", { role: "status", "aria-label": label }) },
   });
   return renderToStaticMarkup(React.createElement(exports[componentName]));
 }
@@ -87,7 +89,7 @@ test("category controller response matches frontend GET utility and unchanged ch
   assert.match(html, /data-category-bar="Web Application" data-frequency="4"/);
   assert.match(html, /data-category-bar="Others" data-frequency="12"/);
   assert.ok(html.indexOf('data-category-bar="Web Application"') < html.indexOf('data-category-bar="Others"'));
-  assert.match(html, /Number of TORs: 12/);
+  assert.match(html, />12</);
 });
 
 for (const endpoint of [

@@ -107,7 +107,7 @@ export function ShellAppBar({
           {showAlerts ? <AlertsPopover tone="chrome" /> : null}
           {!user ? <ViewToggle tone="chrome" className="hidden sm:inline-flex" /> : null}
           <LocaleToggle tone="chrome" />
-          <AccountControl />
+          <AccountControl label={vendorName} />
         </AppBar.Right>
       </AppBar.Primary>
     </AppBar>

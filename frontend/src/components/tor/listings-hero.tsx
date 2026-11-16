@@ -39,9 +39,7 @@ export function ListingsHero({ vendor = false }: { vendor?: boolean }) {
               {vendor ? t("vendorCatalogTitle") : t("opportunitiesTitle")}
             </h1>
             <p className="mt-3 text-base leading-[1.65] text-muted-foreground md:text-lg">
-              {vendor
-                ? t("vendorCatalogDescription")
-                : t("opportunitiesDescription")}
+              {t("opportunitiesDescription")}
             </p>
           </div>
         </div>

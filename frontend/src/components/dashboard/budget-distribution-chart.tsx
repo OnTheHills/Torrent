@@ -2,9 +2,22 @@
 
 import { useId, useMemo } from "react";
 
+import { ChartSkeleton } from "@/components/dashboard/dashboard-loading";
 import { useLocale } from "@/components/providers/locale-provider";
 import { budgetBoundaryLabels, buildBudgetDistribution } from "@/lib/budget-distribution";
 import type { Tor } from "@/types/tor";
+
+/** Cheapest is pale orange; each step moves toward red, never into brown. */
+const BAND_SHADES = [
+  "var(--palette-orange-150)",
+  "var(--palette-orange-250)",
+  "var(--palette-orange-400)",
+  "var(--palette-orange-500)",
+  "color-mix(in srgb, var(--palette-orange-500) 45%, var(--palette-red-400))",
+  "var(--palette-red-400)",
+  "var(--palette-red-500)",
+  "var(--palette-red-600)",
+];
 
 export function BudgetDistributionChart({ tors, isPending = false, isError = false }: {
   tors: Tor[];
@@ -17,7 +30,7 @@ export function BudgetDistributionChart({ tors, isPending = false, isError = fal
   const labels = useMemo(() => budgetBoundaryLabels(bins), [bins]);
   const fullBudget = (value: number) => `฿${value.toLocaleString(locale === "th" ? "th-TH" : "en-GB", { maximumSignificantDigits: 17 })}`;
 
-  if (isPending && !isError) return <div role="status" aria-label={t("distributionLoading")} className="h-80 animate-pulse rounded-lg bg-background/60" />;
+  if (isPending && !isError) return <ChartSkeleton label={t("distributionLoading")} />;
   if (isError && !tors.length) return <p role="alert" className="py-16 text-center text-sm text-muted-foreground">{t("distributionError")}</p>;
   if (!bins.length) return <p className="py-16 text-center text-sm text-muted-foreground">{t("distributionEmpty")}</p>;
 
@@ -52,12 +65,21 @@ export function BudgetDistributionChart({ tors, isPending = false, isError = fal
                   <div tabIndex={0} role="group" aria-describedby={`${tooltipPrefix}-${index}`}
                     aria-label={`${t("distributionCount")}: ${bin.count}; ${t("distributionRange")}: ${range(index)}`}
                     className="absolute inset-0 z-10 rounded-sm outline-offset-2" />
-                  <div data-budget-bin={index} className="relative w-full rounded-t-sm bg-sky-500/70 ring-1 ring-inset ring-sky-500/30 transition-[height] duration-500 group-hover:bg-sky-500/90 group-focus-within:bg-sky-500/90"
-                    style={{ height: `${bin.count / yMax * 100}%` }}>
-                    <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-medium">{bin.count.toLocaleString()}</span>
+                  <div
+                    data-budget-bin={index}
+                    className="relative w-full rounded-t-sm transition-[height] duration-500"
+                    style={{
+                      height: `${bin.count / yMax * 100}%`,
+                      background: `linear-gradient(180deg, rgb(255 255 255 / 0.5), rgb(255 255 255 / 0.06) 38%, transparent 70%), color-mix(in srgb, ${BAND_SHADES[index] ?? BAND_SHADES.at(-1)} 58%, transparent)`,
+                      boxShadow: "var(--liquid-glass-edge)",
+                      WebkitBackdropFilter: "var(--liquid-glass-filter)",
+                      backdropFilter: "var(--liquid-glass-filter)",
+                    }}
+                  >
+                    <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-medium text-[var(--palette-gray-800)]">{bin.count.toLocaleString()}</span>
                   </div>
                   <div id={`${tooltipPrefix}-${index}`} role="tooltip"
-                    className={`pointer-events-none absolute top-1 z-20 w-max max-w-[min(22rem,75vw)] rounded-lg border bg-popover px-3 py-2 text-xs text-popover-foreground opacity-0 shadow-md group-hover:opacity-100 group-focus-within:opacity-100 ${index < 3 ? "left-0" : "right-0"}`}>
+                    className={`pointer-events-none absolute top-1 z-20 w-max max-w-[min(22rem,75vw)] rounded-xl bg-[rgb(255_255_255/0.7)] px-3 py-2 text-xs text-popover-foreground opacity-0 shadow-[inset_1px_1px_0_0_rgb(255_255_255/0.92),0_0_0_1px_color-mix(in_srgb,var(--palette-gray-300)_38%,transparent),0_8px_24px_rgb(0_0_0/0.07)] backdrop-blur-md backdrop-saturate-150 group-hover:opacity-100 group-focus-within:opacity-100 ${index < 3 ? "left-0" : "right-0"}`}>
                     <p>{t("distributionCount")}: {bin.count.toLocaleString()}</p>
                     <p className="mt-1 break-words">{t("distributionRange")}: {range(index)} THB</p>
                   </div>

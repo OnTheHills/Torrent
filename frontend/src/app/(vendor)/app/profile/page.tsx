@@ -2,7 +2,7 @@
 
 
 import { ShellContent } from "@/components/layout/shell-content";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Cancel01Icon,
@@ -26,13 +26,15 @@ import {
 import { api } from "@/lib/api";
 import { getMe } from "@/lib/auth";
 import { cn } from "@/lib/utils";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+
+const heroFade =
+  "pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[min(65%,14rem)] bg-[linear-gradient(180deg,transparent_0%,color-mix(in_srgb,var(--background)_45%,transparent)_35%,var(--background)_72%,var(--background)_100%)]";
+
+const grayBlueprintStyle = {
+  "--blueprint-paper": "var(--palette-gray-50)",
+  "--blueprint-grid":
+    "color-mix(in srgb, var(--palette-gray-500) 34%, transparent)",
+} as CSSProperties;
 
 const fieldClass =
   "h-8 rounded-[6px] border-0 bg-white px-3.5 text-sm shadow-none ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_32%,transparent)] md:text-sm focus-visible:border-transparent focus-visible:ring-[color-mix(in_srgb,var(--palette-teal-400)_45%,transparent)]";
@@ -43,7 +45,26 @@ function fitTextBox(element: HTMLTextAreaElement) {
 }
 
 const profileCard =
-  "px-2 py-6 rounded-lg bg-[color-mix(in_srgb,var(--palette-gray-50)_62%,transparent)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_88%,transparent)] ring-1 ring-[color-mix(in_srgb,white_72%,transparent)] backdrop-blur-md backdrop-saturate-150";
+  "liquid-glass-card liquid-glass-card-static liquid-glass-card-clear rounded-2xl p-5 md:p-6";
+
+function ProfileSectionHeading({
+  title,
+  description,
+}: {
+  title: string;
+  description?: string;
+}) {
+  return (
+    <div className="min-w-0 space-y-2">
+      <h2 className="text-2xl font-semibold tracking-tight md:text-[2rem] md:leading-[1.2]">
+        {title}
+      </h2>
+      {description ? (
+        <p className="text-base leading-[1.7] text-muted-foreground">{description}</p>
+      ) : null}
+    </div>
+  );
+}
 
 const CAPABILITY_GROUPS = [
   {
@@ -533,33 +554,33 @@ export default function ProfilePage() {
 
   return (
     <div>
-      <section className="relative -mt-[144px] overflow-hidden hero-atmosphere text-hero-foreground">
-        <ShellContent>
-        <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-[calc(144px+2rem)] sm:px-6 md:pb-12 md:pt-[calc(144px+3rem)]">
+      <section
+        className="relative -mt-[144px] min-h-[20rem] overflow-hidden category-blueprint text-foreground md:min-h-[22rem]"
+        style={grayBlueprintStyle}
+      >
+        <div aria-hidden className={heroFade} />
+        <ShellContent className="relative z-10">
+        <div className="relative mx-auto flex min-h-[20rem] max-w-6xl flex-col justify-end px-4 pb-10 pt-[calc(144px+1.25rem)] sm:px-6 md:min-h-[22rem] md:pb-12 md:pt-[calc(144px+1.75rem)]">
           <div className="w-full max-w-2xl md:max-w-3xl lg:max-w-4xl">
-            <h1 className="text-3xl font-semibold tracking-tight md:text-5xl md:leading-[1.1]">
-              Capability profile
+            <h1 className="text-3xl font-semibold tracking-tight md:text-4xl md:leading-[1.15]">
+              Company Profile
             </h1>
-            <p className="mt-5 text-base leading-[1.7] text-hero-muted md:text-lg">
+            <p className="mt-3 text-base leading-[1.65] text-muted-foreground md:text-lg">
               Matching uses technologies, project types, and team size. Saving
               queues your profile against current TORs.
             </p>
           </div>
         </div>
         </ShellContent>
-        <div aria-hidden className="h-px bg-border" />
       </section>
 
       <ShellContent>
-      <div className="mx-auto max-w-6xl space-y-6 px-4 py-12 sm:px-6 md:py-16">
-        <form className="space-y-6" onSubmit={(event) => { event.preventDefault(); void handleSubmit(); }}>
-          <Card className={profileCard}>
-            <CardHeader>
-              <CardTitle className="text-xl font-semibold leading-snug tracking-tight">
-                Vendor details
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+      <div className="mx-auto max-w-6xl space-y-6 px-4 pb-12 pt-4 sm:px-6 md:pb-16 md:pt-6">
+        <form className="space-y-10 md:space-y-12" onSubmit={(event) => { event.preventDefault(); void handleSubmit(); }}>
+          <section className="space-y-6">
+          <ProfileSectionHeading title="Vendor details" />
+          <div className={profileCard}>
+            <div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <fieldset className="flex flex-col gap-2.5 sm:col-span-2">
                   <legend className="mb-2.5 text-sm font-medium leading-snug">
@@ -712,16 +733,14 @@ export default function ProfilePage() {
                   />
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+          </section>
 
-          <Card className={profileCard}>
-            <CardHeader>
-              <CardTitle className="text-xl font-semibold leading-snug tracking-tight">
-                What you deliver
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+          <section className="space-y-6">
+          <ProfileSectionHeading title="What you deliver" />
+          <div className={profileCard}>
+            <div>
               <div className="grid gap-8 sm:grid-cols-2">
                 <div
                   role="group"
@@ -1266,27 +1285,26 @@ export default function ProfilePage() {
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+          </section>
 
-          <Card className={profileCard}>
-            <CardHeader>
-              <CardTitle className="text-xl font-semibold leading-snug tracking-tight">
-                Certificates
-              </CardTitle>
-              <CardDescription>
-                Add your credentials in the relevant category. Choose up to 5 PNG images for each certificate type.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          <section className="space-y-6">
+          <ProfileSectionHeading
+            title="Certificates"
+            description="Add your credentials in the relevant category. Choose up to 5 PNG images for each certificate type."
+          />
+          <div className={profileCard}>
+            <div>
               <CertificateUploads
                 value={certificates}
                 disabled={isSaving || isProfileLoading || profileLoadFailed}
                 onChange={(category, entries) => setCertificates((current) => ({ ...current, [category]: entries }))}
                 onBusyChange={(category, busy) => setCheckingCertificates((current) => ({ ...current, [category]: busy }))}
               />
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+          </section>
 
           <div className="flex items-center justify-end gap-3">
             {saveMessage ? (

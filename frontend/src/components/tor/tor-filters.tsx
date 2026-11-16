@@ -214,6 +214,14 @@ export function TorFilters({
         clearLabel={t("clearFilters")}
         onClear={onClear}
       />
+      {showMatchFilter ? (
+        <FilterChecks
+          label={t("fitFilter")}
+          items={[{ value: "team", label: t("teamOnly") }]}
+          isChecked={() => value.teamOnly}
+          onToggle={(_, checked) => onChange({ ...value, teamOnly: checked })}
+        />
+      ) : null}
       <FilterChecks
         label={t("lifecycle")}
         items={[

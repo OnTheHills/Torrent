@@ -12,6 +12,7 @@ import {
 
 import { ShellAppBar } from "@/components/layout/app-bar";
 import { ShellContent } from "@/components/layout/shell-content";
+import { SiteFooter } from "@/components/layout/site-footer";
 import { useLocale } from "@/components/providers/locale-provider";
 import { Button } from "@/components/ui/button";
 import {

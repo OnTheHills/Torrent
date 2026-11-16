@@ -27,6 +27,7 @@ const { dictionary } = loadSource("../src/lib/i18n/dictionary.ts");
 const { BudgetDistributionChart } = loadSource("../src/components/dashboard/budget-distribution-chart.tsx", {
   "@/components/providers/locale-provider": { useLocale: () => ({ locale: "en", t: (key) => dictionary.en[key] }) },
   "@/lib/budget-distribution": distribution,
+  "@/components/dashboard/dashboard-loading": { ChartSkeleton: ({ label }) => React.createElement("div", { role: "status", "aria-label": label }) },
 });
 const render = (props) => renderToStaticMarkup(React.createElement(BudgetDistributionChart, { tors: [], ...props }));
 
@@ -37,7 +38,7 @@ test("renders loading, empty, failed request and stale data states", () => {
   assert.match(render({ isError: true, isPending: true }), /Unable to load TOR budgets/);
   const stale = render({ isError: true, tors: [{ id: "1", budgetThb: 100 }] });
   assert.match(stale, /Showing the last available TOR budgets/);
-  assert.equal((stale.match(/data-budget-bin=/g) ?? []).length, 2);
+  assert.equal((stale.match(/data-budget-bin=/g) ?? []).length, 8);
   assert.match(stale, /&gt; ฿10M/);
 });
 
@@ -46,18 +47,18 @@ test("renders eight bars with a Less than first label and fixed > ฿10M final l
   assert.equal((html.match(/data-budget-bin=/g) ?? []).length, 8);
   assert.equal((html.match(/role="tooltip"/g) ?? []).length, 8);
   assert.equal((html.match(/tabindex="0"/g) ?? []).length, 8);
-  assert.match(html, /Less than ฿150K/);
+  assert.match(html, /Less than ฿10K/);
   assert.match(html, /&gt; ฿10M/);
-  assert.match(html, /Budget Range: \[฿5,300,000, ฿10,000,000\] THB/);
+  assert.match(html, /Budget Range: \[฿5,000,000, ฿10,000,000\] THB/);
   assert.match(html, /Budget Range: &gt; ฿10,000,000 THB/);
   assert.match(html, /TOR budget ranges \(THB\)/);
-  assert.match(html, /identical values stay together/);
+  assert.match(html, /round amounts/);
 });
 
-test("collapsed ranges and a zero-count overflow still display the final label", () => {
+test("a ฿10M record stays in the ฿5M–฿10M band and the overflow bar remains", () => {
   const html = render({ tors: [{ id: "1", budgetThb: 10000000 }] });
-  assert.equal((html.match(/data-budget-bin=/g) ?? []).length, 2);
-  assert.match(html, /≤ ฿10M/);
+  assert.equal((html.match(/data-budget-bin=/g) ?? []).length, 8);
+  assert.match(html, /\[฿5M –/);
   assert.match(html, /&gt; ฿10M/);
   assert.match(html, /Number of TORs: 0/);
 });

@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 820" role="img" aria-labelledby="title desc">
+  <title id="title">TORRENT architecture layers</title>
+  <desc id="desc">Layer diagram of the TORRENT stack from clients through Next.js, Express, services, repositories, MongoDB, and external integrations.</desc>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6e2d16"/>
+    </marker>
+    <style>
+      .title { font: 700 22px ui-sans-serif, system-ui, sans-serif; fill: #10261f; }
+      .subtitle { font: 400 13px ui-sans-serif, system-ui, sans-serif; fill: #2c6556; }
+      .layer-label { font: 600 12px ui-sans-serif, system-ui, sans-serif; fill: #1d443a; letter-spacing: 0.04em; }
+      .box-title { font: 600 13px ui-sans-serif, system-ui, sans-serif; fill: #10261f; }
+      .box-sub { font: 400 11px ui-sans-serif, system-ui, sans-serif; fill: #3d8a75; }
+      .flow { font: 500 11px ui-sans-serif, system-ui, sans-serif; fill: #6e2d16; }
+      .ext-title { font: 600 12px ui-sans-serif, system-ui, sans-serif; fill: #3f1a0e; }
+      .ext-sub { font: 400 10px ui-sans-serif, system-ui, sans-serif; fill: #9a3e1b; }
+      .legend { font: 400 11px ui-sans-serif, system-ui, sans-serif; fill: #2c6556; }
+    </style>
+  </defs>
+
+  <!-- Canvas -->
+  <rect width="1080" height="820" fill="#f7faf8"/>
+
+  <text x="40" y="42" class="title">TORRENT  architecture layers</text>
+  <text x="40" y="64" class="subtitle">Next.js UI · Express API · MongoDB · procurement sync &amp; AI matching</text>
+
+  <!-- ========== Layer 1: Clients ========== -->
+  <rect x="40" y="90" width="720" height="78" rx="12" fill="#e2f5ee" stroke="#5eb299" stroke-width="1.5"/>
+  <text x="56" y="112" class="layer-label">L1 · CLIENTS</text>
+
+  <rect x="56" y="122" width="150" height="34" rx="8" fill="#fff" stroke="#3d8a75" stroke-width="1"/>
+  <text x="131" y="143" text-anchor="middle" class="box-title">Public browser</text>
+
+  <rect x="220" y="122" width="150" height="34" rx="8" fill="#fff" stroke="#3d8a75" stroke-width="1"/>
+  <text x="295" y="143" text-anchor="middle" class="box-title">Vendor workspace</text>
+
+  <rect x="384" y="122" width="150" height="34" rx="8" fill="#fff" stroke="#3d8a75" stroke-width="1"/>
+  <text x="459" y="143" text-anchor="middle" class="box-title">Admin console</text>
+
+  <rect x="548" y="122" width="192" height="34" rx="8" fill="#fff" stroke="#3d8a75" stroke-width="1"/>
+  <text x="644" y="143" text-anchor="middle" class="box-title">LINE Official Account</text>
+
+  <!-- ========== Layer 2: Presentation ========== -->
+  <rect x="40" y="188" width="720" height="112" rx="12" fill="#d5f0e6" stroke="#5eb299" stroke-width="1.5"/>
+  <text x="56" y="210" class="layer-label">L2 · PRESENTATION  frontend/ (Next.js 16 + React 19)</text>
+
+  <rect x="56" y="222" width="168" height="58" rx="8" fill="#fff" stroke="#3d8a75" stroke-width="1"/>
+  <text x="140" y="246" text-anchor="middle" class="box-title">App Router</text>
+  <text x="140" y="264" text-anchor="middle" class="box-sub">(public) (vendor) (admin)</text>
+
+  <rect x="240" y="222" width="168" height="58" rx="8" fill="#fff" stroke="#3d8a75" stroke-width="1"/>
+  <text x="324" y="246" text-anchor="middle" class="box-title">UI components</text>
+  <text x="324" y="264" text-anchor="middle" class="box-sub">tor · dashboard · admin</text>
+
+  <rect x="424" y="222" width="152" height="58" rx="8" fill="#fff" stroke="#3d8a75" stroke-width="1"/>
+  <text x="500" y="246" text-anchor="middle" class="box-title">lib / i18n</text>
+  <text x="500" y="264" text-anchor="middle" class="box-sub">api.ts · dictionary</text>
+
+  <rect x="592" y="222" width="148" height="58" rx="8" fill="#fff" stroke="#3d8a75" stroke-width="1"/>
+  <text x="666" y="246" text-anchor="middle" class="box-title">Providers</text>
+  <text x="666" y="264" text-anchor="middle" class="box-sub">session · audience</text>
+
+  <!-- ========== Layer 3: API ========== -->
+  <rect x="40" y="320" width="720" height="112" rx="12" fill="#fcebe0" stroke="#ea8348" stroke-width="1.5"/>
+  <text x="56" y="342" class="layer-label">L3 · HTTP API  backend/src (Express 5)</text>
+
+  <rect x="56" y="354" width="112" height="58" rx="8" fill="#fff" stroke="#c45322" stroke-width="1"/>
+  <text x="112" y="378" text-anchor="middle" class="box-title">Routes</text>
+  <text x="112" y="396" text-anchor="middle" class="box-sub">/api/*</text>
+
+  <rect x="184" y="354" width="128" height="58" rx="8" fill="#fff" stroke="#c45322" stroke-width="1"/>
+  <text x="248" y="378" text-anchor="middle" class="box-title">Middleware</text>
+  <text x="248" y="396" text-anchor="middle" class="box-sub">auth · role</text>
+
+  <rect x="328" y="354" width="140" height="58" rx="8" fill="#fff" stroke="#c45322" stroke-width="1"/>
+  <text x="398" y="378" text-anchor="middle" class="box-title">Controllers</text>
+  <text x="398" y="396" text-anchor="middle" class="box-sub">HTTP  services</text>
+
+  <rect x="484" y="354" width="256" height="58" rx="8" fill="#fff" stroke="#c45322" stroke-width="1"/>
+  <text x="612" y="370" text-anchor="middle" class="box-title">Mounted routers</text>
+  <text x="612" y="388" text-anchor="middle" class="box-sub">auth · tors · tor-matches · sync</text>
+  <text x="612" y="404" text-anchor="middle" class="box-sub">admin · vendor · line · users</text>
+
+  <!-- ========== Layer 4: Domain services ========== -->
+  <rect x="40" y="452" width="720" height="112" rx="12" fill="#fdf4ee" stroke="#ea8348" stroke-width="1.5"/>
+  <text x="56" y="474" class="layer-label">L4 · DOMAIN SERVICES  backend/src/services</text>
+
+  <rect x="56" y="486" width="100" height="58" rx="8" fill="#fff" stroke="#c45322" stroke-width="1"/>
+  <text x="106" y="510" text-anchor="middle" class="box-title">auth</text>
+  <text x="106" y="528" text-anchor="middle" class="box-sub">Google login</text>
+
+  <rect x="168" y="486" width="100" height="58" rx="8" fill="#fff" stroke="#c45322" stroke-width="1"/>
+  <text x="218" y="510" text-anchor="middle" class="box-title">tor</text>
+  <text x="218" y="528" text-anchor="middle" class="box-sub">CRUD · OCR</text>
+
+  <rect x="280" y="486" width="100" height="58" rx="8" fill="#fff" stroke="#c45322" stroke-width="1"/>
+  <text x="330" y="510" text-anchor="middle" class="box-title">admin</text>
+  <text x="330" y="528" text-anchor="middle" class="box-sub">review · rules</text>
+
+  <rect x="392" y="486" width="100" height="58" rx="8" fill="#fff" stroke="#c45322" stroke-width="1"/>
+  <text x="442" y="510" text-anchor="middle" class="box-title">vendor</text>
+  <text x="442" y="528" text-anchor="middle" class="box-sub">profiles</text>
+
+  <rect x="504" y="486" width="100" height="58" rx="8" fill="#fff" stroke="#c45322" stroke-width="1"/>
+  <text x="554" y="510" text-anchor="middle" class="box-title">ai</text>
+  <text x="554" y="528" text-anchor="middle" class="box-sub">Vertex</text>
+
+  <rect x="616" y="486" width="124" height="58" rx="8" fill="#fff" stroke="#c45322" stroke-width="1"/>
+  <text x="678" y="510" text-anchor="middle" class="box-title">line</text>
+  <text x="678" y="528" text-anchor="middle" class="box-sub">link · digest</text>
+
+  <!-- ========== Layer 5: Jobs ========== -->
+  <rect x="40" y="584" width="720" height="78" rx="12" fill="#f0faf6" stroke="#6abca6" stroke-width="1.5"/>
+  <text x="56" y="606" class="layer-label">L5 · JOBS &amp; SCHEDULERS  jobs/ · scheduler/</text>
+
+  <rect x="56" y="616" width="210" height="34" rx="8" fill="#fff" stroke="#3d8a75" stroke-width="1"/>
+  <text x="161" y="637" text-anchor="middle" class="box-title">Sync (daily 00:00 BKK)</text>
+
+  <rect x="282" y="616" width="210" height="34" rx="8" fill="#fff" stroke="#3d8a75" stroke-width="1"/>
+  <text x="387" y="637" text-anchor="middle" class="box-title">Match queue (Vertex)</text>
+
+  <rect x="508" y="616" width="232" height="34" rx="8" fill="#fff" stroke="#3d8a75" stroke-width="1"/>
+  <text x="624" y="637" text-anchor="middle" class="box-title">LINE weekly digest (Mon)</text>
+
+  <!-- ========== Layer 6: Data access ========== -->
+  <rect x="40" y="682" width="350" height="78" rx="12" fill="#e2f5ee" stroke="#5eb299" stroke-width="1.5"/>
+  <text x="56" y="704" class="layer-label">L6 · DATA ACCESS</text>
+  <rect x="56" y="714" width="150" height="34" rx="8" fill="#fff" stroke="#3d8a75" stroke-width="1"/>
+  <text x="131" y="735" text-anchor="middle" class="box-title">Repositories</text>
+  <rect x="220" y="714" width="150" height="34" rx="8" fill="#fff" stroke="#3d8a75" stroke-width="1"/>
+  <text x="295" y="735" text-anchor="middle" class="box-title">Mongoose models</text>
+
+  <!-- ========== Layer 7: Persistence ========== -->
+  <rect x="410" y="682" width="350" height="78" rx="12" fill="#1d443a" stroke="#10261f" stroke-width="1.5"/>
+  <text x="426" y="704" class="layer-label" fill="#a8decc">L7 · PERSISTENCE</text>
+  <text x="585" y="738" text-anchor="middle" fill="#f0faf6" style="font:600 15px ui-sans-serif, system-ui, sans-serif">MongoDB</text>
+  <text x="585" y="754" text-anchor="middle" fill="#7ecbb3" style="font:400 11px ui-sans-serif, system-ui, sans-serif">tors · users · matches · jobs · audit</text>
+
+  <!-- Vertical flow arrows between main stack -->
+  <g fill="none" stroke="#6e2d16" stroke-width="1.5" marker-end="url(#arrow)">
+    <path d="M400,168 V188"/>
+    <path d="M400,300 V320"/>
+    <path d="M400,432 V452"/>
+    <path d="M400,564 V584"/>
+    <path d="M215,662 V682"/>
+    <path d="M585,662 V682"/>
+  </g>
+  <text x="412" y="182" class="flow">HTTPS</text>
+  <text x="412" y="314" class="flow">/api</text>
+  <text x="412" y="446" class="flow">call</text>
+  <text x="412" y="578" class="flow">queue</text>
+
+  <!-- ========== External column ========== -->
+  <rect x="800" y="90" width="240" height="670" rx="12" fill="#fffbf9" stroke="#f0a06e" stroke-width="1.5"/>
+  <text x="920" y="118" text-anchor="middle" class="ext-title">External systems</text>
+  <text x="920" y="136" text-anchor="middle" class="ext-sub">ingest · auth · AI · messaging</text>
+
+  <rect x="820" y="156" width="200" height="52" rx="8" fill="#f9d7c0" stroke="#ea8348" stroke-width="1"/>
+  <text x="920" y="178" text-anchor="middle" class="box-title">e-GP RSS</text>
+  <text x="920" y="194" text-anchor="middle" class="ext-sub">draft TOR / invitations</text>
+
+  <rect x="820" y="222" width="200" height="52" rx="8" fill="#f9d7c0" stroke="#ea8348" stroke-width="1"/>
+  <text x="920" y="244" text-anchor="middle" class="box-title">BMA eGP2</text>
+  <text x="920" y="260" text-anchor="middle" class="ext-sub">project search + PDFs</text>
+
+  <rect x="820" y="288" width="200" height="52" rx="8" fill="#f9d7c0" stroke="#ea8348" stroke-width="1"/>
+  <text x="920" y="310" text-anchor="middle" class="box-title">data.go.th / SME-GP</text>
+  <text x="920" y="326" text-anchor="middle" class="ext-sub">open data + process5</text>
+
+  <rect x="820" y="370" width="200" height="52" rx="8" fill="#fbe6d8" stroke="#ea8348" stroke-width="1"/>
+  <text x="920" y="392" text-anchor="middle" class="box-title">Google Identity</text>
+  <text x="920" y="408" text-anchor="middle" class="ext-sub">ID token verification</text>
+
+  <rect x="820" y="436" width="200" height="52" rx="8" fill="#fbe6d8" stroke="#ea8348" stroke-width="1"/>
+  <text x="920" y="458" text-anchor="middle" class="box-title">Vertex Gemini</text>
+  <text x="920" y="474" text-anchor="middle" class="ext-sub">score · match · notes</text>
+
+  <rect x="820" y="502" width="200" height="52" rx="8" fill="#fbe6d8" stroke="#ea8348" stroke-width="1"/>
+  <text x="920" y="524" text-anchor="middle" class="box-title">LINE Messaging API</text>
+  <text x="920" y="540" text-anchor="middle" class="ext-sub">webhook · weekly digest</text>
+
+  <text x="920" y="590" text-anchor="middle" class="ext-sub">source adapters </text>
+  <text x="920" y="606" text-anchor="middle" class="ext-sub">sync job  MongoDB</text>
+  <text x="920" y="640" text-anchor="middle" class="ext-sub">Google  auth service</text>
+  <text x="920" y="656" text-anchor="middle" class="ext-sub">Vertex  match / review</text>
+  <text x="920" y="672" text-anchor="middle" class="ext-sub">LINE  line service</text>
+
+  <!-- Connectors from externals into stack -->
+  <g fill="none" stroke="#ea8348" stroke-width="1.25" stroke-dasharray="4 3" marker-end="url(#arrow)">
+    <path d="M820,182 H760 V616 H720"/>
+    <path d="M820,396 H760 V396"/>
+    <path d="M820,462 H760 V514"/>
+    <path d="M820,528 H760 V514"/>
+  </g>
+
+  <!-- Legend -->
+  <rect x="40" y="780" width="14" height="14" rx="3" fill="#d5f0e6" stroke="#5eb299"/>
+  <text x="60" y="791" class="legend">Frontend / data</text>
+  <rect x="180" y="780" width="14" height="14" rx="3" fill="#fcebe0" stroke="#ea8348"/>
+  <text x="200" y="791" class="legend">Backend request path</text>
+  <rect x="370" y="780" width="14" height="14" rx="3" fill="#fffbf9" stroke="#f0a06e"/>
+  <text x="390" y="791" class="legend">External integrations</text>
+  <rect x="560" y="780" width="14" height="14" rx="3" fill="#1d443a"/>
+  <text x="580" y="791" class="legend">Database</text>
+</svg>

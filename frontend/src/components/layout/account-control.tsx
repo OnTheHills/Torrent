@@ -25,12 +25,11 @@ function displayName(user: SessionUser) {
   return user.email.split("@")[0];
 }
 
-function initials(user: SessionUser) {
-  const name = displayName(user);
+function initials(name: string) {
   return name.slice(0, 1).toUpperCase();
 }
 
-export function AccountControl() {
+export function AccountControl({ label }: { label?: string } = {}) {
   const { t } = useLocale();
   const { user, loading, logout } = useSession();
   const router = useRouter();
@@ -56,7 +55,7 @@ export function AccountControl() {
     );
   }
 
-  const name = displayName(user);
+  const name = label || displayName(user);
 
   return (
     <FrostPopup>
@@ -80,7 +79,7 @@ export function AccountControl() {
           />
         ) : (
           <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--palette-gray-400)_28%,transparent)] text-[10px] font-semibold text-foreground">
-            {initials(user)}
+            {initials(name)}
           </span>
         )}
       </FrostPopupTrigger>

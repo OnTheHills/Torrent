@@ -18,53 +18,25 @@ function verify(bins, values) {
   for (let i = 0; i < bins.length - 1; i++) assert.equal(bins[i].upper, bins[i + 1].lower);
 }
 
-test("seven quantile groups plus the fixed overflow group when values are distinct", () => {
-  const values = Array.from({ length: 70 }, (_, i) => (i + 1) * 1000);
-  values.push(10000001);
+test("uses round budget bands plus the open group above ฿10M", () => {
+  const values = [9_999, 10_000, 49_999, 50_000, 100_000, 500_000, 1_000_000, 5_000_000, 10_000_000, 10_000_001];
   const bins = buildBudgetDistribution(records(values));
   assert.equal(bins.length, 8);
-  assert.deepEqual(bins.map((bin) => bin.count), [10, 10, 10, 10, 10, 10, 10, 1]);
-  assert.equal(bins[0].lower, 0);
-  assert.equal(bins[0].upper, 10500);
+  assert.deepEqual(bins.map((bin) => bin.upper), [10_000, 50_000, 100_000, 500_000, 1_000_000, 5_000_000, 10_000_000, Infinity]);
+  assert.deepEqual(bins.map((bin) => bin.count), [1, 2, 1, 1, 1, 1, 2, 1]);
+  assert.ok(belongs(10_000_000, bins[6]));
+  assert.ok(belongs(10_000_001, bins[7]));
   verify(bins, values);
 });
 
-test("exactly ฿10M stays in group seven; ฿10,000,001 goes in group eight", () => {
-  const values = [1, 2, 3, 4, 5, 6, 10000000, 10000001];
+test("equal budgets stay in one round band", () => {
+  const values = [...Array(100).fill(100), 200, 12_000, 10_000_000];
   const bins = buildBudgetDistribution(records(values));
   assert.equal(bins.length, 8);
+  assert.equal(bins[0].count, 101);
+  assert.equal(bins[1].count, 1);
   assert.equal(bins[6].count, 1);
-  assert.equal(bins[7].count, 1);
-  assert.ok(belongs(10000000, bins[6]));
-  assert.ok(!belongs(10000000, bins[7]));
   verify(bins, values);
-});
-
-test("skewed values produce quantile counts rather than equal budget widths", () => {
-  const values = [1, 2, 3, 4, 5, 6, 10000000];
-  const bins = buildBudgetDistribution(records(values));
-  assert.deepEqual(bins.slice(0, 7).map((bin) => bin.count), [1, 1, 1, 1, 1, 1, 1]);
-  assert.notEqual(bins[0].upper - bins[0].lower, bins[6].upper - bins[6].lower);
-});
-
-test("heavy ties retain seven groups when seven distinct lower values exist", () => {
-  const values = [...Array(100).fill(100), 200, 300, 400, 500, 600, 700];
-  const bins = buildBudgetDistribution(records(values));
-  assert.equal(bins.length, 8);
-  assert.deepEqual(bins.map((bin) => bin.count), [100, 1, 1, 1, 1, 1, 1, 0]);
-  verify(bins, values);
-});
-
-test("ties collapse to meaningful ranges without splitting equal budgets", () => {
-  for (const values of [[300], [300, 300, 300], [100, 100, 200, 200, 200], [10000000], [10000001]]) {
-    const bins = buildBudgetDistribution(records(values));
-    assert.ok(bins.length <= 3);
-    verify(bins, values);
-    for (const value of new Set(values)) {
-      const bin = bins.find((entry) => belongs(value, entry));
-      assert.equal(bin.count, values.filter((entry) => belongs(entry, bin)).length);
-    }
-  }
 });
 
 test("the fixed final group remains present with zero overflow records", () => {
@@ -82,20 +54,14 @@ test("filters invalid values, converts numeric strings and deduplicates IDs", ()
   assert.equal(total(buildBudgetDistribution(records([100, 100]))), 2);
 });
 
-test("fractional thresholds and close labels keep matching boundaries", () => {
-  const values = Array.from({ length: 7 }, (_, i) => 1000000 + i / 10);
-  const bins = buildBudgetDistribution(records(values));
-  const boundaries = bins.slice(0, -2).map((bin) => bin.upper);
-  for (const value of boundaries) {
-    assert.equal(bins.filter((bin) => belongs(value, bin)).length, 1);
-    assert.ok(belongs(value, bins[bins.findIndex((bin) => bin.upper === value) + 1]));
-  }
+test("round boundaries keep distinct compact labels", () => {
+  const bins = buildBudgetDistribution(records([1_000_000, 10_000_000]));
   const labels = budgetBoundaryLabels(bins);
-  assert.equal(labels.length, 8);
-  assert.equal(new Set(labels).size, 8);
-  assert.ok(labels.every((label) => !label.includes("∞")));
+  assert.deepEqual(labels, ["฿0", "฿10K", "฿50K", "฿100K", "฿500K", "฿1M", "฿5M", "฿10M"]);
+  assert.ok(belongs(10_000_000, bins[6]));
+  assert.ok(!belongs(10_000_000, bins[7]));
   assert.deepEqual(budgetBoundaryLabels([]), []);
-  verify(bins, values);
+  verify(bins, [1_000_000, 10_000_000]);
 });
 
 test("large datasets and extreme finite budgets retain every valid record", () => {

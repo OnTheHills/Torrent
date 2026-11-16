@@ -91,6 +91,115 @@
     z-index: 1;
   }
 
+  /* Watchlist hero: a slow pour, not one blob bouncing. */
+  @keyframes potion-turn {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes potion-orbit {
+    0% {
+      transform: translate3d(-10%, 8%, 0) rotate(0deg) scale(1);
+    }
+    28% {
+      transform: translate3d(16%, -6%, 0) rotate(12deg) scale(1.08);
+    }
+    55% {
+      transform: translate3d(4%, 18%, 0) rotate(-8deg) scale(0.94);
+    }
+    78% {
+      transform: translate3d(-18%, 2%, 0) rotate(9deg) scale(1.12);
+    }
+    100% {
+      transform: translate3d(-10%, 8%, 0) rotate(0deg) scale(1);
+    }
+  }
+
+  @keyframes potion-rise {
+    0% {
+      transform: translate3d(2%, 22%, 0) scale(0.82);
+      opacity: 0.45;
+    }
+    38% {
+      transform: translate3d(-8%, -4%, 0) scale(1.02);
+      opacity: 0.8;
+    }
+    68% {
+      transform: translate3d(10%, -24%, 0) scale(1.16);
+      opacity: 0.35;
+    }
+    100% {
+      transform: translate3d(2%, 22%, 0) scale(0.82);
+      opacity: 0.45;
+    }
+  }
+
+  @keyframes potion-shear {
+    0% {
+      transform: translate3d(-14%, -4%, 0) skewX(-8deg) scale(1.04);
+    }
+    35% {
+      transform: translate3d(12%, 10%, 0) skewX(10deg) scale(0.9);
+    }
+    68% {
+      transform: translate3d(2%, -16%, 0) skewX(-4deg) scale(1.18);
+    }
+    100% {
+      transform: translate3d(-14%, -4%, 0) skewX(-8deg) scale(1.04);
+    }
+  }
+
+  .potion-wash {
+    position: absolute;
+    top: -50%;
+    left: -40%;
+    width: 180%;
+    height: 200%;
+    background: conic-gradient(
+      from 30deg,
+      #f6c6d8,
+      #eea8c4,
+      #f8d6e3,
+      #e7a3bf,
+      #f3bfd2,
+      #f6c6d8
+    );
+    filter: blur(40px);
+    animation: potion-turn 48s linear infinite;
+  }
+
+  .potion-blob {
+    position: absolute;
+    width: 56%;
+    height: 108%;
+    border-radius: 9999px;
+    filter: blur(28px);
+    opacity: 0.8;
+    will-change: transform;
+  }
+
+  .potion-orbit {
+    animation: potion-orbit 20s ease-in-out infinite;
+  }
+
+  .potion-rise {
+    animation: potion-rise 26s ease-in-out infinite;
+  }
+
+  .potion-shear {
+    animation: potion-shear 17s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .potion-wash,
+    .potion-orbit,
+    .potion-rise,
+    .potion-shear {
+      animation: none;
+    }
+  }
+
   @keyframes hero-tile-in {
     from {
       opacity: 0;
@@ -99,6 +208,38 @@
     to {
       opacity: 1;
       transform: scale(1) translateY(0);
+    }
+  }
+
+  /* Sweeping shimmer for listing card skeleton bones. */
+  @keyframes listing-skeleton-shimmer {
+    0% {
+      background-position: 100% 0;
+    }
+    100% {
+      background-position: -100% 0;
+    }
+  }
+
+  .listing-skeleton-bone {
+    background-color: color-mix(in srgb, var(--palette-gray-300) 42%, transparent);
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      color-mix(in srgb, white 72%, transparent) 45%,
+      color-mix(in srgb, white 88%, transparent) 50%,
+      color-mix(in srgb, white 72%, transparent) 55%,
+      transparent 100%
+    );
+    background-size: 220% 100%;
+    background-repeat: no-repeat;
+    animation: listing-skeleton-shimmer 1.35s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .listing-skeleton-bone {
+      animation: none;
+      background-image: none;
     }
   }
 
@@ -394,6 +535,24 @@
   .liquid-glass-card.liquid-glass-card-static:hover {
     background: var(--liquid-glass-inner-light), var(--liquid-glass-card-tint);
     transition: none;
+  }
+
+  /* Clearer sheet on a pale page — frosted, with an edge you can see. */
+  .liquid-glass-card.liquid-glass-card-clear,
+  .liquid-glass-card.liquid-glass-card-clear:hover {
+    background:
+      radial-gradient(
+        120% 80% at 18% 0%,
+        rgb(255 255 255 / 0.55),
+        transparent 55%
+      ),
+      rgb(255 255 255 / 0.46);
+    box-shadow:
+      inset 1px 1px 0 0 rgb(255 255 255 / 0.9),
+      0 0 0 1px color-mix(in srgb, var(--palette-gray-300) 46%, transparent),
+      0 8px 28px rgb(0 0 0 / 0.06);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    backdrop-filter: blur(16px) saturate(160%);
   }
 
   .liquid-glass-card .liquid-glass-muted {

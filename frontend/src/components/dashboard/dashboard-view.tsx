@@ -1,139 +1,128 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowRight01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { BudgetChart } from "@/components/dashboard/budget-chart";
+import { BudgetHero } from "@/components/dashboard/budget-hero";
 import { BudgetKpiStrip } from "@/components/dashboard/budget-kpi-strip";
-import { DashboardFetchStatus } from "@/components/dashboard/dashboard-loading";
-import { HistoricalPriceTable } from "@/components/dashboard/historical-price-table";
+import { ChartSkeleton } from "@/components/dashboard/dashboard-loading";
 import { TorIngestionChart } from "@/components/dashboard/tor-ingestion-chart";
 import { DepartmentBudgetChart } from "@/components/dashboard/department-budget-chart";
 import { BudgetDistributionChart } from "@/components/dashboard/budget-distribution-chart";
 import { CategoryDistributionChart } from "@/components/dashboard/category-distribution-chart";
 import { ShellContent } from "@/components/layout/shell-content";
 import { MonitorSection } from "@/components/monitor/monitor-section";
-import { useAudience } from "@/components/providers/audience-provider";
 import { useLocale } from "@/components/providers/locale-provider";
-import { Button } from "@/components/ui/button";
-import { routes } from "@/config/routes";
 import { torsQueryOptions } from "@/lib/tors-query";
 import { buildBudgetBenchmarks } from "@/lib/budget";
 
+function DashboardPanel({ children }: { children: ReactNode }) {
+  return (
+    <div className="liquid-glass-card liquid-glass-card-static liquid-glass-card-clear rounded-2xl p-5 md:p-6">
+      {children}
+    </div>
+  );
+}
+
 export function DashboardView() {
   const { t } = useLocale();
-  const audience = useAudience();
-  const vendor = audience === "vendor";
-  const { data: tors = [], isFetching, isPending, isError } = useQuery({
-    ...torsQueryOptions,
-    refetchInterval: (query) =>
-      Array.isArray(query.state.data) && query.state.data.length === 0
-        ? 2_000
-        : 60_000,
-  });
+  const { data: tors = [], isFetching, isPending, isError } = useQuery(torsQueryOptions);
 
   const benchmarks = buildBudgetBenchmarks(tors);
-  const sourceCount = new Set(tors.map((tor) => tor.sourceKind).filter(Boolean))
-    .size;
-  const draftCount = tors.filter((tor) => tor.lifecycle === "draft").length;
-  const publishedCount = tors.filter(
-    (tor) => tor.lifecycle === "published"
-  ).length;
   const fundedTors = tors.filter((tor) => tor.budgetThb > 0);
+  const published = tors.filter((tor) => tor.lifecycle === "published");
+  // Snapshot cards use published listings only. Awarded rows carry much smaller
+  // award amounts and would drag the median down.
+  const publishedPriced = fundedTors.filter(
+    (tor) => tor.lifecycle === "published",
+  );
+  const publishedBudgets = publishedPriced
+    .map((tor) => tor.budgetThb)
+    .sort((a, b) => a - b);
+  const midpoint = Math.floor(publishedBudgets.length / 2);
+  const medianBudget =
+    publishedBudgets.length === 0
+      ? 0
+      : publishedBudgets.length % 2 === 0
+        ? Math.round(
+            (publishedBudgets[midpoint - 1] + publishedBudgets[midpoint]) / 2,
+          )
+        : publishedBudgets[midpoint];
+  const advertisedTotal = publishedPriced.reduce(
+    (sum, tor) => sum + tor.budgetThb,
+    0,
+  );
+  const publishedSince = published.reduce((earliest, tor) => {
+    if (!tor.publishedAt) return earliest;
+    return !earliest || tor.publishedAt < earliest ? tor.publishedAt : earliest;
+  }, "");
   const waiting = isPending || (isFetching && tors.length === 0);
 
   return (
     <div>
-      <section className="relative -mt-[144px] overflow-hidden hero-atmosphere text-hero-foreground">
-        <ShellContent>
-          <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-[calc(144px+2rem)] sm:px-6 md:pb-12 md:pt-[calc(144px+3rem)]">
-            <div className="w-full max-w-2xl md:max-w-3xl lg:max-w-4xl">
-              <h1 className="whitespace-pre-line text-3xl font-semibold tracking-tight md:text-5xl md:leading-[1.1]">
-                {t("dashboardTitle")}
-              </h1>
-              <p className="mt-5 text-base leading-[1.7] text-hero-muted md:text-lg">
-                {t("dashboardDescription")}
-              </p>
-            </div>
-            <div className="mt-9 flex flex-wrap gap-3 pt-2">
-              <Button asChild size="lg" variant="orange">
-                <Link href={vendor ? routes.app.tors : routes.tors}>
-                  {t("browseTors")}
-                  <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
-                </Link>
-              </Button>
-              {vendor ? null : (
-                <Button asChild size="lg" variant="outline">
-                  <Link href={routes.monitor}>{t("openMonitor")}</Link>
-                </Button>
-              )}
-            </div>
-          </div>
-        </ShellContent>
-        <div aria-hidden className="h-px bg-border" />
-      </section>
+      <BudgetHero />
 
       <ShellContent>
-      <div className="mx-auto max-w-6xl space-y-10 px-4 py-12 sm:px-6 md:space-y-12 md:py-16">
-        {isFetching ? <DashboardFetchStatus /> : null}
-
+      <div className="mx-auto max-w-6xl space-y-10 px-4 pb-12 pt-4 sm:px-6 md:space-y-12 md:pb-16 md:pt-6">
         <BudgetKpiStrip
           isPending={waiting}
           values={{
-            kpiSources: sourceCount,
-            statDraftLive: draftCount,
-            statPublished: publishedCount,
+            medianBudget,
+            advertisedTotal,
+            publishedCount: published.length,
+            publishedSince,
           }}
         />
 
         <MonitorSection
           title={t("chartTitle")}
           description={t("chartDescription")}
-          surfaceClassName="rounded-lg bg-[color-mix(in_srgb,var(--palette-gray-50)_62%,transparent)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_88%,transparent)] ring-1 ring-[color-mix(in_srgb,white_72%,transparent)] backdrop-blur-md backdrop-saturate-150"
+          bare
         >
-          {waiting ? (
-            <div className="h-64 animate-pulse rounded-lg bg-background/60" />
-          ) : (
-            <BudgetChart data={benchmarks} />
-          )}
+          <DashboardPanel>
+            {waiting ? (
+              <ChartSkeleton label={t("chartTitle")} variant="rows" />
+            ) : (
+              <BudgetChart data={benchmarks} />
+            )}
+          </DashboardPanel>
         </MonitorSection>
 
-        <MonitorSection title={t("ingestionTitle")} description={t("ingestionDescription")}>
-          {waiting ? (
-            <div className="h-80 animate-pulse rounded-lg bg-background/60" />
-          ) : isError && !tors.length ? (
-            <p role="alert" className="py-16 text-center text-sm text-muted-foreground">{t("ingestionError")}</p>
-          ) : (
-            <>
-              {isError ? <p role="status" className="mb-3 text-sm text-muted-foreground">{t("ingestionStale")}</p> : null}
-              <TorIngestionChart tors={tors} />
-            </>
-          )}
+        <MonitorSection title={t("ingestionTitle")} description={t("ingestionDescription")} bare>
+          <DashboardPanel>
+            {waiting ? (
+              <ChartSkeleton label={t("ingestionTitle")} variant="rows" />
+            ) : isError && !tors.length ? (
+              <p role="alert" className="py-16 text-center text-sm text-muted-foreground">{t("ingestionError")}</p>
+            ) : (
+              <>
+                {isError ? <p role="status" className="mb-3 text-sm text-muted-foreground">{t("ingestionStale")}</p> : null}
+                <TorIngestionChart tors={tors} />
+              </>
+            )}
+          </DashboardPanel>
         </MonitorSection>
 
-        <MonitorSection title={t("departmentBudgetTitle")} description={t("departmentBudgetDescription")}>
-          <DepartmentBudgetChart />
+        <MonitorSection title={t("departmentBudgetTitle")} description={t("departmentBudgetDescription")} bare>
+          <DashboardPanel>
+            <DepartmentBudgetChart />
+          </DashboardPanel>
+          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+            {t("departmentBudgetNote")}
+          </p>
         </MonitorSection>
 
-        <MonitorSection title={t("distributionTitle")} description={t("distributionDescription")}>
-          <BudgetDistributionChart tors={tors} isPending={waiting} isError={isError} />
+        <MonitorSection title={t("distributionTitle")} description={t("distributionDescription")} bare>
+          <DashboardPanel>
+            <BudgetDistributionChart tors={tors} isPending={waiting} isError={isError} />
+          </DashboardPanel>
         </MonitorSection>
 
-        <MonitorSection title={t("categoryDistributionTitle")} description={t("categoryDistributionDescription")}>
-          <CategoryDistributionChart />
-        </MonitorSection>
-
-        <MonitorSection
-          title={t("historyTableTitle")}
-          description={t("historyTableDescription")}
-        >
-          {waiting ? (
-            <div className="h-80 animate-pulse rounded-lg bg-background/60" />
-          ) : (
-            <HistoricalPriceTable benchmarks={benchmarks} tors={fundedTors} />
-          )}
+        <MonitorSection title={t("categoryDistributionTitle")} description={t("categoryDistributionDescription")} bare>
+          <DashboardPanel>
+            <CategoryDistributionChart />
+          </DashboardPanel>
         </MonitorSection>
       </div>
       </ShellContent>
