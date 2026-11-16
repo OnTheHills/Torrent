@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 
 import { HomeSection } from "@/components/home/home-section";
 import { useLocale } from "@/components/providers/locale-provider";
+import { useSession } from "@/components/providers/session-provider";
 import { chromeFrostGlaze } from "@/components/ui/appbar";
 import { routes } from "@/config/routes";
 import type { DictionaryKey } from "@/lib/i18n/dictionary";
@@ -76,6 +77,7 @@ const CHANNELS: {
 
 export function HomeAlerts() {
   const { t } = useLocale();
+  const { user } = useSession();
 
   return (
     <HomeSection title={t("alertsTitle")} description={t("alertsSubtitle")}>
@@ -104,7 +106,7 @@ export function HomeAlerts() {
                   </h3>
                 </div>
                 <Link
-                  href={channel.href}
+                  href={user?.role === "vendor" || user?.role === "admin" ? routes.app.alerts : channel.href}
                   className={cn(
                     chromeFrostGlaze,
                     "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-medium",
