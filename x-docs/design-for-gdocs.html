@@ -1,0 +1,601 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>TORRENT Design Document</title>
+<style>
+body{font-family:Arial,Helvetica,sans-serif;font-size:11pt;line-height:1.45;color:#222;max-width:900px;margin:24px;}
+h1{font-size:20pt;color:#10261f;}
+h2{font-size:14pt;color:#1d443a;margin-top:28px;border-bottom:1px solid #cfe8df;padding-bottom:4px;}
+h3{font-size:12pt;color:#2c6556;margin-top:18px;}
+h4{font-size:11pt;margin-top:14px;}
+table{border-collapse:collapse;width:100%;margin:10px 0 16px;font-size:10pt;}
+th,td{border:1px solid #bbb;padding:6px 8px;vertical-align:top;text-align:left;}
+th{background:#e2f5ee;}
+code,pre{font-family:Menlo,Consolas,monospace;font-size:9.5pt;}
+pre{background:#f5f7f6;border:1px solid #ddd;padding:10px;overflow-x:auto;white-space:pre-wrap;}
+hr{border:none;border-top:1px solid #ddd;margin:24px 0;}
+strong{font-weight:700;}
+p{margin:8px 0;}
+ul,ol{margin:8px 0 8px 22px;}
+a{color:#0b57d0;}
+</style></head><body>
+<h1>TORRENT — Software Design Document (Internal)</h1>
+
+<p><strong>Product:</strong> TORRENT — Software TOR Monitor  </p>
+<p><strong>Audience:</strong> Developers joining or maintaining the codebase  </p>
+<p><strong>Related docs:</strong> <code>x-docs/srs.md</code> (requirements), <code>x-docs/codebase-guide.md</code> (code map), <code>README.md</code> (runbook)  </p>
+<p><strong>Status:</strong> Living design doc aligned to the current modular monolith  </p>
+<p><strong>Date:</strong> November 2026  </p>
+
+<hr>
+
+<h2>1. Purpose of this document</h2>
+
+<p>This document explains <strong>how TORRENT is designed inside</strong>: actors and flows, domain concepts, runtime architecture, how frontend and backend talk, data shape, and the TOR PDF extraction sequence.</p>
+
+<p>It is <strong>not</strong> a replacement for the SRS. Requirements live in the SRS. This document answers: <em>where does that requirement land in code, data, and runtime?</em></p>
+
+<p><strong>Intentionally omitted</strong></p>
+
+<table>
+<tr><th>Item</th><th>Why</th></tr>
+<tr><td>UML class diagram</td><td>Backend is layered JS modules + Mongoose schemas, not a deep OOP class hierarchy. The <strong>layer diagram</strong> replaces it.</td></tr>
+<tr><td>Full microservice topology</td><td>We run a <strong>modular monolith</strong> (Next.js + Express + MongoDB + in-process jobs), not separate deployable microservices.</td></tr>
+</table>
+
+<hr>
+
+<h2>2. System at a glance</h2>
+
+<p>TORRENT is a reversed job board / public monitor for Thai government <strong>software</strong> procurement TORs.</p>
+
+<ol><li><strong>Ingest</strong> official machine feeds on a schedule (and admin-triggered sync).  </li><li><strong>Normalize + dedupe</strong> into one <code>TOR</code> document (<code>refId</code> = stable external id).  </li><li><strong>Extract</strong> requirements from TOR PDFs (Vertex / text layer).  </li><li><strong>Classify / review</strong> software relevance; hide junk until approved when needed.  </li><li><strong>Match</strong> vendor profiles with Vertex; store scores in <code>tor_matches</code>.  </li><li><strong>Present</strong> public monitor, vendor workspace, admin ops UI over a REST API.</li></ol>
+
+<pre>Official sources ──► Sync jobs ──► MongoDB tors
+                                      │
+Browser (Next.js) ──► Express /api/* ─┤── charts, listings, matches
+                                      │
+                               Vertex / LINE / Google (side paths)</pre>
+
+<p><strong>Runtime services (Docker Compose / local):</strong></p>
+
+<table>
+<tr><th>Service</th><th>Tech</th><th>Port</th><th>Role</th></tr>
+<tr><td>Frontend</td><td>Next.js 16 + React 19 + TS</td><td>3000</td><td>UI + thin BFF helpers (e.g. source health)</td></tr>
+<tr><td>Backend</td><td>Express 5 + Mongoose</td><td>5175</td><td>REST API, sync, OCR, matching, auth</td></tr>
+<tr><td>Database</td><td>MongoDB 8</td><td>27017</td><td>Persistence</td></tr>
+</table>
+
+<p>This is <strong>not</strong> microservices. Jobs (sync, match, LINE digest) run <strong>inside the backend process</strong> via schedulers, not as separate networked services.</p>
+
+<hr>
+
+<h2>3. Use case model</h2>
+
+<h3>3.1 Actors</h3>
+
+<table>
+<tr><th>Actor</th><th>Type</th><th>Goal</th></tr>
+<tr><td>Public visitor</td><td>Person</td><td>Browse software TORs, budget context, monitor — no login</td></tr>
+<tr><td>Vendor</td><td>Person</td><td>Profile, matches, saved TORs, alerts (LINE), fit reasons</td></tr>
+<tr><td>Admin / operator</td><td>Person</td><td>Sync health, classification review, user/TOR moderation</td></tr>
+<tr><td>Ingestion worker</td><td>System</td><td>Scheduled / manual sync of official APIs</td></tr>
+<tr><td>Matcher worker</td><td>System</td><td>Queue TOR↔vendor scoring via Vertex</td></tr>
+<tr><td>Google Identity</td><td>System</td><td>Vendor/admin sign-in (ID token)</td></tr>
+<tr><td>Vertex Gemini</td><td>System</td><td>PDF extraction, classification assist, matching</td></tr>
+<tr><td>LINE Messaging API</td><td>System</td><td>Account link + weekly match digest</td></tr>
+<tr><td>Official procurement APIs</td><td>System</td><td>data.go / process5, BMA e-GP2, e-GP RSS, etc.</td></tr>
+</table>
+
+<h3>3.2 Use case diagram</h3>
+
+<pre>&lt;diagram:use-case-model&gt;
+  Actors: Public, Vendor, Admin, Worker
+  Bubbles: UC-1 … UC-14 (see table below)
+  Draw associations Primary actor → use case
+&lt;/diagram:use-case-model&gt;</pre>
+
+<h3>3.3 Use case catalogue</h3>
+
+<table>
+<tr><th>ID</th><th>Use case</th><th>Primary</th><th>Summary</th></tr>
+<tr><td>UC-1</td><td>Browse / search / open TOR</td><td>Public, Vendor</td><td>List + filter + detail; deep-link to official page</td></tr>
+<tr><td>UC-2</td><td>Receive match notification</td><td>Vendor</td><td>Match stored; LINE/email path when enabled</td></tr>
+<tr><td>UC-3</td><td>View budget dashboard</td><td>Anyone</td><td>Category medians, compare, historical table</td></tr>
+<tr><td>UC-4</td><td>Showcase approaches</td><td>Public / Vendor</td><td>Read (and later submit) differentiated approaches</td></tr>
+<tr><td>UC-5</td><td>Manage profile &amp; prefs</td><td>Vendor</td><td>Capabilities, certificates, alert/digest prefs</td></tr>
+<tr><td>UC-6</td><td>Review classification</td><td>Admin</td><td>Approve/reject/hide; audit trail</td></tr>
+<tr><td>UC-7</td><td>Register / log in</td><td>Vendor, Admin</td><td>Google ID token → HTTP-only session cookie</td></tr>
+<tr><td>UC-8</td><td>View vendor TOR fit</td><td>Vendor</td><td>Score, reasons, gaps vs profile</td></tr>
+<tr><td>UC-9</td><td>Watchlist / saved</td><td>Vendor</td><td>Save TOR ids (UI; storage may be local + API)</td></tr>
+<tr><td>UC-10</td><td>Scheduled ingest</td><td>Worker</td><td>Fetch → adapt → upsert → OCR → merge → enqueue match</td></tr>
+<tr><td>UC-11</td><td>Monitor source health</td><td>Admin</td><td>Probe / sync-run visibility</td></tr>
+<tr><td>UC-12</td><td>Flag inaccuracy</td><td>Public / Agency</td><td>Report bad data → admin queue</td></tr>
+<tr><td>UC-13</td><td>Public home &amp; monitor</td><td>Public</td><td>Landing + KPIs + latest listings</td></tr>
+<tr><td>UC-14</td><td>Moderate vendor account</td><td>Admin</td><td>Disable user / review certificates</td></tr>
+</table>
+
+<h3>3.4 Example: UC-10 Scheduled ingest (happy path)</h3>
+
+<ol><li>Cron fires at <strong>00:00 Asia/Bangkok</strong> (optional also on startup if <code>FETCH_ON_STARTUP=true</code>).  </li><li>Active source <code>dataGoProcess5</code> fetches discovery rows, verifies via process5, adapts to normalized TOR shape.  </li><li>Repository upserts by <code>refId</code> (create / change / unchanged).  </li><li>OCR enrich downloads TOR PDF/ZIP from e-GP, extracts summary + requirements.  </li><li>Cross-source merge reconciles duplicates.  </li><li>Eligible TOR ids enqueue on <code>tor_match_jobs_by_tor</code>.  </li><li>New rows may be scored for review thresholds.  </li><li>Sync summary returned / recorded for ops.</li></ol>
+
+<hr>
+
+<h2>4. Domain model</h2>
+
+<p>Domain language used in code and docs. Prefer these names in PRs and tickets.</p>
+
+<h3>4.1 Core concepts</h3>
+
+<table>
+<tr><th>Concept</th><th>Meaning</th></tr>
+<tr><td>TOR</td><td>Normalized procurement opportunity (draft / published / awarded / discovered / …). System of display, not of bid submission.</td></tr>
+<tr><td>refId</td><td>Stable external identity (e.g. e-GP project_id). Upsert key. Never invent if the source provides one.</td></tr>
+<tr><td>Source / sourceKind</td><td>Where the row came from (EGP-PROCESS5, BMA e-GP2, RSS, …). One TOR may list multiple sources[] after merge.</td></tr>
+<tr><td>Lifecycle / status</td><td>Honest stage from the feed (discovered when no PDF yet, published, awarded, …). Do not invent “draft” for award-only rows.</td></tr>
+<tr><td>OCR / extract</td><td>Structured summary, requirement items, skills, deadline pulled from the TOR PDF.</td></tr>
+<tr><td>Classification / review</td><td>Software-relevance decision + confidence; low confidence → admin review (reviewStatus).</td></tr>
+<tr><td>Integrity</td><td>Soft flags (odd budget, etc.) — a question, not a legal verdict.</td></tr>
+<tr><td>Vendor profile</td><td>Capability description, skills, past projects, certificate image paths.</td></tr>
+<tr><td>TOR match</td><td>Per (userId, torId) score + reason above threshold.</td></tr>
+<tr><td>Match job</td><td>Durable queue row per TOR; cursor + lease so restarts resume.</td></tr>
+<tr><td>Sync run</td><td>Ops record of an ingestion batch.</td></tr>
+<tr><td>Audit log</td><td>Who changed what (review, hide, settings, certificates).</td></tr>
+</table>
+
+<h3>4.2 Domain model diagram</h3>
+
+<pre>&lt;diagram:domain-model&gt;
+  Entities and relationships (conceptual):
+
+  Organization / Agency 1──* TOR
+  TOR 1──* SourceAppearance (embedded sources[])
+  TOR 0..1── OCRResult (embedded ocr{})
+  User 1──0..1 VendorProfile
+  User *──* TOR  via TORMatch
+  TOR 1──0..1 TorMatchJob
+  User ── AuditLog (as actor)
+  AdminSettings (singleton-ish config for keywords / thresholds)
+
+  External: OfficialAPI ──feeds──► TOR
+  External: Vertex ──scores/extracts──► TOR / TORMatch
+  External: LINE ──notifies──► User
+&lt;/diagram:domain-model&gt;</pre>
+
+<h3>4.3 Bounded contexts (logical, same deployable)</h3>
+
+<table>
+<tr><th>Context</th><th>Owns</th><th>Talks to</th></tr>
+<tr><td>Ingestion</td><td>Fetchers, adapters, sync job, merge</td><td>Mongo tors, OCR</td></tr>
+<tr><td>Extraction</td><td>PDF download, text/OCR, Vertex extract</td><td>tor.ocr</td></tr>
+<tr><td>Review / admin</td><td>Classification rules, hide, audit</td><td>tors, audit_logs, settings</td></tr>
+<tr><td>Matching</td><td>Queue, Vertex match, thresholds</td><td>tor_matches, jobs</td></tr>
+<tr><td>Identity</td><td>Google verify, JWT cookie, roles</td><td>users</td></tr>
+<tr><td>Vendor</td><td>Profiles, certificates</td><td>vendor_profiles, upload dir</td></tr>
+<tr><td>Presentation</td><td>Next.js pages, lib/api.ts mapping</td><td>HTTP /api</td></tr>
+<tr><td>Messaging</td><td>LINE link + weekly digest</td><td>LINE API, matches</td></tr>
+</table>
+
+<hr>
+
+<h2>5. System design</h2>
+
+<h3>5.1 Architectural style</h3>
+
+<p><strong>Modular monolith + scheduled workers in-process.</strong></p>
+
+<ul><li>Clear layers inside <code>backend/src</code> (routes → controllers → services → repositories → models).  </li><li>Frontend is a separate app that consumes JSON over HTTPS/cookies.  </li><li>No service mesh, no per-domain deployables in v1.  </li><li>External systems are <strong>integrations</strong>, not sibling microservices we own.</li></ul>
+
+<h3>5.2 Context / container view</h3>
+
+<pre>┌──────────────────────────────────────────────────────────────┐
+│ TORRENT                                                      │
+│  ┌─────────────┐     HTTPS + cookie      ┌────────────────┐  │
+│  │ Next.js UI  │ ──────────────────────► │ Express API    │  │
+│  │ (public /   │                         │ + sync/match   │  │
+│  │  vendor /   │                         │   schedulers   │  │
+│  │  admin)     │                         └───────┬────────┘  │
+│  └─────────────┘                                 │           │
+│                                                  ▼           │
+│                                            ┌──────────┐      │
+│                                            │ MongoDB  │      │
+│                                            └──────────┘      │
+└───────────────┬───────────────────────────────┬──────────────┘
+                │                               │
+                ▼                               ▼
+     data.go / process5 / BMA / RSS      Google · Vertex · LINE</pre>
+
+<pre>&lt;diagram:system-design-containers&gt;
+  Replace ASCII above with a clean C4 container or deployment diagram
+  if needed for the course deliverable.
+&lt;/diagram:system-design-containers&gt;</pre>
+
+<h3>5.3 Why not microservices (yet)</h3>
+
+<table>
+<tr><th>Concern</th><th>Current choice</th></tr>
+<tr><td>Team size / course timeline</td><td>One API process is enough</td></tr>
+<tr><td>Shared TOR document</td><td>Single MongoDB avoids distributed transactions</td></tr>
+<tr><td>Jobs need same models</td><td>Sync + OCR + match share repositories</td></tr>
+<tr><td>Ops cost</td><td>One backend image in Compose</td></tr>
+</table>
+
+<p>Split later only if a worker must scale independently (e.g. heavy OCR farm). Until then, keep <strong>source adapters</strong> as modules, not services.</p>
+
+<h3>5.4 Major backend pipelines</h3>
+
+<p><strong>A. Sync pipeline</strong> (<code>jobs/syncAPI.js</code>)</p>
+
+<pre>ACTIVE_SOURCES (default: dataGoProcess5)
+  → fetch() → adapter.adapt()
+  → optional BMA hydrate
+  → torRepository.saveChanged()
+  → OCR enrich (e-GP or BMA plans)
+  → mergeDuplicateTors
+  → enqueue match jobs
+  → score new rows for review</pre>
+
+<p>Manual-only sources (admin): <code>process3Process5</code>, <code>dataGo</code>, <code>bmaEgp2</code>, <code>egpRss</code>, plus OCR-only and SME announcement triggers under <code>/api/sync/*</code>.</p>
+
+<p><strong>B. Match pipeline</strong> (<code>jobs/matchTors.js</code>)</p>
+
+<pre>TorMatchJob (per torId)
+  → walk vendor users from cursor
+  → load VendorProfile (+ certificate images)
+  → Vertex component scores → final %
+  → upsert tor_matches if ≥ threshold
+  → on quota errors: status=waiting, retryAt</pre>
+
+<p><strong>C. Auth path</strong></p>
+
+<pre>Google button → ID token → POST /api/auth/google
+  → verify with Google → upsert User → JWT HTTP-only cookie
+  → GET /api/auth/me → SessionProvider</pre>
+
+<h3>5.5 Frontend structure (route groups)</h3>
+
+<table>
+<tr><th>Group</th><th>URL examples</th><th>Audience</th></tr>
+<tr><td>(public)</td><td>/, /dashboard, /tors, /monitor</td><td>Anyone</td></tr>
+<tr><td>(auth)</td><td>/login, /register</td><td>Sign-in</td></tr>
+<tr><td>(vendor)/app</td><td>/app, /app/matches, /app/profile</td><td>Signed-in vendor</td></tr>
+<tr><td>(admin)</td><td>/admin/...</td><td>Admin</td></tr>
+</table>
+
+<p>Mapping boundary: Mongo fields (<code>_id</code>, <code>status</code>, <code>source</code>) → UI Tor (<code>id</code>, <code>lifecycle</code>, <code>sourceKind</code>) in <code>frontend/src/lib/api.ts</code> (<code>mapBackendTorToFrontendTor</code>).</p>
+
+<hr>
+
+<h2>6. Layer diagram (replaces class diagram)</h2>
+
+<p>Owner: Sandee. Existing asset: <code>x-docs/torrent-layer-diagram.svg</code> / <code>.png</code>.</p>
+
+<pre>&lt;diagram:layer-diagram&gt;
+  Paste or link: x-docs/torrent-layer-diagram.svg
+
+  Layers (top → bottom):
+  L1 Clients     — public browser, vendor workspace, admin, LINE OA
+  L2 Presentation — Next.js App Router, components, lib/i18n, providers
+  L3 HTTP API    — Express routes, middleware, controllers
+  L4 Domain      — services: auth, tor, admin, vendor, ai, line
+  L5 Jobs        — sync (00:00 BKK), match queue, LINE Monday digest
+  L6 Data access — repositories + Mongoose models
+  L7 Persistence — MongoDB collections
+
+  External column: e-GP RSS, BMA eGP2, data.go/process5, Google, Vertex, LINE
+&lt;/diagram:layer-diagram&gt;</pre>
+
+<p><strong>Dependency rule:</strong> Controllers never touch models/repositories directly. Services own workflows. Source-specific JSON parsing stays in <code>services/tor/api/&lt;source&gt;/{fetch,adapter}.js</code>.</p>
+
+<hr>
+
+<h2>7. API design (frontend ↔ backend)</h2>
+
+<h3>7.1 Transport conventions</h3>
+
+<table>
+<tr><th>Topic</th><th>Rule</th></tr>
+<tr><td>Base URL</td><td>Browser: NEXT_PUBLIC_API_URL (default http://localhost:5175/api). SSR may use BACKEND_API_URL.</td></tr>
+<tr><td>Format</td><td>JSON unless multipart (vendor certificates).</td></tr>
+<tr><td>Auth</td><td>HTTP-only cookie (JWT). credentials: include. CORS origins from CORS_ORIGIN.</td></tr>
+<tr><td>Client helper</td><td>frontend/src/lib/api.ts → api() / apiUrl() — avoids /api/api duplication.</td></tr>
+<tr><td>Errors</td><td>JSON { message } (sometimes code); client throws with status.</td></tr>
+<tr><td>Caching</td><td>Dashboard / listings often cache: no-store so sync results show immediately.</td></tr>
+</table>
+
+<p>Roles: <code>public</code> | <code>vendor</code> | <code>admin</code>. Middleware: <code>requireAuth</code>, <code>requireRole(...)</code>, ownership checks on vendor profiles.</p>
+
+<h3>7.2 Endpoint map</h3>
+
+<h4>Auth — /api/auth</h4>
+
+<table>
+<tr><th>Method</th><th>Path</th><th>Auth</th><th>Purpose</th></tr>
+<tr><td>POST</td><td>/google</td><td>—</td><td>Exchange Google credential → session cookie</td></tr>
+<tr><td>POST</td><td>/dev-admin</td><td>—</td><td>Dev-only admin login (if enabled)</td></tr>
+<tr><td>GET</td><td>/me</td><td>yes</td><td>Current user</td></tr>
+<tr><td>POST</td><td>/logout</td><td>—</td><td>Clear cookie</td></tr>
+</table>
+
+<h4>TORs — /api/tors</h4>
+
+<table>
+<tr><th>Method</th><th>Path</th><th>Auth</th><th>Purpose</th></tr>
+<tr><td>GET</td><td>/</td><td>public</td><td>List / filter TORs</td></tr>
+<tr><td>GET</td><td>/:id</td><td>public</td><td>Detail</td></tr>
+<tr><td>GET</td><td>/budget-peers</td><td>public</td><td>Peers for budget compare</td></tr>
+<tr><td>GET</td><td>/top-departments-by-budget</td><td>public</td><td>Dashboard</td></tr>
+<tr><td>GET</td><td>/category-distribution</td><td>public</td><td>Dashboard</td></tr>
+<tr><td>POST / PATCH / DELETE</td><td>/, /:id</td><td>admin</td><td>Maintain TOR rows</td></tr>
+</table>
+
+<h4>Matches — /api/tor-matches</h4>
+
+<table>
+<tr><th>Method</th><th>Path</th><th>Auth</th><th>Purpose</th></tr>
+<tr><td>GET</td><td>/mine</td><td>vendor</td><td>Signed-in vendor matches</td></tr>
+<tr><td>PATCH</td><td>/mine/:id</td><td>vendor</td><td>Dismiss / feedback</td></tr>
+<tr><td>POST</td><td>/ensure</td><td>yes</td><td>Ensure scores exist for current user</td></tr>
+<tr><td>CRUD</td><td>/, /:id</td><td>mixed</td><td>Persist / admin tooling</td></tr>
+<tr><td>GET</td><td>/pending</td><td>—</td><td>Pending job ids (ops)</td></tr>
+</table>
+
+<h4>Vendor profiles — /api/vendor-profiles</h4>
+
+<table>
+<tr><th>Method</th><th>Path</th><th>Auth</th><th>Purpose</th></tr>
+<tr><td>POST</td><td>/</td><td>yes + multipart</td><td>Create profile + optional certificate PNGs</td></tr>
+<tr><td>PATCH</td><td>/:id</td><td>owner/admin + multipart</td><td>Update; retain/remove image paths</td></tr>
+<tr><td>GET</td><td>/get/:userId</td><td>self/admin</td><td>Profile by user</td></tr>
+<tr><td>GET</td><td>/certificates/:filename</td><td>yes</td><td>Serve owned/admin certificate file</td></tr>
+<tr><td>GET / DELETE</td><td>…</td><td>as routes</td><td>List / delete</td></tr>
+</table>
+
+<p>Certificate rules (summary): PNG only, ≤5 per category, ≤5 MiB, validated PNG structure; paths stored as upload/...; files under backend/upload/.</p>
+
+<h4>Sync — /api/sync (admin only)</h4>
+
+<table>
+<tr><th>Method</th><th>Path</th><th>Purpose</th></tr>
+<tr><td>POST</td><td>/ or /all</td><td>Run configured sync</td></tr>
+<tr><td>POST</td><td>/data-go-process5</td><td>Primary e-GP discovery + process5 path</td></tr>
+<tr><td>POST</td><td>/process3-process5</td><td>Alternate RSS/process3 path</td></tr>
+<tr><td>POST</td><td>/bma-egp2, /egp-rss, /data-go</td><td>Manual sources</td></tr>
+<tr><td>POST</td><td>/sme-announcements</td><td>SME announcement pass</td></tr>
+<tr><td>POST</td><td>/ocr, /ocr/bma</td><td>OCR-only enrich</td></tr>
+</table>
+
+<h4>Admin — /api/admin (admin only)</h4>
+
+<p>Overview, sources, review queue + rescore, TOR search/bulk/PDF stream, audit, users, certificates review, match jobs/retry, classification settings preview/apply, optional LINE digest run.</p>
+
+<h4>LINE — /api/line</h4>
+
+<table>
+<tr><th>Method</th><th>Path</th><th>Auth</th><th>Purpose</th></tr>
+<tr><td>POST</td><td>/webhook</td><td>HMAC signature</td><td>LINE events (ACK fast)</td></tr>
+<tr><td>GET</td><td>/status</td><td>vendor/admin</td><td>Link status</td></tr>
+<tr><td>POST</td><td>/link/start, /unlink</td><td>vendor/admin</td><td>Account linking</td></tr>
+<tr><td>PATCH</td><td>/digest</td><td>vendor/admin</td><td>Weekly digest toggle</td></tr>
+</table>
+
+<h4>Users / bios — /api/users, /api/user-bios</h4>
+
+<p>Standard CRUD helpers for accounts and public bios.</p>
+
+<h4>Health</h4>
+
+<table>
+<tr><th>Method</th><th>Path</th><th>Purpose</th></tr>
+<tr><td>GET</td><td>/, /api/hello</td><td>Backend liveness</td></tr>
+<tr><td>GET</td><td>Next /api/sources/health</td><td>Frontend server route probing sources</td></tr>
+</table>
+
+<h3>7.3 Typical frontend ↔ API sequences</h3>
+
+<p><strong>Load vendor matches</strong></p>
+
+<pre>Matches page → GET /api/tor-matches/mine (cookie)
+            → for each torId: GET /api/tors/:id
+            → render cards with matchPercent + matchReason</pre>
+
+<p><strong>Google login</strong></p>
+
+<pre>GoogleButton → credential → POST /api/auth/google
+            → Set-Cookie → redirect by role → GET /api/auth/me</pre>
+
+<p><strong>Save vendor profile with certificates</strong></p>
+
+<pre>Profile form → multipart POST/PATCH /api/vendor-profiles
+             → profile JSON field + securityCertificates|aiCertificates|otherCertificates files
+             → response with stored relative paths</pre>
+
+<h3>7.4 API sketch diagram</h3>
+
+<pre>&lt;diagram:api-overview&gt;
+  Swimlanes: Browser | Next.js | Express | MongoDB | External
+  Show cookie session on vendor calls
+  Show sync as admin → Express → sources → Mongo
+&lt;/diagram:api-overview&gt;</pre>
+
+<hr>
+
+<h2>8. Data design / ER diagram</h2>
+
+<p>Owner: Sandee. Live DBML: https://dbdiagram.io/d/6a940246aed2f4f6be658c21  </p>
+
+<p>MongoDB is document-oriented; the ER view treats <strong>collections as tables</strong> and Mongoose refs as logical FKs (not enforced by the DB).</p>
+
+<pre>&lt;diagram:er-diagram&gt;
+  Embed export from dbdiagram.io (or screenshot).
+  Collections at minimum:
+    users
+    vendor_profiles
+    tors
+    tor_matches
+    tor_match_jobs_by_tor
+    audit_logs
+    sync_runs
+    admin_settings
+    userbios (if still used)
+&lt;/diagram:er-diagram&gt;</pre>
+
+<h3>8.1 Collection summary</h3>
+
+<table>
+<tr><th>Collection</th><th>Model file</th><th>Purpose</th></tr>
+<tr><td>users</td><td>User.js</td><td>Identity, role, Google/LINE link fields</td></tr>
+<tr><td>vendor_profiles</td><td>VendorProfile.js</td><td>1:1 with user; skills, projects, cert paths</td></tr>
+<tr><td>tors</td><td>TOR.js</td><td>Normalized opportunities + ocr + merge metadata</td></tr>
+<tr><td>tor_matches</td><td>TORMatch.js</td><td>Unique (userId, torId) score</td></tr>
+<tr><td>tor_match_jobs_by_tor</td><td>TorMatchJob.js</td><td>Durable match queue</td></tr>
+<tr><td>audit_logs</td><td>AuditLog.js</td><td>Admin/review actions</td></tr>
+<tr><td>sync_runs</td><td>SyncRun.js</td><td>Ingestion run records</td></tr>
+<tr><td>admin_settings</td><td>AdminSettings.js</td><td>Keyword rules + thresholds</td></tr>
+</table>
+
+<h3>8.2 Logical relationships</h3>
+
+<pre>User 1 ──────── 0..1 VendorProfile   (userId unique)
+User 1 ──────── *   TORMatch         (userId)
+TOR  1 ──────── *   TORMatch         (torId)
+TOR  1 ──────── 0..1 TorMatchJob     (torId unique)
+User 0..* ────── *  AuditLog         (actorId, soft)</pre>
+
+<h3>8.3 TOR document (important fields)</h3>
+
+<table>
+<tr><th>Field</th><th>Notes</th></tr>
+<tr><td>refId</td><td>External stable id; upsert key with source handling</td></tr>
+<tr><td>title / titleTh</td><td>Display titles</td></tr>
+<tr><td>status</td><td>Lifecycle string from adapters</td></tr>
+<tr><td>source</td><td>Primary source label</td></tr>
+<tr><td>budgetThb, deadline, publishedAt</td><td>Numbers/dates for UI + matching</td></tr>
+<tr><td>agencyId, department*</td><td>Agency / unit</td></tr>
+<tr><td>documentUrl, egpUrl</td><td>Official links</td></tr>
+<tr><td>hidden, reviewStatus, confidence</td><td>Visibility / review</td></tr>
+<tr><td>integrity*</td><td>Soft integrity flags + notes</td></tr>
+<tr><td>sources[]</td><td>Multi-source lineage after merge</td></tr>
+<tr><td>mergeConflicts[], mergeStatus</td><td>Cross-feed conflict handling</td></tr>
+<tr><td>ocr{}</td><td>Extraction status, summaries, requirementItems[], skills, deadline</td></tr>
+</table>
+
+<h3>8.4 Matching score policy (domain rule)</h3>
+
+<p>Implemented in match/Vertex services (see README):</p>
+
+<ul><li><strong>30</strong> points: budget vs team size / past project budgets  </li><li><strong>70</strong> points: requirements fit (Tier 1 coverage &amp; past projects, Tier 2 skills, Tier 3 other)  </li><li>Certificate bonuses capped (Security 2 + AI 2 + Other 3 ≤ 7) inside overall bonus ceiling; final ≤ <strong>100</strong>  </li><li>Persist only if ≥ VERTEX_MATCH_MIN_PERCENT</li></ul>
+
+<hr>
+
+<h2>9. Sequence diagram — TOR extraction process</h2>
+
+<p>Owner: Uchula (per Tai: <strong>only this sequence is required</strong>).</p>
+
+<h3>9.1 Scope</h3>
+
+<p>End-to-end path used by the primary ingest: <strong>data.go discovery → process5 verification → PDF/ZIP download → Vertex/text extract → save ocr → enqueue matching</strong>.</p>
+
+<h3>9.2 Participants</h3>
+
+<p>Scheduler · syncAPI · dataGoProcess5.fetch · adapter · torRepository · ocrEgp · extractPlanPdf · Vertex · matchTors</p>
+
+<h3>9.3 Sequence (textual)</h3>
+
+<pre>Scheduler                syncAPI              Sources                 Mongo              OCR/Vertex           Matcher
+   |                        |                    |                      |                    |                    |
+   |-- daily / manual -----&gt;|                    |                      |                    |                    |
+   |                        |-- fetch rows -----&gt;|                      |                    |                    |
+   |                        |&lt;-- dataGo+p5 ------|                      |                    |                    |
+   |                        |-- adapt()          |                      |                    |                    |
+   |                        |-- saveChanged ---------------------------&gt;|                    |                    |
+   |                        |-- enrich(candidates)-----------------------------------------&gt;|                    |
+   |                        |                    |                      |  download PDF/ZIP  |                    |
+   |                        |                    |                      |  text layer?       |                    |
+   |                        |                    |                      |    yes → structure w/ Vertex JSON       |
+   |                        |                    |                      |    no  → scan PDF parts → Vertex OCR    |
+   |                        |                    |                      |  normalize requirementItems            |
+   |                        |-- saveOcr --------------------------------&gt;|                    |                    |
+   |                        |-- mergeByRefIds --------------------------&gt;|                    |                    |
+   |                        |-- enqueueTors(ids) ---------------------------------------------------------------&gt;|
+   |                        |&lt;-- sync summary ---|                      |                    |                    |</pre>
+
+<h3>9.4 Diagram placeholder</h3>
+
+<pre>&lt;diagram:sequence-tor-extraction&gt;
+  UML sequence for the flow in §9.3.
+  Highlight:
+    1) Only https://*.gprocurement.go.th document URLs accepted
+    2) ZIP prefer tor_*.pdf over Attach_TOR scans
+    3) OCR_ENABLED=false skips extract
+    4) OCR_MAX_PER_SYNC caps work per run
+    5) SUMMARY_VERSION bump forces re-extract
+    6) Matching runs async after enqueue (not inside HTTP request path for vendors)
+&lt;/diagram:sequence-tor-extraction&gt;</pre>
+
+<h3>9.5 Extraction internals (extractPlanPdf)</h3>
+
+<ol><li>If PDF has a usable text layer → send text + schema prompt to Vertex (generateStructured).  </li><li>Else → send PDF bytes as inline part (generateFromParts) — true OCR path.  </li><li>Model must return JSON: summaryTh, summaryEn, requirementItems[] (technical|delivery|compliance|team|other), deadline, skills.  </li><li>Normalize → flat requirements / requirementsEn for legacy consumers.  </li><li>Persist under tor.ocr with status, method, fileUrl, summaryVersion, timestamps / error.</li></ol>
+
+<p>Projects without a downloadable TOR stay <code>discovered</code> and are <strong>not</strong> treated as match-ready rich records.</p>
+
+<hr>
+
+<h2>10. Cross-cutting concerns</h2>
+
+<table>
+<tr><th>Concern</th><th>Design</th></tr>
+<tr><td>Secrets</td><td>Env only (MONGO_URI, DATA_GO_API_KEY, Vertex, LINE, Google client). Never in the Next bundle.</td></tr>
+<tr><td>AuthZ</td><td>Role middleware + ownership on profiles/certificates.</td></tr>
+<tr><td>Idempotent sync</td><td>Upsert by refId; re-sync updates rather than clones.</td></tr>
+<tr><td>Failure isolation</td><td>Source fetch failure → retry/backoff; match quota → durable waiting job.</td></tr>
+<tr><td>Observability</td><td>Backend logs; admin sync/overview; audit log for human decisions.</td></tr>
+<tr><td>i18n</td><td>TH/EN dictionary on frontend; TOR bilingual fields where extracted.</td></tr>
+<tr><td>Apply off-platform</td><td>UI always deep-links to official e-GP / listing URL.</td></tr>
+</table>
+
+<hr>
+
+<h2>11. How a new developer should read the code</h2>
+
+<ol><li><code>docker-compose.yml</code> — three services.  </li><li><code>backend/src/server.js</code> + <code>app.js</code> — boot + router mount.  </li><li><code>backend/src/jobs/syncAPI.js</code> — ingestion heart.  </li><li><code>backend/src/services/tor/ocr/ocrEgp.js</code> + <code>extractPlanPdf.js</code> — extraction.  </li><li><code>backend/src/jobs/matchTors.js</code> — matching heart.  </li><li><code>frontend/src/lib/api.ts</code> — API + TOR mapping.  </li><li><code>frontend/src/app/(public)/dashboard</code> and <code>(vendor)/app/*</code> — main UX.  </li></ol>
+
+<p>Full file-level map: <code>x-docs/codebase-guide.md</code>.</p>
+
+<hr>
+
+<h2>12. Open / evolving design points</h2>
+
+<ul><li>Which sources stay <strong>ACTIVE</strong> vs <strong>manual</strong> (today primary active = dataGoProcess5).  </li><li>Showcase / watchlist persistence may still mix localStorage vs API depending on screen.  </li><li>Atlas Search / vector search called out in SRS as future matching aid — not required for current Vertex path.  </li><li>Class diagram omitted; keep layer diagram updated when folders move.</li></ul>
+
+<hr>
+
+<h2>13. Asset checklist for the course pack</h2>
+
+<table>
+<tr><th>Asset</th><th>Owner</th><th>Status in this doc</th></tr>
+<tr><td>Use case diagram</td><td>Team</td><td>&amp;lt;diagram:use-case-model&amp;gt;</td></tr>
+<tr><td>Domain model diagram</td><td>Team</td><td>&amp;lt;diagram:domain-model&amp;gt;</td></tr>
+<tr><td>System / container diagram</td><td>Team</td><td>&amp;lt;diagram:system-design-containers&amp;gt;</td></tr>
+<tr><td>Layer diagram</td><td>Sandee</td><td>File exists; &amp;lt;diagram:layer-diagram&amp;gt;</td></tr>
+<tr><td>ER / DBML</td><td>Sandee</td><td>Link + &amp;lt;diagram:er-diagram&amp;gt;</td></tr>
+<tr><td>TOR extraction sequence</td><td>Uchula</td><td>Text flow + &amp;lt;diagram:sequence-tor-extraction&amp;gt;</td></tr>
+<tr><td>UML class diagram</td><td>—</td><td><strong>Skipped</strong> (not OOP-centric)</td></tr>
+</table>
+
+<hr>
+
+<h2>Appendix A — Glossary</h2>
+
+<table>
+<tr><th>Term</th><th>Meaning</th></tr>
+<tr><td>TOR</td><td>Terms of Reference / procurement package for a project</td></tr>
+<tr><td>e-GP</td><td>Thai electronic government procurement</td></tr>
+<tr><td>process5</td><td>e-GP web/API surface used to verify project + document links</td></tr>
+<tr><td>data.go</td><td>Open data portal used for discovery (cgdcontract / related)</td></tr>
+<tr><td>OCDS</td><td>Open Contracting Data Standard (BMA packages in SRS)</td></tr>
+<tr><td>Vertex</td><td>Google Cloud Vertex AI Gemini used for extract/match</td></tr>
+<tr><td>Modular monolith</td><td>One deployable API with internal modules, not microservices</td></tr>
+</table>
+
+<h2>Appendix B — References</h2>
+
+<ul><li>SRS: <code>x-docs/srs.md</code>  </li><li>Codebase guide: <code>x-docs/codebase-guide.md</code>  </li><li>Proposal: <code>x-docs/project_details/Proposal.md</code>  </li><li>Layer SVG: <code>x-docs/torrent-layer-diagram.svg</code>  </li><li>DB diagram: https://dbdiagram.io/d/6a940246aed2f4f6be658c21  </li></ul>
+</body></html>

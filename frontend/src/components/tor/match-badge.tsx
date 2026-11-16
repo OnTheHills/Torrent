@@ -7,12 +7,28 @@ import { cn } from "@/lib/utils";
 export function MatchBadge({
   score,
   className,
+  inline = false,
 }: {
   score: number;
   className?: string;
+  /** Single-line "Strong fit 91%" at the date-label size. */
+  inline?: boolean;
 }) {
   const { t } = useLocale();
   const tier = score >= 85 ? "fitStrong" : score >= 70 ? "fitGood" : "fitPossible";
+
+  if (inline) {
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center whitespace-nowrap text-right text-xs tabular-nums text-muted-foreground",
+          className,
+        )}
+      >
+        {`${t(tier)} ${t("match")} ${score}%`}
+      </span>
+    );
+  }
 
   return (
     <span

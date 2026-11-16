@@ -52,6 +52,52 @@ function listingWindow(
   return "—";
 }
 
+function Bone({ className }: { className?: string }) {
+  return <div className={cn("listing-skeleton-bone rounded-md", className)} />;
+}
+
+/** Card-shaped placeholder matching ListingFrostCard layout. */
+export function ListingFrostCardSkeleton() {
+  return (
+    <div
+      className={cn(
+        liquidGlassClear,
+        "relative flex h-full flex-col overflow-hidden rounded-lg",
+      )}
+    >
+      <div className="flex min-w-0 flex-col gap-1.5 px-5 pt-5">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+          <Bone className="h-6 w-16 rounded-full" />
+          <Bone className="h-6 w-20 rounded-full" />
+        </div>
+        <div className="flex items-center gap-1.5 pt-1.5">
+          <Bone className="size-3.5 shrink-0 rounded-sm" />
+          <Bone className="h-3 w-2/5" />
+        </div>
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col px-5 pb-5 pt-2">
+        <div className="flex min-h-[4.125em] flex-col gap-2">
+          <Bone className="h-4 w-full" />
+          <Bone className="h-4 w-[92%]" />
+          <Bone className="h-4 w-3/4" />
+        </div>
+      </div>
+      <div
+        className={cn(
+          liquidGlassDim,
+          "mt-auto flex items-end justify-between gap-3 rounded-b-lg px-5 py-4",
+        )}
+      >
+        <div className="flex flex-col items-start gap-2.5">
+          <Bone className="h-6 w-24" />
+          <Bone className="h-3 w-36" />
+        </div>
+        <Bone className="h-6 w-14 rounded-full" />
+      </div>
+    </div>
+  );
+}
+
 export function ListingFrostCard({
   tor,
   matchInsight,
@@ -176,16 +222,74 @@ export function ListingFrostCard({
           className={cn(
             liquidGlassDim,
             "relative mt-auto flex items-end justify-between gap-3 rounded-b-lg px-5 py-4",
-            vendor && "pr-14",
+            vendor && "pr-36",
           )}
         >
           {vendor ? (
-            <div className="absolute right-2.5 top-2.5 z-10">
-              <SaveTorButton
-                torId={tor.id}
-                appearance="frost-circle"
-                showLabel={false}
-              />
+            <div className="absolute right-2.5 top-2.5 z-10 flex flex-col items-end gap-2.5">
+              <div className="flex items-center gap-1.5">
+                <SaveTorButton
+                  torId={tor.id}
+                  appearance="frost-circle"
+                  showLabel={false}
+                />
+                {onDismiss || onBadResult ? (
+                  <FrostPopup>
+                    <FrostPopupTrigger
+                      variant="circle"
+                      aria-label={t("inboxMatchActions")}
+                    >
+                      <HugeiconsIcon
+                        icon={MoreVerticalIcon}
+                        strokeWidth={1.75}
+                        className="size-4"
+                      />
+                    </FrostPopupTrigger>
+                    <FrostPopupContent>
+                      {onDismiss ? (
+                        <FrostPopupItem onSelect={() => onDismiss()}>
+                          <HugeiconsIcon
+                            icon={dismissed ? ArchiveRestoreIcon : CancelCircleIcon}
+                            strokeWidth={1.75}
+                            className="size-3.5"
+                          />
+                          {dismissed ? t("inboxRestore") : t("inboxDismiss")}
+                        </FrostPopupItem>
+                      ) : null}
+                      {onBadResult ? (
+                        <FrostPopupItem onSelect={() => onBadResult()}>
+                          <HugeiconsIcon
+                            icon={ThumbsDownIcon}
+                            strokeWidth={1.75}
+                            className="size-3.5"
+                          />
+                          {t("inboxBadResult")}
+                        </FrostPopupItem>
+                      ) : null}
+                    </FrostPopupContent>
+                  </FrostPopup>
+                ) : null}
+              </div>
+              {vendor && !fitScoreApplies(tor) ? (
+                <span className="inline-flex items-center gap-1.5 text-right text-xs text-muted-foreground">
+                  <HugeiconsIcon
+                    icon={CancelCircleIcon}
+                    strokeWidth={1.75}
+                    className="size-3.5 shrink-0"
+                  />
+                  {t("matchUnavailable")}
+                </span>
+              ) : typeof tor.matchScore === "number" ? (
+                <MatchBadge score={tor.matchScore} inline />
+              ) : tor.matchPending ? (
+                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span
+                    aria-hidden
+                    className="size-3.5 shrink-0 animate-spin rounded-full border-2 border-current/25 border-t-current motion-reduce:animate-none"
+                  />
+                  {t("matchPending")}
+                </span>
+              ) : null}
             </div>
           ) : null}
           <div className="flex min-w-0 flex-col items-start gap-2.5">
@@ -200,64 +304,6 @@ export function ListingFrostCard({
                 t("dateNotSpecified"),
               )}
             </p>
-          </div>
-          <div className="flex shrink-0 flex-col items-end gap-2">
-            {vendor && !fitScoreApplies(tor) ? (
-              <span className="inline-flex items-center gap-1.5 text-right text-xs text-muted-foreground">
-                <HugeiconsIcon
-                  icon={CancelCircleIcon}
-                  strokeWidth={1.75}
-                  className="size-3.5 shrink-0"
-                />
-                {t("matchUnavailable")}
-              </span>
-            ) : vendor && typeof tor.matchScore === "number" ? (
-              <MatchBadge score={tor.matchScore} />
-            ) : vendor && tor.matchPending ? (
-              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span
-                  aria-hidden
-                  className="size-3.5 shrink-0 animate-spin rounded-full border-2 border-current/25 border-t-current motion-reduce:animate-none"
-                />
-                {t("matchPending")}
-              </span>
-            ) : null}
-            {onDismiss || onBadResult ? (
-              <FrostPopup>
-                <FrostPopupTrigger
-                  variant="circle"
-                  aria-label={t("inboxMatchActions")}
-                >
-                  <HugeiconsIcon
-                    icon={MoreVerticalIcon}
-                    strokeWidth={1.75}
-                    className="size-4"
-                  />
-                </FrostPopupTrigger>
-                <FrostPopupContent>
-                  {onDismiss ? (
-                    <FrostPopupItem onSelect={() => onDismiss()}>
-                      <HugeiconsIcon
-                        icon={dismissed ? ArchiveRestoreIcon : CancelCircleIcon}
-                        strokeWidth={1.75}
-                        className="size-3.5"
-                      />
-                      {dismissed ? t("inboxRestore") : t("inboxDismiss")}
-                    </FrostPopupItem>
-                  ) : null}
-                  {onBadResult ? (
-                    <FrostPopupItem onSelect={() => onBadResult()}>
-                      <HugeiconsIcon
-                        icon={ThumbsDownIcon}
-                        strokeWidth={1.75}
-                        className="size-3.5"
-                      />
-                      {t("inboxBadResult")}
-                    </FrostPopupItem>
-                  ) : null}
-                </FrostPopupContent>
-              </FrostPopup>
-            ) : null}
           </div>
         </div>
       </div>

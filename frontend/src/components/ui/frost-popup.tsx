@@ -21,10 +21,9 @@ export const frostSurface =
 export const frostPopupItemActive =
   "bg-sidebar-accent! text-sidebar-accent-foreground! shadow-none! ring-0!";
 
-/** Same frost circle language as SaveTorButton appearance="frost-circle". */
+/** Unsaved heart circle — gray frost, no pink fill. */
 export const frostCircleControl = cn(
-  "inline-flex size-7 shrink-0 items-center justify-center rounded-full outline-none transition-[transform,background-color,color] duration-200 ease-out hover:-translate-y-0.5 hover:scale-110 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[rgb(255_255_255_/_0.55)] data-[state=open]:ring-1 data-[state=open]:ring-[rgb(255_255_255_/_0.55)] motion-reduce:transition-none motion-reduce:hover:transform-none",
-  frostSurface,
+  "inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--palette-gray-200)_90%,transparent)] text-[var(--palette-gray-800)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_88%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)] backdrop-blur-md backdrop-saturate-150 outline-none transition-[transform,background-color,color] duration-200 ease-out hover:-translate-y-0.5 hover:scale-110 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[color-mix(in_srgb,var(--palette-gray-400)_80%,transparent)] data-[state=open]:ring-[color-mix(in_srgb,var(--palette-gray-400)_80%,transparent)] motion-reduce:transition-none motion-reduce:hover:transform-none",
 );
 
 export const frostPopupPanel = cn(

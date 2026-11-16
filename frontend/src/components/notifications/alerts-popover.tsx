@@ -3,33 +3,70 @@
 import Link from "next/link";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Notification03Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
+import {
+  AlarmClockIcon,
+  Alert02Icon,
+  Cancel01Icon,
+  GuestHouseIcon,
+  Notification03Icon,
+  SparklesIcon,
+} from "@hugeicons/core-free-icons";
 
 import { useLocale } from "@/components/providers/locale-provider";
-import { MatchBadge } from "@/components/tor/match-badge";
-import { SkillTags } from "@/components/tor/skill-tags";
-import { chromeFrostBar } from "@/components/ui/appbar";
-import { Badge } from "@/components/ui/badge";
+import { chromeFrostBar, liquidGlassDim } from "@/components/ui/appbar";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { routes } from "@/config/routes";
-import { formatDate, MOCK_NOTIFICATIONS } from "@/data/mock";
+import {
+  formatDate,
+  getTorById,
+  MOCK_NOTIFICATIONS,
+  torDepartment,
+  torTitle,
+} from "@/data/mock";
 import { cn } from "@/lib/utils";
-import type { AppNotification } from "@/types/tor";
+import type { AppNotification, NotificationKind } from "@/types/tor";
 
-const KIND_LABEL: Record<AppNotification["kind"], { en: string; th: string }> = {
-  match: { en: "Match", th: "จับคู่" },
-  risk: { en: "Integrity", th: "ความน่าเชื่อถือ" },
-  deadline: { en: "Deadline", th: "กำหนดปิดรับ" },
+const frostNotiCard =
+  "border-0 bg-[rgb(255_255_255_/_0.22)] text-foreground shadow-[inset_0_1px_0_0_rgb(255_255_255_/_0.7),0_8px_28px_rgb(0_0_0_/_0.05)] ring-1 ring-[rgb(255_255_255_/_0.48)] backdrop-blur-xl backdrop-saturate-150";
+
+const KIND_META: Record<
+  NotificationKind,
+  {
+    title: { en: string; th: string };
+    icon: IconSvgElement;
+    iconFg: string;
+    circle: string;
+  }
+> = {
+  match: {
+    title: { en: "New match", th: "จับคู่ใหม่" },
+    icon: SparklesIcon,
+    iconFg: "text-[var(--palette-green-800)]",
+    circle:
+      "bg-[color-mix(in_srgb,var(--palette-green-300)_42%,transparent)] shadow-[inset_0_1px_0_0_rgb(255_255_255_/_0.85)] ring-1 ring-[color-mix(in_srgb,var(--palette-green-400)_48%,transparent)]",
+  },
+  risk: {
+    title: { en: "Integrity alert", th: "แจ้งเตือนความน่าเชื่อถือ" },
+    icon: Alert02Icon,
+    iconFg: "text-[var(--palette-yellow-800)]",
+    circle:
+      "bg-[color-mix(in_srgb,var(--palette-yellow-300)_48%,transparent)] shadow-[inset_0_1px_0_0_rgb(255_255_255_/_0.85)] ring-1 ring-[color-mix(in_srgb,var(--palette-yellow-500)_45%,transparent)]",
+  },
+  deadline: {
+    title: { en: "Closing soon", th: "ใกล้ปิดรับ" },
+    icon: AlarmClockIcon,
+    iconFg: "text-[var(--palette-orange-800)]",
+    circle:
+      "bg-[color-mix(in_srgb,var(--palette-orange-300)_42%,transparent)] shadow-[inset_0_1px_0_0_rgb(255_255_255_/_0.85)] ring-1 ring-[color-mix(in_srgb,var(--palette-orange-400)_48%,transparent)]",
+  },
 };
+
+function notificationHref(item: AppNotification) {
+  if (item.kind === "match") return routes.app.home;
+  if (item.kind === "deadline") return routes.app.tors;
+  return routes.app.tor(item.torId);
+}
 
 export function AlertsPopover({
   tone = "default",
@@ -114,17 +151,21 @@ export function AlertsPopover({
     );
   }
 
+  function dismiss(id: string) {
+    setItems((prev) => prev.filter((item) => item.id !== id));
+  }
+
   const panel =
     open && mounted
       ? createPortal(
           <div
             ref={panelRef}
-            className="fixed z-[100] flex w-[min(24rem,calc(100vw-2rem))] origin-top-right flex-col overflow-hidden rounded-lg bg-popover text-popover-foreground shadow-lg ring-1 ring-foreground/10 animate-in fade-in-0 zoom-in-95"
+            className="liquid-glass-card liquid-glass-card-clear fixed z-[100] flex w-[min(24rem,calc(100vw-2rem))] origin-top-right flex-col overflow-hidden rounded-2xl text-foreground animate-in fade-in-0 zoom-in-95"
             style={{ top: coords.top, right: coords.right, maxHeight: "min(70vh, 32rem)" }}
             role="dialog"
             aria-label={t("notificationsTitle")}
           >
-            <div className="flex items-start justify-between gap-3 border-b border-border px-3 py-3">
+            <div className="flex items-start justify-between gap-3 border-b border-[color-mix(in_srgb,var(--palette-gray-300)_38%,transparent)] px-4 py-3">
               <div className="min-w-0 space-y-0.5">
                 <p className="font-heading text-sm font-semibold">
                   {t("notificationsTitle")}
@@ -135,36 +176,31 @@ export function AlertsPopover({
               </div>
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="shrink-0"
+                className={cn(
+                  chromeFrostBar,
+                  "h-8 shrink-0 rounded-full px-3 text-xs font-medium hover:brightness-[1.02]",
+                )}
                 onClick={markAllRead}
               >
                 {t("markAllRead")}
               </Button>
             </div>
 
-            <div className="grid flex-1 grid-cols-1 gap-2 overflow-y-auto p-2">
+            <div className="grid min-h-0 flex-1 auto-rows-max grid-cols-1 gap-2 overflow-y-auto p-3">
               {items.map((item) => (
                 <AlertCard
                   key={item.id}
                   item={item}
                   locale={locale}
-                  onMarkRead={() => markRead(item.id)}
-                  onNavigate={() => setOpen(false)}
+                  onDismiss={() => dismiss(item.id)}
+                  onNavigate={() => {
+                    markRead(item.id);
+                    setOpen(false);
+                  }}
                 />
               ))}
-            </div>
-
-            <div className="border-t border-border px-3 py-2">
-              <Button asChild variant="ghost" size="sm" className="w-full justify-start">
-                <Link
-                  href={routes.settings.notifications}
-                  onClick={() => setOpen(false)}
-                >
-                  {t("navNotificationSettings")}
-                </Link>
-              </Button>
             </div>
           </div>,
           document.body
@@ -204,7 +240,7 @@ export function AlertsPopover({
         {unread > 0 ? (
           <span
             className={cn(
-              "inline-flex min-w-4 justify-center rounded-sm bg-accent px-1 text-[0.6rem] font-semibold text-accent-foreground",
+              "inline-flex min-w-4 justify-center rounded-full bg-[var(--palette-red-500)] px-1 text-[0.6rem] font-semibold text-white",
               tone === "chrome"
                 ? "absolute -top-0.5 -right-0.5 ml-0"
                 : "ml-1"
@@ -222,76 +258,112 @@ export function AlertsPopover({
 function AlertCard({
   item,
   locale,
-  onMarkRead,
+  onDismiss,
   onNavigate,
 }: {
   item: AppNotification;
   locale: "en" | "th";
-  onMarkRead: () => void;
+  onDismiss: () => void;
   onNavigate: () => void;
 }) {
   const { t } = useLocale();
-  const title = locale === "th" ? item.titleTh : item.title;
-  const body = locale === "th" ? item.bodyTh : item.body;
-  const kindLabel = KIND_LABEL[item.kind][locale];
+  const meta = KIND_META[item.kind];
+  const title = meta.title[locale];
+  const tor = getTorById(item.torId);
+  const projectName = tor
+    ? torTitle(tor, locale)
+    : (locale === "th" ? item.bodyTh : item.body).split(" · ")[0]?.trim() ||
+      item.body;
+  const department = tor
+    ? torDepartment(tor, locale).trim()
+    : (locale === "th" ? item.bodyTh : item.body).split(" · ")[1]?.trim() || "";
+  const href = notificationHref(item);
 
   return (
-    <Card
-      size="sm"
-      className="relative transition-colors hover:bg-muted/40"
+    <article
+      className={cn(
+        frostNotiCard,
+        "relative overflow-hidden rounded-sm transition-[transform,background-color,box-shadow] duration-200 ease-out",
+        "hover:bg-[rgb(255_255_255_/_0.34)] hover:shadow-[inset_0_1px_0_0_rgb(255_255_255_/_0.82),0_12px_32px_rgb(0_0_0_/_0.07)]",
+      )}
     >
       <Link
-        href={routes.app.tor(item.torId)}
+        href={href}
         onClick={onNavigate}
-        className="absolute inset-0 z-0 rounded-lg"
-        aria-label={`${t("viewTor")}: ${title}`}
+        className="absolute inset-0 z-0 rounded-sm"
+        aria-label={`${title}: ${projectName}${department ? ` · ${department}` : ""}`}
       />
-      <CardHeader className="relative z-10 pointer-events-none">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge
-            variant="outline"
-            className={
-              item.kind === "risk"
-                ? "border-transparent bg-warning text-warning-foreground"
-                : item.kind === "deadline"
-                  ? "border-transparent bg-accent text-accent-foreground"
-                  : "border-transparent bg-lifecycle-published text-lifecycle-published-foreground"
-            }
-          >
-            {kindLabel}
-          </Badge>
-          {!item.read ? <Badge variant="secondary">New</Badge> : null}
+      <div className="relative z-10 pointer-events-none flex gap-3 px-3 pt-3">
+        <span
+          aria-hidden
+          className={cn(
+            "mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-full backdrop-blur-md backdrop-saturate-150",
+            meta.circle,
+          )}
+        >
+          <HugeiconsIcon
+            icon={meta.icon}
+            strokeWidth={1.75}
+            className={cn("size-4", meta.iconFg)}
+          />
+        </span>
+        <div className="min-w-0 flex-1 pb-3">
+          <div className="space-y-1">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="min-w-0 truncate text-sm font-semibold leading-snug tracking-tight text-foreground">
+                {title}
+              </p>
+              <time
+                dateTime={item.createdAt}
+                className="shrink-0 text-xs tabular-nums text-muted-foreground"
+              >
+                {formatDate(item.createdAt, locale)}
+              </time>
+            </div>
+            <p
+              title={projectName}
+              className="truncate text-xs font-semibold leading-snug text-foreground"
+            >
+              {projectName}
+            </p>
+            {department ? (
+              <p
+                className={cn(
+                  "flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground",
+                  "pr-8",
+                )}
+              >
+                <HugeiconsIcon
+                  icon={GuestHouseIcon}
+                  strokeWidth={1.75}
+                  className="size-3.5 shrink-0"
+                />
+                <span className="truncate" title={department}>
+                  {department}
+                </span>
+              </p>
+            ) : null}
+          </div>
         </div>
-        <CardTitle className="text-sm leading-snug">{title}</CardTitle>
-        <CardDescription className="line-clamp-2">{body}</CardDescription>
-      </CardHeader>
-      <CardContent className="relative z-10 space-y-2 pointer-events-none">
-        <SkillTags skills={item.skills} limit={4} />
-        <div className="flex flex-wrap items-end justify-between gap-2 border-t border-border pt-2">
-          <p className="text-xs tabular-nums text-muted-foreground">
-            {formatDate(item.createdAt, locale)}
-          </p>
-          {typeof item.matchScore === "number" ? (
-            <MatchBadge score={item.matchScore} />
-          ) : null}
-        </div>
-      </CardContent>
-      {!item.read ? (
-        <CardFooter className="relative z-10">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              onMarkRead();
-            }}
-          >
-            {t("markRead")}
-          </Button>
-        </CardFooter>
-      ) : null}
-    </Card>
+      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        aria-label={t("dismiss")}
+        title={t("dismiss")}
+        className={cn(
+          liquidGlassDim,
+          "absolute right-2.5 bottom-2.5 z-10 size-7 rounded-full text-muted-foreground hover:text-foreground",
+        )}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          onDismiss();
+        }}
+      >
+        <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} className="size-3.5" />
+      </Button>
+    </article>
   );
 }

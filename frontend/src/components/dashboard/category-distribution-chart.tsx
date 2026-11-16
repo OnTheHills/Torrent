@@ -1,15 +1,15 @@
 "use client";
 
-import { useId } from "react";
 import { useQuery } from "@tanstack/react-query";
 
+import { ChartSkeleton } from "@/components/dashboard/dashboard-loading";
 import { useLocale } from "@/components/providers/locale-provider";
+import { categoryGlass } from "@/components/tor/listing-badges";
 import { Button } from "@/components/ui/button";
 import { fetchCategoryDistribution } from "@/lib/api";
 
 export function CategoryDistributionChart() {
   const { t, locale } = useLocale();
-  const tooltipPrefix = useId();
   const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["tors", "category-distribution"],
     queryFn: fetchCategoryDistribution,
@@ -20,7 +20,7 @@ export function CategoryDistributionChart() {
   const categories = data?.categories ?? [];
   const formatCount = (count: number) => count.toLocaleString(locale === "th" ? "th-TH" : "en-GB");
 
-  if (isPending) return <div role="status" aria-label={t("categoryDistributionLoading")} className="h-80 animate-pulse rounded-lg bg-background/60" />;
+  if (isPending) return <ChartSkeleton label={t("categoryDistributionLoading")} />;
   if (isError && !data) return (
     <div role="alert" className="space-y-3 py-16 text-center text-sm">
       <p>{t("categoryDistributionError")}</p>
@@ -50,20 +50,21 @@ export function CategoryDistributionChart() {
               {Array.from({ length: 5 }, (_, i) => <div key={i} className="absolute inset-x-0 border-t border-dashed border-border" style={{ bottom: `${i * 25}%` }} />)}
             </div>
             <ol className="relative grid h-full gap-2" style={columns} aria-label={t("categoryDistributionTitle")}>
-              {categories.map((item, index) => (
-                <li key={item.category} className="group relative flex h-full items-end">
-                  <div tabIndex={0} role="group" aria-describedby={`${tooltipPrefix}-${index}`}
-                    aria-label={`${item.category}: ${formatCount(item.frequency)} ${t("departmentBudgetRecords")}`}
-                    className="absolute inset-0 z-10 rounded-sm outline-offset-2" />
-                  <div data-category-bar={item.category} data-frequency={item.frequency}
-                    className="relative w-full rounded-t-sm bg-teal-500/70 ring-1 ring-inset ring-teal-500/30 transition-[height] duration-500 group-hover:bg-teal-500/90 group-focus-within:bg-teal-500/90"
-                    style={{ height: `${item.frequency / yMax * 100}%` }}>
-                    <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-medium">{formatCount(item.frequency)}</span>
-                  </div>
-                  <div id={`${tooltipPrefix}-${index}`} role="tooltip"
-                    className={`pointer-events-none absolute top-1 z-20 w-max max-w-[min(20rem,75vw)] rounded-lg border bg-popover px-3 py-2 text-xs text-popover-foreground opacity-0 shadow-md group-hover:opacity-100 group-focus-within:opacity-100 ${index < categories.length / 2 ? "left-0" : "right-0"}`}>
-                    <p className="break-words font-medium">{item.category}</p>
-                    <p className="mt-1">{t("distributionCount")}: {formatCount(item.frequency)}</p>
+              {categories.map((item) => (
+                <li key={item.category} className="relative flex h-full items-end">
+                  <div
+                    data-category-bar={item.category}
+                    data-frequency={item.frequency}
+                    className="relative w-full rounded-t-sm transition-[height] duration-500"
+                    style={{
+                      height: `${item.frequency / yMax * 100}%`,
+                      background: `linear-gradient(180deg, rgb(255 255 255 / 0.5), rgb(255 255 255 / 0.06) 38%, transparent 70%), color-mix(in srgb, ${categoryGlass(item.category).fill} 82%, transparent)`,
+                      boxShadow: "var(--liquid-glass-edge)",
+                      WebkitBackdropFilter: "var(--liquid-glass-filter)",
+                      backdropFilter: "var(--liquid-glass-filter)",
+                    }}
+                  >
+                    <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-medium text-[var(--palette-gray-800)]">{formatCount(item.frequency)}</span>
                   </div>
                 </li>
               ))}

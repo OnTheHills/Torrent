@@ -31,6 +31,11 @@ const { DepartmentBudgetChart } = loadSource("../src/components/dashboard/depart
   "@/components/providers/locale-provider": { useLocale: () => ({ locale: "en", t: (key) => dictionary.en[key] }) },
   "@/components/ui/button": { Button: ({ children, onClick }) => React.createElement("button", { onClick }, children) },
   "@/lib/api": { fetchTopDepartmentsByBudget: () => {} },
+  "@/lib/utils": { cn: (...parts) => parts.filter(Boolean).join(" ") },
+  "@/components/dashboard/budget-chart": {
+    BudgetTip: ({ children }) => React.createElement("div", { role: "tooltip" }, children),
+  },
+  "@/components/dashboard/dashboard-loading": { ChartSkeleton: ({ label }) => React.createElement("div", { role: "status", "aria-label": label }) },
 });
 const render = (state) => {
   query = state;
@@ -60,7 +65,7 @@ test("renders budget ranking, full names, THB tooltips and compact amounts", () 
   assert.match(html, /500 TOR records/);
   assert.match(html, /role="tooltip"/);
   assert.match(html, /tabindex="0"/);
-  assert.match(html, /not actual government expenditure/);
+  assert.match(html, /Total advertised TOR budget \(THB\)/);
   assert.equal(options.refetchInterval, 60_000);
 });
 

@@ -30,6 +30,8 @@ const { CategoryDistributionChart } = loadSource("../src/components/dashboard/ca
   "@/components/providers/locale-provider": { useLocale: () => ({ locale: "en", t: (key) => dictionary.en[key] }) },
   "@/components/ui/button": { Button: ({ children, onClick }) => React.createElement("button", { onClick }, children) },
   "@/lib/api": api,
+  "@/components/tor/listing-badges": { categoryGlass: () => ({ fill: "var(--palette-gray-150)", ink: "var(--palette-gray-700)" }) },
+  "@/components/dashboard/dashboard-loading": { ChartSkeleton: ({ label }) => React.createElement("div", { role: "status", "aria-label": label }) },
 });
 const render = (state) => {
   query = state;
@@ -68,9 +70,8 @@ test("renders endpoint frequencies and order directly, retaining Others last eve
   assert.match(html, /data-frequency="10"[^>]*height:10%/);
   assert.match(html, /data-frequency="5"[^>]*height:5%/);
   assert.match(html, /data-frequency="100"[^>]*height:100%/);
-  assert.equal((html.match(/role="tooltip"/g) ?? []).length, 3);
-  assert.equal((html.match(/tabindex="0"/g) ?? []).length, 3);
-  assert.match(html, /Number of TORs: 100/);
+  assert.equal((html.match(/role="tooltip"/g) ?? []).length, 0);
+  assert.match(html, />100</);
   assert.deepEqual(categories.map((item) => item.frequency), [10, 5, 100]);
 });
 

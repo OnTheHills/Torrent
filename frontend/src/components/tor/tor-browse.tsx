@@ -30,7 +30,7 @@ import {
   type SourceFilter,
   type TorFilterState,
 } from "@/components/tor/tor-filters";
-import { TorFetchStatus } from "@/components/tor/tor-loading";
+import { ListingCardsSkeleton } from "@/components/tor/tor-loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { torAgency, torDepartment, torTitle } from "@/data/mock";
@@ -252,9 +252,7 @@ export function TorBrowse({
         <PageHeader
           eyebrow={t("opportunitiesEyebrow")}
           title={vendor ? t("vendorCatalogTitle") : t("opportunitiesTitle")}
-          description={
-            vendor ? t("vendorCatalogDescription") : t("opportunitiesDescription")
-          }
+          description={t("opportunitiesDescription")}
         />
       ) : null}
 
@@ -310,17 +308,8 @@ export function TorBrowse({
         surfaceClassName="bg-transparent p-0 ring-0 shadow-none md:p-0"
       >
         <div className="flex flex-col gap-4">
-        {showListLoading ? <TorFetchStatus /> : null}
-
         {showListLoading ? (
-          <div className="grid gap-3">
-            {Array.from({ length: 4 }, (_, index) => (
-              <div
-                key={index}
-                className="h-36 animate-pulse rounded-lg bg-background/60"
-              />
-            ))}
-          </div>
+          <ListingCardsSkeleton />
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
             <p className="text-sm font-medium">{t("emptyFilters")}</p>

@@ -16,23 +16,58 @@ import type { DictionaryKey } from "@/lib/i18n/dictionary";
 import { listingStage, type ListingStage } from "@/lib/listing-stage";
 import { cn } from "@/lib/utils";
 
-const CATEGORY_COLOR: Record<string, string> = {
-  "Software Development":
-    "bg-[var(--palette-purple-200)] text-[var(--palette-purple-800)]",
-  "Web Application":
-    "bg-[var(--palette-navy-200)] text-[var(--palette-navy-800)]",
-  "Mobile Application":
-    "bg-[var(--palette-blue-200)] text-[var(--palette-blue-800)]",
-  "Data Platform":
-    "bg-[var(--palette-teal-200)] text-[var(--palette-teal-800)]",
-  "Digital Platform":
-    "bg-[var(--palette-green-250)] text-[var(--palette-green-800)]",
-  "AI / Analytics":
-    "bg-[var(--palette-orange-250)] text-[var(--palette-orange-800)]",
-  Cybersecurity:
-    "bg-[var(--palette-red-300)] text-[var(--palette-red-800)]",
-  GIS: "bg-[var(--palette-yellow-300)] text-[var(--palette-yellow-800)]",
-  Others: "bg-[var(--palette-brown-250)] text-[var(--palette-brown-900)]",
+const CATEGORY_TONE: Record<string, { className: string; fill: string; ink: string }> = {
+  "Software Development": {
+    className: "bg-[var(--palette-purple-200)] text-[var(--palette-purple-800)]",
+    fill: "var(--palette-purple-200)",
+    ink: "var(--palette-purple-800)",
+  },
+  "Web Application": {
+    className: "bg-[var(--palette-navy-200)] text-[var(--palette-navy-800)]",
+    fill: "var(--palette-navy-200)",
+    ink: "var(--palette-navy-800)",
+  },
+  "Mobile Application": {
+    className: "bg-[var(--palette-blue-200)] text-[var(--palette-blue-800)]",
+    fill: "var(--palette-blue-200)",
+    ink: "var(--palette-blue-800)",
+  },
+  "Data Platform": {
+    className: "bg-[var(--palette-teal-200)] text-[var(--palette-teal-800)]",
+    fill: "var(--palette-teal-200)",
+    ink: "var(--palette-teal-800)",
+  },
+  "Digital Platform": {
+    className: "bg-[var(--palette-green-250)] text-[var(--palette-green-800)]",
+    fill: "var(--palette-green-250)",
+    ink: "var(--palette-green-800)",
+  },
+  "AI / Analytics": {
+    className: "bg-[var(--palette-orange-250)] text-[var(--palette-orange-800)]",
+    fill: "var(--palette-orange-250)",
+    ink: "var(--palette-orange-800)",
+  },
+  Cybersecurity: {
+    className: "bg-[var(--palette-red-300)] text-[var(--palette-red-800)]",
+    fill: "var(--palette-red-300)",
+    ink: "var(--palette-red-800)",
+  },
+  GIS: {
+    className: "bg-[var(--palette-yellow-300)] text-[var(--palette-yellow-800)]",
+    fill: "var(--palette-yellow-300)",
+    ink: "var(--palette-yellow-800)",
+  },
+  Others: {
+    className: "bg-[var(--palette-brown-250)] text-[var(--palette-brown-900)]",
+    fill: "var(--palette-brown-250)",
+    ink: "var(--palette-brown-900)",
+  },
+};
+
+const FALLBACK_TONE = {
+  className: "bg-[var(--palette-gray-150)] text-[var(--palette-gray-700)]",
+  fill: "var(--palette-gray-150)",
+  ink: "var(--palette-gray-700)",
 };
 
 /** Paper + grid ink for category blueprint heroes (detail page). */
@@ -76,10 +111,13 @@ const CATEGORY_BLUEPRINT: Record<string, { paper: string; grid: string }> = {
 };
 
 export function categoryTone(category: string) {
-  return (
-    CATEGORY_COLOR[category] ??
-    "bg-[var(--palette-gray-150)] text-[var(--palette-gray-700)]"
-  );
+  return (CATEGORY_TONE[category] ?? FALLBACK_TONE).className;
+}
+
+/** Badge fill and ink for a category, shared with the budget bars. */
+export function categoryGlass(category: string) {
+  const tone = CATEGORY_TONE[category] ?? FALLBACK_TONE;
+  return { fill: tone.fill, ink: tone.ink };
 }
 
 export function categoryBlueprint(category?: string) {
