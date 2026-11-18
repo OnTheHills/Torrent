@@ -6,7 +6,10 @@ import type { CSSProperties } from "react";
 import Link from "next/link";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { SparklesIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
+import { HeroTitle } from "@/components/layout/hero-title";
 import { useLocale } from "@/components/providers/locale-provider";
 import { ListingFrostCard } from "@/components/tor/listing-frost-card";
 import { Button } from "@/components/ui/button";
@@ -222,10 +225,12 @@ export function InboxView() {
         />
         <ShellContent className="relative z-10">
         <div className="relative mx-auto flex max-w-6xl flex-col justify-start px-4 pb-10 pt-[calc(144px+2.5rem)] sm:px-6 md:pb-12 md:pt-[calc(144px+3.5rem)]">
-          <div className="w-full max-w-2xl md:max-w-3xl lg:max-w-4xl">
-            <h1 className="text-3xl font-semibold tracking-tight md:text-5xl md:leading-[1.1]">
+          <div className="w-full max-w-3xl md:max-w-4xl lg:max-w-5xl">
+            <HeroTitle
+              icon={<HugeiconsIcon icon={SparklesIcon} strokeWidth={1.75} />}
+            >
               {t("inboxTitle")}
-            </h1>
+            </HeroTitle>
             <p className="mt-5 text-base leading-[1.7] text-muted-foreground md:text-lg">
               {t("inboxDescription")}
             </p>

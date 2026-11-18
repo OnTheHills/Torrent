@@ -1,19 +1,18 @@
 "use client";
 
-import Link from "next/link";
+import type { ReactNode } from "react";
+import { LayoutGrid } from "lucide-react";
 
 import { AdminStats } from "@/components/admin/admin-stats";
 import {
   AdminBody,
-  AdminButton,
   AdminHero,
-  AdminPanel,
   AdminStatus,
   VerdictBadge,
   formatWhen,
   useAdminQuery,
 } from "@/components/admin/admin-ui";
-import { routes } from "@/config/routes";
+import { MonitorSection } from "@/components/monitor/monitor-section";
 
 type Overview = {
   tracked: number;
@@ -25,6 +24,14 @@ type Overview = {
   recentRuns: { _id: string; sourceKey: string; status: string; startedAt: string; error?: string }[];
 };
 
+function OverviewPanel({ children }: { children: ReactNode }) {
+  return (
+    <div className="liquid-glass-card liquid-glass-card-static liquid-glass-card-clear rounded-2xl p-5 md:p-6">
+      {children}
+    </div>
+  );
+}
+
 export function OverviewView() {
   const { data, error, loading } = useAdminQuery<Overview>("/api/admin/overview");
 
@@ -32,76 +39,75 @@ export function OverviewView() {
     <div>
       <AdminHero
         title="Admin overview"
+        icon={<LayoutGrid strokeWidth={1.75} aria-hidden />}
         description="Operator desk for ingestion, extraction quality, and the record of every manual change."
-        actions={
-          <>
-            <AdminButton asChild tone="teal">
-              <Link href={routes.admin.sources}>Source health</Link>
-            </AdminButton>
-            <AdminButton asChild>
-              <Link href={routes.admin.review}>Review queue</Link>
-            </AdminButton>
-          </>
-        }
       />
-      <AdminBody>
+      <AdminBody className="space-y-10 pt-4 md:space-y-12 md:pt-6">
         <AdminStatus loading={loading} error={error} />
         {data ? (
           <>
-            <AdminStats tracked={data.tracked} agencies={data.departments} queue={data.queue} />
-            <AdminPanel
-              title="Extraction accuracy"
-              description={
-                data.accuracy.sampleSize
-                  ? `${data.accuracy.accuracy}% of checked fields matched the source across ${data.accuracy.sampleSize} reviews. ≥90% is Ready, 80–89% is Glance, and below 80% is Review.`
-                  : "No reviewed sample yet. Score the catalog, then approve or correct records. Accuracy is the share of checked fields left unchanged."
-              }
-              action={
-                <AdminButton asChild>
-                  <Link href={routes.admin.review}>Open review</Link>
-                </AdminButton>
-              }
+            <AdminStats
+              tracked={data.tracked}
+              hidden={data.hidden}
+              queue={data.queue}
+              sources={data.sources}
+              accuracy={data.accuracy}
+            />
+            <MonitorSection
+              bare
+              title="Sources"
+              description="Last completed sync for each ingestion feed."
             >
-              <p className="text-sm text-muted-foreground">
-                {data.hidden} hidden records are kept out of the public catalog.
-              </p>
-            </AdminPanel>
-            <AdminPanel title="Sources" description="Latest sync for each feed.">
-              <ul className="space-y-3">
-                {data.sources.map((source) => (
-                  <li
-                    key={source.key}
-                    className="flex flex-col gap-2 rounded-lg bg-[color-mix(in_srgb,white_55%,transparent)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div>
-                      <p className="text-sm font-medium">{source.label}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {source.lastRun
-                          ? `${source.lastRun.status} · ${formatWhen(source.lastRun.finishedAt)}`
-                          : "No sync recorded"}
-                      </p>
-                    </div>
-                    <VerdictBadge verdict={source.verdict} />
-                  </li>
-                ))}
-              </ul>
-            </AdminPanel>
-            <AdminPanel title="Recent sync runs">
-              <ul className="space-y-2 text-sm">
-                {data.recentRuns.length ? (
-                  data.recentRuns.map((run) => (
-                    <li key={run._id} className="flex justify-between gap-3">
-                      <span>
-                        {run.sourceKey} · {run.status}
-                      </span>
-                      <span className="text-muted-foreground">{formatWhen(run.startedAt)}</span>
+              <OverviewPanel>
+                <ul className="divide-y divide-[color-mix(in_srgb,var(--palette-gray-300)_42%,transparent)]">
+                  {data.sources.map((source) => (
+                    <li
+                      key={source.key}
+                      className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <p className="text-sm font-medium">{source.label}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {source.lastRun
+                            ? `${source.lastRun.status} · ${formatWhen(source.lastRun.finishedAt)}`
+                            : "No sync recorded"}
+                        </p>
+                      </div>
+                      <VerdictBadge verdict={source.verdict} />
                     </li>
-                  ))
-                ) : (
-                  <li className="text-muted-foreground">No runs yet. Start one from Sources.</li>
-                )}
-              </ul>
-            </AdminPanel>
+                  ))}
+                </ul>
+              </OverviewPanel>
+            </MonitorSection>
+            <MonitorSection
+              bare
+              title="Recent sync runs"
+              description="Every sync the pipeline ran, newest first."
+            >
+              <OverviewPanel>
+                <ul className="divide-y divide-[color-mix(in_srgb,var(--palette-gray-300)_42%,transparent)] text-sm">
+                  {data.recentRuns.length ? (
+                    data.recentRuns.map((run) => (
+                      <li
+                        key={run._id}
+                        className="flex justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
+                      >
+                        <span>
+                          {run.sourceKey} · {run.status}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {formatWhen(run.startedAt)}
+                        </span>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="text-muted-foreground">
+                      No runs yet. Start one from Sources.
+                    </li>
+                  )}
+                </ul>
+              </OverviewPanel>
+            </MonitorSection>
           </>
         ) : null}
       </AdminBody>

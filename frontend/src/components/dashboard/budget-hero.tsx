@@ -2,8 +2,12 @@
 
 import type { CSSProperties } from "react";
 import Link from "next/link";
+import { MoneyBag02Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { ChartPie } from "lucide-react";
 
 import { EcgTrace } from "@/components/dashboard/ecg-trace";
+import { HeroTitle } from "@/components/layout/hero-title";
 import { ShellContent } from "@/components/layout/shell-content";
 import { useAudience } from "@/components/providers/audience-provider";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -38,10 +42,19 @@ export function BudgetHero() {
       />
       <ShellContent className="relative z-10">
         <div className="relative mx-auto flex max-w-6xl flex-col justify-start px-4 pb-10 pt-[calc(144px+2.5rem)] sm:px-6 md:pb-12 md:pt-[calc(144px+3.5rem)]">
-          <div className="w-full max-w-2xl md:max-w-3xl lg:max-w-4xl">
-            <h1 className="whitespace-pre-line text-3xl font-semibold tracking-tight md:text-5xl md:leading-[1.1]">
+          <div className="w-full max-w-3xl md:max-w-4xl lg:max-w-5xl">
+            <HeroTitle
+              preLine
+              icon={
+                vendor ? (
+                  <ChartPie strokeWidth={1.75} />
+                ) : (
+                  <HugeiconsIcon icon={MoneyBag02Icon} strokeWidth={1.75} />
+                )
+              }
+            >
               {t("dashboardTitle")}
-            </h1>
+            </HeroTitle>
             <p className="mt-5 text-base leading-[1.7] text-muted-foreground md:text-lg">
               {t("dashboardDescription")}
             </p>

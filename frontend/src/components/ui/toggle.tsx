@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { chromeFrostBar } from "@/components/ui/appbar";
+import { liquidGlassClear, liquidGlassDim } from "@/components/ui/appbar";
 import { cn } from "@/lib/utils";
 
 export type ToggleOption<T extends string = string> = {
@@ -23,24 +23,18 @@ type ToggleProps<T extends string> = {
   tone?: "default" | "chrome";
 };
 
-const frostTrack =
-  "backdrop-blur-md backdrop-saturate-150";
+const frostTrack = "backdrop-blur-md backdrop-saturate-150";
 
-const pageFrostTrack =
-  "bg-surface-frost shadow-[inset_0_1px_0_0_var(--surface-frost-highlight)] ring-1 ring-[var(--surface-frost-ring)]";
+const pageFrostTrack = liquidGlassDim;
 
-const chromeFrostTrack = chromeFrostBar;
+const chromeFrostTrack = liquidGlassDim;
 
-const pageFrostThumb =
-  "bg-[var(--toggle-thumb)] shadow-none ring-0 backdrop-blur-md";
-
-/** Flat dim selected fill — same recipe as sidebar / frost popup active. */
-const chromeFrostThumb =
-  "bg-sidebar-accent text-sidebar-accent-foreground shadow-none ring-0";
+/** Selected thumb — clear liquid glass with specular rim. */
+const glassThumb = liquidGlassClear;
 
 /**
- * Frosted segmented toggle. Track and thumb stay translucent + blurred
- * so they read as glass in both light and dark.
+ * Segmented toggle with liquid-glass track + selected thumb.
+ * Track stays dim glass; the active option lifts as clear glass.
  */
 function Toggle<T extends string>({
   value,
@@ -59,7 +53,7 @@ function Toggle<T extends string>({
         "inline-flex shrink-0 items-center rounded-full p-0.5",
         frostTrack,
         tone === "chrome" ? chromeFrostTrack : pageFrostTrack,
-        className
+        className,
       )}
     >
       {options.map((option) => {
@@ -73,13 +67,13 @@ function Toggle<T extends string>({
             aria-label={option.ariaLabel}
             onClick={() => onValueChange(option.value)}
             className={cn(
-              "inline-flex shrink-0 items-center justify-center rounded-full font-medium whitespace-nowrap transition-colors",
-              size === "sm" ? "h-6 min-w-6 px-1.5 text-[0.65rem]" : "h-8 min-w-8 px-3 text-xs",
+              "inline-flex flex-1 shrink-0 items-center justify-center rounded-full font-medium whitespace-nowrap transition-[background,box-shadow,color,backdrop-filter] duration-200 ease-out",
+              size === "sm"
+                ? "h-6 min-w-6 px-1.5 text-[0.65rem]"
+                : "h-8 min-w-8 px-3 text-xs",
               selected
-                ? tone === "chrome"
-                  ? chromeFrostThumb
-                  : cn(pageFrostThumb, "text-foreground")
-                : "text-muted-foreground hover:text-foreground"
+                ? cn(glassThumb, "text-foreground")
+                : "bg-transparent text-muted-foreground shadow-none ring-0 hover:text-foreground",
             )}
           >
             {option.label}

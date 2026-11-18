@@ -7,7 +7,9 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 
+import { HeroTitle } from "@/components/layout/hero-title";
 import { ShellContent } from "@/components/layout/shell-content";
+import { grayBlueprintStyle, heroFade } from "@/components/tor/listings-hero";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
@@ -35,11 +37,40 @@ export const sectionCard =
 export const fieldClass =
   "h-8 w-full rounded-[6px] border-0 bg-white px-3 text-sm shadow-none ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_32%,transparent)] focus-visible:outline-none focus-visible:ring-[color-mix(in_srgb,var(--palette-teal-400)_45%,transparent)]";
 
+/** Admin hero surface — same gray blueprint + fade recipe as the Listings hero. */
+export function AdminHeroShell({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <section
+      className="relative -mt-[144px] min-h-[24rem] overflow-hidden category-blueprint text-foreground md:min-h-[26rem]"
+      style={grayBlueprintStyle}
+    >
+      <div aria-hidden className={heroFade} />
+      <ShellContent className="relative z-10">
+        <div
+          className={cn(
+            "relative mx-auto flex min-h-[20rem] max-w-6xl flex-col justify-end px-4 pb-10 pt-[calc(144px+1.25rem)] sm:px-6 md:min-h-[22rem] md:pb-12 md:pt-[calc(144px+1.75rem)]",
+            className,
+          )}
+        >
+          {children}
+        </div>
+      </ShellContent>
+    </section>
+  );
+}
+
 export function AdminHero({
   title,
   description,
   actions,
   leading,
+  icon,
   className,
 }: {
   title: string;
@@ -47,6 +78,8 @@ export function AdminHero({
   actions?: React.ReactNode;
   /** Optional left media (e.g. profile photo) as a square matching the copy block height. */
   leading?: React.ReactNode;
+  /** Outline nav icon shown ahead of the title (same glyph as the sidebar tab). */
+  icon?: React.ReactNode;
   className?: string;
 }) {
   const copyRef = useRef<HTMLDivElement>(null);
@@ -64,16 +97,14 @@ export function AdminHero({
     });
     observer.observe(node);
     return () => observer.disconnect();
-  }, [leading, title, description, actions]);
+  }, [leading, title, description, actions, icon]);
 
   const copy = (
-    <div ref={copyRef} className="w-full max-w-3xl">
-      <h1 className="text-3xl font-semibold tracking-tight md:text-5xl md:leading-[1.1]">
-        {title}
-      </h1>
+    <div ref={copyRef} className="relative z-10 w-full max-w-4xl lg:max-w-5xl">
+      <HeroTitle icon={icon}>{title}</HeroTitle>
       {description ? (
         typeof description === "string" ? (
-          <p className="mt-5 text-base leading-[1.7] text-hero-muted md:text-lg">
+          <p className="mt-5 text-base leading-[1.7] text-muted-foreground md:text-lg">
             {description}
           </p>
         ) : (
@@ -87,35 +118,25 @@ export function AdminHero({
   );
 
   return (
-    <section className="relative -mt-[144px] overflow-hidden hero-atmosphere text-hero-foreground">
-      <ShellContent>
-        <div
-          className={cn(
-            "relative mx-auto max-w-6xl px-4 pb-8 pt-[calc(144px+2rem)] sm:px-6 md:pb-12 md:pt-[calc(144px+3rem)]",
-            className,
-          )}
-        >
-          {leading ? (
-            <div className="flex items-start gap-5 md:gap-8">
-              <div
-                className="shrink-0 overflow-hidden"
-                style={
-                  side > 0
-                    ? { width: side, height: side }
-                    : { width: 144, height: 144 }
-                }
-              >
-                {leading}
-              </div>
-              <div className="min-w-0 flex-1">{copy}</div>
-            </div>
-          ) : (
-            copy
-          )}
+    <AdminHeroShell className={className}>
+      {leading ? (
+        <div className="flex items-start gap-5 md:gap-8">
+          <div
+            className="relative z-10 shrink-0 overflow-hidden"
+            style={
+              side > 0
+                ? { width: side, height: side }
+                : { width: 144, height: 144 }
+            }
+          >
+            {leading}
+          </div>
+          <div className="min-w-0 flex-1">{copy}</div>
         </div>
-      </ShellContent>
-      <div aria-hidden className="h-px bg-border" />
-    </section>
+      ) : (
+        copy
+      )}
+    </AdminHeroShell>
   );
 }
 
@@ -294,21 +315,31 @@ export function AdminStatus({
   return null;
 }
 
+export const REASON_REQUIRED = "A reason of at least 3 characters is required.";
+
 export function ReasonField({
   value,
   onChange,
+  invalid,
 }: {
   value: string;
   onChange: (value: string) => void;
+  invalid?: boolean;
 }) {
   return (
     <label className="block text-xs text-muted-foreground">
       Reason for this change
       <input
-        className={cn(fieldClass, "mt-1")}
+        className={cn(
+          fieldClass,
+          "mt-1",
+          invalid &&
+            "ring-[var(--palette-red-400)] placeholder:text-[var(--palette-red-600)] focus-visible:ring-[var(--palette-red-400)]",
+        )}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        placeholder="Required"
+        placeholder={invalid ? REASON_REQUIRED : "Required"}
+        aria-invalid={invalid || undefined}
       />
     </label>
   );

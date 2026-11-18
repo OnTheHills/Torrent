@@ -8,7 +8,6 @@ import {
   ArrowLeft01Icon,
   ArrowRight01Icon,
   BankIcon,
-  DatabaseIcon,
   Briefcase01Icon,
   Calendar03Icon,
   CancelCircleIcon,

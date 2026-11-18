@@ -125,7 +125,7 @@ export async function api<T>(
     throw error;
   }
 
-  if (mutation && /\/auth\/(google|logout|dev-admin)\/?$/.test(apiUrl(path))) resetCsrfToken();
+  if (mutation && /\/auth\/(google|logout)\/?$/.test(apiUrl(path))) resetCsrfToken();
   return data as T;
 }
 

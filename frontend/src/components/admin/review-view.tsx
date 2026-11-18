@@ -10,6 +10,7 @@ import {
   Tick02Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { ClipboardPen } from "lucide-react";
 
 import {
   AdminBody,
@@ -254,6 +255,7 @@ export function ReviewView() {
       <AdminHero
         className="max-w-screen-2xl"
         title="Review queue"
+        icon={<ClipboardPen strokeWidth={1.75} aria-hidden />}
         description="Open and upcoming records that need a human look — Glance for a quick check, Review when fields look incomplete. Fresh TORs are scored on every sync (rules first, then Vertex AI); update scores manually only if confidence looks wrong."
         actions={
           <>
@@ -308,7 +310,7 @@ export function ReviewView() {
           </>
         }
       />
-      <AdminBody className="max-w-screen-2xl space-y-10 md:space-y-12">
+      <AdminBody className="max-w-screen-2xl space-y-10 pt-4 md:space-y-12 md:pt-6">
         <FilterPanelLayout ref={listTopRef}>
             <div className="flex items-center gap-3 lg:col-span-2">
                 <form

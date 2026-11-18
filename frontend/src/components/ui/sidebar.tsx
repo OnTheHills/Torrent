@@ -270,10 +270,10 @@ function SidebarMenuButton({
         /* Selection is a lighter glass lens pill — not a solid teal slab (no glass-on-glass). */
         "hover:bg-sidebar-hover hover:shadow-[inset_0_1px_0_0_rgb(255_255_255_/_0.5)]",
         "focus-visible:ring-2 focus-visible:ring-[rgb(255_255_255_/_0.65)]",
-        "data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:shadow-none data-[active=true]:ring-0",
+        "data-[active=true]:bg-sidebar-accent data-[active=true]:font-bold data-[active=true]:text-sidebar-accent-foreground data-[active=true]:shadow-none data-[active=true]:ring-0",
         "[&>span:last-child]:truncate [&>svg]:shrink-0 [&>svg]:opacity-80 data-[active=true]:[&>svg]:opacity-100",
         open
-          ? "h-10 w-full gap-3 px-3 [&>svg]:size-4"
+          ? "h-10 w-full gap-3 pl-4 pr-3 [&>svg]:size-4.5"
           : cn(
               "mx-auto shrink-0 justify-center gap-0 px-0 [&>span]:sr-only",
               isActive

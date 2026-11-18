@@ -265,8 +265,7 @@
   /* Match page canvas so the hero wash lands on the same surface. */
   --hero-stripe-c: var(--background);
   --hero-foreground: var(--palette-gray-900);
-  --hero-muted: var(--palette-gray-600);
-  --surface: var(--palette-gray-50);
+  --hero-muted: var(--palette-gray-600);  --surface: var(--palette-gray-50);
   --surface-elevated: color-mix(in srgb, var(--palette-white) 78%, transparent);
   --surface-frost: color-mix(in srgb, var(--palette-white) 48%, transparent);
   --surface-frost-ring: color-mix(

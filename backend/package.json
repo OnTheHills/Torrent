@@ -10,6 +10,7 @@
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "probe": "node scripts/probe-sources.js",
+    "promote-admin": "node scripts/promote-admin.js",
     "probe:vertex": "node --require module-alias/register scripts/probe-vertex.js",
     "test": "node --require module-alias/register --test"
   },

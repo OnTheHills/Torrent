@@ -253,6 +253,20 @@ Stop it and delete the MongoDB volume (this permanently removes local Compose da
 docker compose down -v
 ```
 
+### Create the first admin
+
+Admins sign in with Google like everyone else; there is no admin password or
+login shortcut. On a fresh database, sign in once with the Google account that
+should be the admin, then promote it from the server:
+
+```bash
+docker compose exec backend npm run promote-admin -- you@example.com
+```
+
+Without Docker, run `npm run promote-admin -- you@example.com` from `backend`.
+The change is recorded in the audit log. After that, admins can grant or remove
+the admin role for other users from **Admin → Users**.
+
 ## Dependency workflow
 
 ### Bare-metal npm workflow

@@ -34,7 +34,6 @@
       var(--hero-stripe-c)
     );
   }
-
   /* Category-tinted blueprint paper — set --blueprint-paper / --blueprint-grid. */
   .category-blueprint {
     isolation: isolate;
@@ -87,8 +86,12 @@
   }
 
   .category-blueprint > * {
-    position: relative;
     z-index: 1;
+  }
+
+  /* Absolute overlays (e.g. the bottom fade) must stay absolute. */
+  .category-blueprint > :not(.absolute) {
+    position: relative;
   }
 
   /* Watchlist hero: a slow pour, not one blob bouncing. */
@@ -222,7 +225,11 @@
   }
 
   .listing-skeleton-bone {
-    background-color: color-mix(in srgb, var(--palette-gray-300) 42%, transparent);
+    background-color: color-mix(
+      in srgb,
+      var(--palette-gray-300) 42%,
+      transparent
+    );
     background-image: linear-gradient(
       90deg,
       transparent 0%,

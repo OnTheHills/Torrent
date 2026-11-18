@@ -15,12 +15,14 @@ import {
   ViewIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { Archive } from "lucide-react";
 
 import {
   AdminBody,
   AdminButton,
   AdminHero,
   AdminStatus,
+  REASON_REQUIRED,
   ReasonField,
   frostButton,
   useAdminQuery,
@@ -142,6 +144,7 @@ export function TorsView() {
   const [selected, setSelected] = useState<string[]>([]);
   const [selecting, setSelecting] = useState(false);
   const [reason, setReason] = useState("");
+  const [reasonInvalid, setReasonInvalid] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const listTopRef = useRef<HTMLDivElement>(null);
@@ -149,6 +152,7 @@ export function TorsView() {
   function stopSelecting() {
     setSelecting(false);
     setSelected([]);
+    setReasonInvalid(false);
   }
 
   const path = useMemo(
@@ -159,16 +163,25 @@ export function TorsView() {
     useAdminQuery<Payload>(path);
   const showTableSkeleton = loading || isPlaceholderData;
 
+  const selectedRows = useMemo(() => {
+    const items = data?.items ?? [];
+    return items.filter((row) => selected.includes(row.id));
+  }, [data?.items, selected]);
+  const hasVisibleSelected = selectedRows.some((row) => !row.hidden);
+  const hasHiddenSelected = selectedRows.some((row) => row.hidden);
+
   function applyFilters(next: RecordsFilterState) {
     setFilters(next);
     setPage(1);
     setSelected([]);
+    setReasonInvalid(false);
   }
 
   function applyQuery(next: string) {
     setQuery(next);
     setPage(1);
     setSelected([]);
+    setReasonInvalid(false);
   }
 
   function toggle(id: string) {
@@ -178,7 +191,13 @@ export function TorsView() {
   }
 
   async function bulk(action: "hide" | "restore" | "review") {
+    if (reason.trim().length < 3) {
+      setReasonInvalid(true);
+      setMessage(null);
+      return;
+    }
     setMessage(null);
+    setReasonInvalid(false);
     setBusy(true);
     try {
       const result = await api<{ modified: number }>("/api/admin/tors/bulk", {
@@ -187,9 +206,12 @@ export function TorsView() {
       });
       setMessage(`${action} updated ${result.modified} records.`);
       setSelected([]);
+      setReason("");
       await reload();
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Bulk action failed");
+      const text = err instanceof Error ? err.message : "Bulk action failed";
+      if (text === REASON_REQUIRED) setReasonInvalid(true);
+      else setMessage(text);
     } finally {
       setBusy(false);
     }
@@ -220,9 +242,10 @@ export function TorsView() {
       <AdminHero
         className="max-w-screen-2xl"
         title="Records"
+        icon={<Archive strokeWidth={1.75} aria-hidden />}
         description="Search every stored TOR, including hidden ones. Hiding keeps the row and its history, and removes it from the public catalog."
       />
-      <AdminBody className="max-w-screen-2xl space-y-10 md:space-y-12">
+      <AdminBody className="max-w-screen-2xl space-y-10 pt-4 md:space-y-12 md:pt-6">
         <FilterPanelLayout ref={listTopRef}>
           <div className="flex items-center gap-3 lg:col-span-2">
             <form
@@ -292,24 +315,33 @@ export function TorsView() {
                   <p className="mb-2 text-sm font-medium tabular-nums">
                     {selected.length} selected
                   </p>
-                  <ReasonField value={reason} onChange={setReason} />
+                  <ReasonField
+                    value={reason}
+                    invalid={reasonInvalid}
+                    onChange={(next) => {
+                      setReason(next);
+                      if (reasonInvalid && next.trim().length >= 3) {
+                        setReasonInvalid(false);
+                      }
+                    }}
+                  />
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <AdminButton
-                    disabled={busy || !reason.trim()}
+                    disabled={busy || !hasVisibleSelected}
                     onClick={() => bulk("hide")}
                   >
                     Hide
                   </AdminButton>
                   <AdminButton
-                    disabled={busy || !reason.trim()}
+                    disabled={busy || !hasHiddenSelected}
                     onClick={() => bulk("restore")}
                   >
                     Restore
                   </AdminButton>
                   <AdminButton
                     tone="teal"
-                    disabled={busy || !reason.trim()}
+                    disabled={busy}
                     onClick={() => bulk("review")}
                   >
                     Send to review
@@ -317,7 +349,10 @@ export function TorsView() {
                   <AdminButton
                     tone="glass"
                     disabled={busy}
-                    onClick={() => setSelected([])}
+                    onClick={() => {
+                      setSelected([]);
+                      setReasonInvalid(false);
+                    }}
                   >
                     Clear selection
                   </AdminButton>

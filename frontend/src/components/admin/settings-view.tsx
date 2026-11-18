@@ -1,17 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import { Funnel } from "lucide-react";
 
 import {
   AdminBody,
   AdminButton,
   AdminHero,
-  AdminPanel,
   AdminStatus,
   ReasonField,
   fieldClass,
   useAdminQuery,
 } from "@/components/admin/admin-ui";
+import { MonitorSection } from "@/components/monitor/monitor-section";
 import { api } from "@/lib/api";
 
 type Settings = {
@@ -100,10 +101,7 @@ function SettingsForm({ initial }: { initial: Settings }) {
   }
 
   return (
-    <AdminPanel
-      title="Keyword lists"
-      description="One term per line. The next data.go sync uses the saved lists."
-    >
+    <>
       <div className="grid gap-4 md:grid-cols-2">
         <label className="text-xs text-muted-foreground">
           Include
@@ -170,7 +168,7 @@ function SettingsForm({ initial }: { initial: Settings }) {
           ) : null}
         </div>
       ) : null}
-    </AdminPanel>
+    </>
   );
 }
 
@@ -181,11 +179,20 @@ export function SettingsView() {
     <div>
       <AdminHero
         title="Classification rules"
+        icon={<Funnel strokeWidth={1.75} aria-hidden />}
         description="Include and exclude terms decide which data.go titles stay in the software catalog. Preview the change before it hides or restores records."
       />
-      <AdminBody>
+      <AdminBody className="space-y-10 pt-4 md:space-y-12 md:pt-6">
         <AdminStatus loading={loading} error={error} />
-        {data ? <SettingsForm initial={data} /> : null}
+        {data ? (
+          <MonitorSection
+            className="-mt-4 sm:-mt-4 md:-mt-6"
+            title="Keyword lists"
+            description="One term per line. The next data.go sync uses the saved lists."
+          >
+            <SettingsForm initial={data} />
+          </MonitorSection>
+        ) : null}
       </AdminBody>
     </div>
   );

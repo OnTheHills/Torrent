@@ -2,13 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, type ComponentType } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  PanelLeftCloseIcon,
-  PanelLeftOpenIcon,
-} from "@hugeicons/core-free-icons";
+  Archive,
+  ChartPie,
+  ClipboardPen,
+  Funnel,
+  LayoutGrid,
+  ListOrdered,
+  MessageCircle,
+  Maximize2,
+  Minimize2,
+  MonitorActivity,
+  User,
+  Users,
+} from "lucide-react";
 
 import { ShellAppBar } from "@/components/layout/app-bar";
 import { ShellContent } from "@/components/layout/shell-content";
@@ -28,11 +38,43 @@ import {
   SidebarProvider,
   useSidebar,
 } from "@/components/ui/sidebar";
-import type { NavGroup, NavItem } from "@/config/navigation";
+import type { LucideNavIcon, NavGroup, NavItem } from "@/config/navigation";
 import { routes } from "@/config/routes";
 import type { DictionaryKey } from "@/lib/i18n/dictionary";
 import { torsQueryOptions } from "@/lib/tors-query";
 import { cn } from "@/lib/utils";
+
+const LUCIDE_NAV_ICONS: Record<
+  LucideNavIcon,
+  ComponentType<{ strokeWidth?: number; fill?: string; className?: string }>
+> = {
+  "layout-grid": LayoutGrid,
+  "monitor-activity": MonitorActivity,
+  users: Users,
+  user: User,
+  "message-circle": MessageCircle,
+  "chart-pie": ChartPie,
+  funnel: Funnel,
+  "clipboard-pen": ClipboardPen,
+  archive: Archive,
+  "list-ordered": ListOrdered,
+};
+
+/** Icons that blob if fully filled — paint only the named slice. */
+const LUCIDE_ACTIVE_SLICE: Partial<Record<LucideNavIcon, string>> = {
+  "chart-pie": "[&_path:first-of-type]:fill-current",
+  "clipboard-pen": "[&_path:nth-of-type(2)]:fill-current",
+  /* Lid only — box body stays outline. */
+  archive: "[&_rect]:fill-current",
+  /* Screen fills; activity stroke punches through with the active pill color. */
+  "monitor-activity":
+    "[&_rect]:fill-current [&_path:nth-of-type(2)]:relative [&_path:nth-of-type(2)]:z-[1] [&_path:nth-of-type(2)]:stroke-sidebar-accent",
+};
+
+/** Icons that stay outline when active — just a heavier stroke (+1). */
+const LUCIDE_ACTIVE_STROKE: Partial<Record<LucideNavIcon, number>> = {
+  "list-ordered": 2.75,
+};
 
 function isListingsHref(href: string) {
   return (
@@ -138,6 +180,9 @@ function NavItemRow({
         void queryClient.prefetchQuery(torsQueryOptions);
       }
     : undefined;
+  const LucideIcon = item.lucide ? LUCIDE_NAV_ICONS[item.lucide] : null;
+  const lucideSlice = item.lucide ? LUCIDE_ACTIVE_SLICE[item.lucide] : undefined;
+  const lucideHeavy = item.lucide ? LUCIDE_ACTIVE_STROKE[item.lucide] : undefined;
 
   return (
     <SidebarMenuItem>
@@ -150,7 +195,23 @@ function NavItemRow({
           onFocus={prefetchListings}
           onTouchStart={prefetchListings}
         >
-          <HugeiconsIcon icon={item.icon} strokeWidth={1.75} />
+          {LucideIcon ? (
+            <LucideIcon
+              strokeWidth={active && lucideHeavy ? lucideHeavy : 1.75}
+              fill={
+                active && !lucideSlice && !lucideHeavy
+                  ? "currentColor"
+                  : "none"
+              }
+              className={active ? lucideSlice : undefined}
+            />
+          ) : item.icon ? (
+            <HugeiconsIcon
+              icon={item.icon}
+              strokeWidth={1.75}
+              className={active ? "[&_path]:fill-current" : undefined}
+            />
+          ) : null}
           <span>{label}</span>
         </Link>
       </SidebarMenuButton>
@@ -213,17 +274,17 @@ function ShellSidebar({ nav }: { nav: NavGroup[] }) {
             onClick={toggleSidebar}
             className={cn(
               sidebarFrostButton,
-              "gap-3 rounded-full text-sm font-medium",
+              "gap-3 rounded-full text-sm font-medium [&_svg]:size-4.5",
               open
-                ? "h-10 w-full justify-start px-3"
+                ? "h-10 w-full justify-start pl-4 pr-3"
                 : "mx-auto h-12 w-10 shrink-0 justify-center px-0",
             )}
           >
-            <HugeiconsIcon
-              icon={open ? PanelLeftCloseIcon : PanelLeftOpenIcon}
-              strokeWidth={1.75}
-              className="size-4 shrink-0"
-            />
+            {open ? (
+              <Minimize2 strokeWidth={1.75} className="size-4.5 shrink-0" />
+            ) : (
+              <Maximize2 strokeWidth={1.75} className="size-4.5 shrink-0" />
+            )}
             {open ? <span>{t("collapseMenu")}</span> : null}
           </Button>
         ) : null}
