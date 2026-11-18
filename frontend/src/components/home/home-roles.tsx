@@ -107,6 +107,7 @@ const toneStyles = {
 export function HomeRoles() {
   const { t } = useLocale();
   const { user } = useSession();
+  const isVendorOrAdmin = user?.role === "vendor" || user?.role === "admin";
   const [front, setFront] = useState<RoleTone>("orange");
   const [shake, setShake] = useState<{ tone: RoleTone; tick: number } | null>(
     null,
@@ -125,6 +126,11 @@ export function HomeRoles() {
           const tone = toneStyles[role.tone];
           const isFront = front === role.tone;
           const isShaking = shake?.tone === role.tone;
+          const href = isVendorOrAdmin
+            ? role.href === routes.tors
+              ? routes.app.tors
+              : routes.app.landing
+            : role.href;
           return (
             <div
               key={role.title}
@@ -230,7 +236,7 @@ export function HomeRoles() {
                 </ul>
 
                 <Link
-                  href={role.href === routes.login && (user?.role === "vendor" || user?.role === "admin") ? routes.app.landing : role.href}
+                  href={href}
                   onClick={(event) => event.stopPropagation()}
                   className={cn(
                     chromeFrostGlaze,
