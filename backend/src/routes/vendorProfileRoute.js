@@ -17,10 +17,10 @@ const vendorProfileRouter = express.Router();
 vendorProfileRouter.use(requireAuth, requireRole("vendor", "admin"));
 
 vendorProfileRouter.post("/", requireAuth, certificateUpload, createVendorProfile);
-vendorProfileRouter.get("/", getAllVendorProfiles);
+vendorProfileRouter.get("/", requireRole("admin"), getAllVendorProfiles);
 vendorProfileRouter.get("/certificates/:filename", requireAuth, getCertificate);
 vendorProfileRouter.get("/get/:userId", requireAuth, requireSelfOrAdminByUserId, getVendorProfileByUserId);
-vendorProfileRouter.get("/:id", getVendorProfileById);
+vendorProfileRouter.get("/:id", requireVendorProfileOwner, getVendorProfileById);
 vendorProfileRouter.patch("/:id", requireAuth, requireVendorProfileOwner, certificateUpload, updateVendorProfile);
 vendorProfileRouter.delete("/:id", requireAuth, requireVendorProfileOwner, deleteVendorProfile);
 

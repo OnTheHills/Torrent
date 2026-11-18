@@ -22,6 +22,7 @@ test("certificate uploads persist with their profile and enforce ownership and P
   process.env.JWT_SECRET = "certificate-upload-test-secret";
   const VendorProfile = require("../src/models/vendor/VendorProfile");
   const repository = require("../src/repositories/vendor/vendorProfileRepository");
+  const userRepository = require("../src/repositories/user/userRepository");
   const matching = require("../src/jobs/matchTors");
   const { signUserToken } = require("../src/utils/session");
   let stored = null;
@@ -39,6 +40,12 @@ test("certificate uploads persist with their profile and enforce ownership and P
   t.mock.method(repository, "update", (_id, data) => persist({ ...stored, ...data }));
   t.mock.method(repository, "findById", async (id) => id === PROFILE ? stored : null);
   t.mock.method(repository, "findByUserId", async (id) => stored?.userId === id ? stored : null);
+  t.mock.method(userRepository, "findAuthById", async (id) => ({
+    _id: id,
+    role: "vendor",
+    email: "test@example.com",
+    disabled: false,
+  }));
   const enqueueTor = t.mock.method(matching, "enqueueTor", async () => 0);
   const enqueueTors = t.mock.method(matching, "enqueueTors", async () => 0);
 

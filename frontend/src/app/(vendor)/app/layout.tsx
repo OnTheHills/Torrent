@@ -2,12 +2,15 @@ import { AppShell } from "@/components/layout/app-shell";
 import { AudienceProvider } from "@/components/providers/audience-provider";
 import { VENDOR_NAV } from "@/config/navigation";
 import { routes } from "@/config/routes";
+import { requireSession } from "@/lib/require-session";
 
-export default function VendorLayout({
+export default async function VendorLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  await requireSession(["vendor", "admin"]);
+
   return (
     <AudienceProvider audience="vendor">
       <AppShell

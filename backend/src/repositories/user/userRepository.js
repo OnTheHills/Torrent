@@ -24,6 +24,10 @@ async function findPublicById(id) {
   return User.findById(id).select("-passwordHash");
 }
 
+async function findAuthById(id) {
+  return User.findById(id).select("_id role email disabled").lean();
+}
+
 async function findEmailAlertPrefsById(id) {
   return User.findById(id).select("emailAlertPrefs").lean();
 }
@@ -65,6 +69,7 @@ module.exports = {
   findByEmail,
   findByGoogleId,
   findById,
+  findAuthById,
   findEmailAlertPrefsById,
   findEmailDeliveryUserById,
   findPublicById,
