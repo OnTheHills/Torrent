@@ -194,10 +194,6 @@ export function SourcesView() {
       )
     : [];
 
-  useEffect(() => {
-    if (runPage !== safeRunPage) setRunPage(safeRunPage);
-  }, [runPage, safeRunPage]);
-
   return (
     <div>
       <AdminHero
