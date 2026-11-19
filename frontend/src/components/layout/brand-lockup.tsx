@@ -16,7 +16,7 @@ const SIZE = {
 } as const;
 
 /**
- * Official TORRENT lockup from /public/torrent_logo_v2.png.
+ * Official TORRENT lockup from /public/torrent_logo.png.
  * `onDark` kept for callers; both modes use the same mark.
  */
 export function BrandLockup({
@@ -35,7 +35,7 @@ export function BrandLockup({
 
   return (
     <Image
-      src="/torrent_logo_v2.png"
+      src="/torrent_logo.png"
       alt={t("brand")}
       width={dim.width}
       height={dim.height}

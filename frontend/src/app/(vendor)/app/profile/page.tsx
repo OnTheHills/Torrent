@@ -1028,32 +1028,37 @@ export default function ProfilePage() {
                   <div className="flex flex-col gap-4">
                     {profile.pastProjects.map((project, index) => (
                       <div key={index} className={projectFrostCard}>
-                        {profile.pastProjects.length > 1 ? (
-                          <button
-                            type="button"
-                            aria-label={`Remove project ${index + 1}`}
-                            className={cn(
-                              frostPill,
-                              frostPillDanger,
-                              "absolute top-3 right-3 size-7 shrink-0 px-0 md:top-4 md:right-4",
-                            )}
-                            onClick={() =>
-                              setProfile((current) => ({
-                                ...current,
-                                pastProjects: current.pastProjects.filter(
-                                  (_, row) => row !== index,
-                                ),
-                              }))
-                            }
-                          >
-                            <HugeiconsIcon
-                              icon={Cancel01Icon}
-                              className="size-3.5"
-                            />
-                          </button>
-                        ) : null}
+                        <div className="mb-4 flex items-center justify-between gap-3">
+                          <h4 className="text-base font-medium leading-snug">
+                            Project {index + 1}
+                          </h4>
+                          {profile.pastProjects.length > 1 ? (
+                            <button
+                              type="button"
+                              aria-label={`Remove project ${index + 1}`}
+                              className={cn(
+                                frostPill,
+                                frostPillDanger,
+                                "size-7 shrink-0 px-0",
+                              )}
+                              onClick={() =>
+                                setProfile((current) => ({
+                                  ...current,
+                                  pastProjects: current.pastProjects.filter(
+                                    (_, row) => row !== index,
+                                  ),
+                                }))
+                              }
+                            >
+                              <HugeiconsIcon
+                                icon={Cancel01Icon}
+                                className="size-3.5"
+                              />
+                            </button>
+                          ) : null}
+                        </div>
                         <div className="grid gap-4 md:grid-cols-3">
-                          <div className="mt-4 flex flex-col gap-1.5 md:col-span-3">
+                          <div className="flex flex-col gap-1.5 md:col-span-3">
                             <label
                               htmlFor={`project-name-${index}`}
                               className="text-sm font-medium"
