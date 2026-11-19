@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { DevAdminShortcut } from "@/components/auth/dev-admin-shortcut";
 import { GoogleButton } from "@/components/auth/google-button";
 import { routes } from "@/config/routes";
 
@@ -26,7 +25,6 @@ export default function LoginPage() {
           Register
         </Link>
       </p>
-      <DevAdminShortcut />
     </div>
   );
 }

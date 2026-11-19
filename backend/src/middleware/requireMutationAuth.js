@@ -1,6 +1,7 @@
 const { requireAuth } = require("./requireAuth");
 
 const PUBLIC_READ_PATHS = [
+  /^\/api\/hello\/?$/i,
   /^\/api\/tors\/?$/i,
   /^\/api\/tors\/(?:budget-peers|top-departments-by-budget|category-distribution|[a-f0-9]{24})\/?$/i,
 ];

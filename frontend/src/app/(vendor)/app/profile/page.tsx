@@ -10,7 +10,9 @@ import {
   Tick02Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { User } from "lucide-react";
 
+import { HeroTitle } from "@/components/layout/hero-title";
 import { TOR_CATEGORIES } from "@/components/tor/tor-filters";
 import { CertificateUploads, emptyCertificates, savedCertificateSelections } from "@/components/profile/certificate-uploads";
 import type { CertificateField } from "@/components/profile/certificate-uploads";
@@ -561,10 +563,13 @@ export default function ProfilePage() {
         <div aria-hidden className={heroFade} />
         <ShellContent className="relative z-10">
         <div className="relative mx-auto flex min-h-[20rem] max-w-6xl flex-col justify-end px-4 pb-10 pt-[calc(144px+1.25rem)] sm:px-6 md:min-h-[22rem] md:pb-12 md:pt-[calc(144px+1.75rem)]">
-          <div className="w-full max-w-2xl md:max-w-3xl lg:max-w-4xl">
-            <h1 className="text-3xl font-semibold tracking-tight md:text-4xl md:leading-[1.15]">
+          <div className="w-full max-w-3xl md:max-w-4xl lg:max-w-5xl">
+            <HeroTitle
+              className="md:text-4xl md:leading-[1.15]"
+              icon={<User strokeWidth={1.75} />}
+            >
               Company Profile
-            </h1>
+            </HeroTitle>
             <p className="mt-3 text-base leading-[1.65] text-muted-foreground md:text-lg">
               Matching uses technologies, project types, and team size. Saving
               queues your profile against current TORs.

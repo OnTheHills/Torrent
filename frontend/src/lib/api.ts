@@ -125,7 +125,7 @@ export async function api<T>(
     throw error;
   }
 
-  if (mutation && /\/auth\/(google|logout|dev-admin)\/?$/.test(apiUrl(path))) resetCsrfToken();
+  if (mutation && /\/auth\/(google|logout)\/?$/.test(apiUrl(path))) resetCsrfToken();
   return data as T;
 }
 
@@ -234,7 +234,10 @@ export function storedMatchTorId(value: StoredMatch["torId"]) {
 
 /** TOR ids whose match job is still pending, running, or waiting. */
 export async function fetchPendingMatchIds(): Promise<string[]> {
-  const response = await fetch(apiUrl("/tor-matches/pending"), { cache: "no-store" });
+  const response = await fetch(apiUrl("/tor-matches/pending"), {
+    cache: "no-store",
+    credentials: "include",
+  });
   if (!response.ok) {
     throw new Error(`Failed to fetch pending matches (${response.status})`);
   }

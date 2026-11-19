@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Search01Icon, UserIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { Users } from "lucide-react";
 
 import {
   AdminBody,
@@ -276,9 +277,10 @@ export function UsersView() {
       <AdminHero
         className="max-w-screen-2xl"
         title="Users"
+        icon={<Users strokeWidth={1.75} aria-hidden />}
         description="Find accounts and change roles. Open a profile to review capability, certificates, and disable access."
       />
-      <AdminBody className="max-w-screen-2xl space-y-10 md:space-y-12">
+      <AdminBody className="max-w-screen-2xl space-y-10 pt-0 md:space-y-12 md:pt-0">
         <FilterPanelLayout>
           <div className="flex items-end justify-between gap-4 lg:col-span-2">
             <h2 className="text-2xl font-semibold tracking-tight md:text-[2rem] md:leading-[1.2]">

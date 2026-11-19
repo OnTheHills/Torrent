@@ -1,26 +1,33 @@
 import {
-  AiMail02Icon,
-  Alert02Icon,
-  Analytics01Icon,
   File01Icon,
   HeartIcon,
   Home03Icon,
   MoneyBag02Icon,
   Pulse01Icon,
-  Shield01Icon,
-  SourceCodeIcon,
   SparklesIcon,
-  UserSettings01Icon,
 } from "@hugeicons/core-free-icons";
 import type { IconSvgElement } from "@hugeicons/react";
 
 import { routes } from "@/config/routes";
 import type { DictionaryKey } from "@/lib/i18n/dictionary";
 
+export type LucideNavIcon =
+  | "layout-grid"
+  | "monitor-activity"
+  | "users"
+  | "user"
+  | "message-circle"
+  | "chart-pie"
+  | "funnel"
+  | "clipboard-pen"
+  | "archive"
+  | "list-ordered";
+
 export type NavItem = {
   labelKey: DictionaryKey;
   href: string;
-  icon: IconSvgElement;
+  icon?: IconSvgElement;
+  lucide?: LucideNavIcon;
   /**
    * Section index routes (`/`, `/app`, `/admin`) are prefixes of their children,
    * so they only highlight on an exact match.
@@ -50,7 +57,7 @@ export const PUBLIC_NAV: NavGroup[] = [
 
 export const VENDOR_NAV: NavGroup[] = [
   {
-    labelKey: "navGroupInbox",
+    labelKey: "navGroupCatalog",
     items: [
       {
         labelKey: "navHome",
@@ -58,6 +65,17 @@ export const VENDOR_NAV: NavGroup[] = [
         icon: Home03Icon,
         exact: true,
       },
+      { labelKey: "navCatalog", href: routes.app.tors, icon: File01Icon },
+      {
+        labelKey: "navBudgets",
+        href: routes.app.dashboard,
+        lucide: "chart-pie",
+      },
+    ],
+  },
+  {
+    labelKey: "navGroupInbox",
+    items: [
       {
         labelKey: "navInbox",
         href: routes.app.home,
@@ -68,29 +86,18 @@ export const VENDOR_NAV: NavGroup[] = [
     ],
   },
   {
-    labelKey: "navGroupCatalog",
-    items: [
-      { labelKey: "navCatalog", href: routes.app.tors, icon: File01Icon },
-      {
-        labelKey: "navBudgets",
-        href: routes.app.dashboard,
-        icon: MoneyBag02Icon,
-      },
-    ],
-  },
-  {
     labelKey: "navGroupAccount",
     dock: "bottom",
     items: [
       {
         labelKey: "navProfile",
         href: routes.app.profile,
-        icon: UserSettings01Icon,
+        lucide: "user",
       },
       {
         labelKey: "navAlerts",
         href: routes.app.alerts,
-        icon: AiMail02Icon,
+        lucide: "message-circle",
       },
     ],
   },
@@ -103,50 +110,49 @@ export const ADMIN_NAV: NavGroup[] = [
       {
         labelKey: "navOverview",
         href: routes.admin.home,
-        icon: Shield01Icon,
+        lucide: "layout-grid",
         exact: true,
       },
       {
         labelKey: "navAdminSources",
         href: routes.admin.sources,
-        icon: Pulse01Icon,
+        lucide: "monitor-activity",
+      },
+      {
+        labelKey: "navAdminTors",
+        href: routes.admin.tors,
+        lucide: "archive",
       },
       {
         labelKey: "navAdminReview",
         href: routes.admin.review,
-        icon: Alert02Icon,
+        lucide: "clipboard-pen",
       },
-      { labelKey: "navAdminTors", href: routes.admin.tors, icon: File01Icon },
-    ],
-  },
-  {
-    labelKey: "navGroupTools",
-    items: [
       {
         labelKey: "navAdminMatches",
         href: routes.admin.matches,
         icon: SparklesIcon,
       },
-      {
-        labelKey: "navAdminAudit",
-        href: routes.admin.audit,
-        icon: Analytics01Icon,
-      },
     ],
   },
   {
-    labelKey: "navGroupAccount",
+    labelKey: "navGroupTools",
     dock: "bottom",
     items: [
       {
         labelKey: "navAdminUsers",
         href: routes.admin.users,
-        icon: UserSettings01Icon,
+        lucide: "users",
       },
       {
         labelKey: "navAdminSettings",
         href: routes.admin.settings,
-        icon: SourceCodeIcon,
+        lucide: "funnel",
+      },
+      {
+        labelKey: "navAdminAudit",
+        href: routes.admin.audit,
+        lucide: "list-ordered",
       },
     ],
   },

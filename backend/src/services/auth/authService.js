@@ -94,31 +94,4 @@ async function getCurrentUser(id) {
   return userRepository.findPublicById(id);
 }
 
-const DEV_ADMIN_EMAIL = "dev-admin@localhost";
-
-async function loginAsDevAdmin() {
-  if (process.env.NODE_ENV === "production") {
-    throw authError("Not available.", 404);
-  }
-
-  let user = await userRepository.findByEmail(DEV_ADMIN_EMAIL);
-  if (!user) {
-    user = await userRepository.create({
-      email: DEV_ADMIN_EMAIL,
-      emailVerified: true,
-      firstname: "Dev",
-      lastname: "Admin",
-      provider: "password",
-      role: "admin",
-      username: "dev-admin",
-    });
-  } else if (user.role !== "admin" || user.disabled) {
-    user.role = "admin";
-    user.disabled = false;
-    await userRepository.save(user);
-  }
-
-  return { publicUser: toPublicUser(user), user };
-}
-
-module.exports = { getCurrentUser, loginAsDevAdmin, loginWithGoogle };
+module.exports = { getCurrentUser, loginWithGoogle };

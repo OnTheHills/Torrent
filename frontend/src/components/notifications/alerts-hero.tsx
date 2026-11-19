@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { MessageCircle } from "lucide-react";
 
+import { HeroTitle } from "@/components/layout/hero-title";
 import { ShellContent } from "@/components/layout/shell-content";
 import { useLocale } from "@/components/providers/locale-provider";
 
@@ -110,10 +112,10 @@ export function AlertsHero() {
       />
       <ShellContent className="relative z-10">
         <div className="relative mx-auto flex min-h-[22rem] max-w-6xl flex-col justify-center px-4 pb-14 pt-[144px] sm:px-6 md:min-h-[26rem] md:pb-16">
-          <div className="w-full max-w-2xl md:max-w-3xl lg:max-w-4xl">
-            <h1 className="text-3xl font-semibold tracking-tight md:text-5xl md:leading-[1.1]">
+          <div className="w-full max-w-3xl md:max-w-4xl lg:max-w-5xl">
+            <HeroTitle icon={<MessageCircle strokeWidth={1.75} />}>
               {t("settingsTitle")}
-            </h1>
+            </HeroTitle>
             <p className="mt-5 text-base leading-[1.7] text-[color-mix(in_srgb,var(--palette-red-900)_78%,transparent)] md:text-lg">
               {t("settingsDescription")}
             </p>

@@ -315,7 +315,6 @@ Roles: `public` | `vendor` | `admin`. Middleware: `requireAuth`, `requireRole(..
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
 | POST | /google | — | Exchange Google credential → session cookie |
-| POST | /dev-admin | — | Dev-only admin login (if enabled) |
 | GET | /me | yes | Current user |
 | POST | /logout | — | Clear cookie |
 

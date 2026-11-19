@@ -45,19 +45,9 @@ async function me(request, response) {
   }
 }
 
-async function devAdminLogin(request, response) {
-  try {
-    const { publicUser, user } = await authService.loginAsDevAdmin();
-    setSession(response, user);
-    return response.status(200).json(publicUser);
-  } catch (error) {
-    return response.status(error.statusCode || 500).json({ message: error.message });
-  }
-}
-
 async function logout(request, response) {
   response.clearCookie(COOKIE_NAME, { ...cookieOptions(), maxAge: 0 });
   return response.status(200).json({ ok: true });
 }
 
-module.exports = { devAdminLogin, googleLogin, me, logout };
+module.exports = { googleLogin, me, logout };

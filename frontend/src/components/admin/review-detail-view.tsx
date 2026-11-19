@@ -1,7 +1,5 @@
 "use client";
 
-
-import { ShellContent } from "@/components/layout/shell-content";
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -13,17 +11,19 @@ import {
   BankIcon,
   File01Icon,
   LinkSquare02Icon,
-  SourceCodeIcon,
   SparklesIcon,
+  Tick02Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import {
   AdminBody,
   AdminButton,
+  AdminHeroShell,
   AdminPanel,
   AdminStatus,
   ReasonField,
+  REASON_REQUIRED,
   fieldClass,
   frostButton,
   useAdminQuery,
@@ -37,8 +37,25 @@ import {
 import { WatchOutCard } from "@/components/admin/watch-out-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { routes } from "@/config/routes";
 import { api } from "@/lib/api";
+import { cn } from "@/lib/utils";
+
+const STATUS_OPTIONS = [
+  { value: "discovered", label: "Discovered" },
+  { value: "draft", label: "Draft TOR" },
+  { value: "published", label: "Published" },
+  { value: "closed", label: "Closed" },
+  { value: "awarded", label: "Awarded" },
+  { value: "cancelled", label: "Cancelled" },
+] as const;
 
 type TorSourceLink = {
   source?: string;
@@ -206,8 +223,12 @@ export function ReviewDetailView({ id }: { id: string }) {
     `/api/admin/tors/${id}`,
   );
   const [reason, setReason] = useState("");
+  const [reasonInvalid, setReasonInvalid] = useState(false);
   const [fields, setFields] = useState<Record<string, string>>({});
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<{
+    text: string;
+    tone: "ok" | "error";
+  } | null>(null);
   const [busy, setBusy] = useState(false);
   const [pdfPreview, setPdfPreview] = useState<
     | { status: "idle" }
@@ -266,9 +287,29 @@ export function ReviewDetailView({ id }: { id: string }) {
     return fields[name] ?? fallback;
   }
 
+  const dirty =
+    !!data &&
+    (value("budgetThb", String(data.budgetThb || "")) !==
+      String(data.budgetThb || "") ||
+      value("publishedAt", dateInput(data.publishedAt)) !==
+        dateInput(data.publishedAt) ||
+      value("deadline", dateInput(data.deadline)) !==
+        dateInput(data.deadline) ||
+      value("category", data.category || "") !== (data.category || "") ||
+      value("department", data.department || "") !== (data.department || "") ||
+      value("status", data.status || "") !== (data.status || ""));
+
   async function decide(decision: "approve" | "fix" | "reject") {
+    if (decision === "approve" && dirty) return;
+    if (decision === "fix" && !dirty) return;
+    if (reason.trim().length < 3) {
+      setReasonInvalid(true);
+      setMessage(null);
+      return;
+    }
     setBusy(true);
     setMessage(null);
+    setReasonInvalid(false);
     try {
       await api(`/api/admin/review/${id}`, {
         method: "POST",
@@ -285,13 +326,17 @@ export function ReviewDetailView({ id }: { id: string }) {
           },
         }),
       });
-      setMessage(
-        decision === "reject"
-          ? "Rejected and hidden."
-          : "Saved to the audit log.",
-      );
+      setMessage({
+        tone: "ok",
+        text:
+          decision === "reject"
+            ? "Rejected and hidden."
+            : "Saved to the audit log.",
+      });
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Review failed");
+      const text = err instanceof Error ? err.message : "Review failed";
+      if (text === REASON_REQUIRED) setReasonInvalid(true);
+      else setMessage({ tone: "error", text });
     } finally {
       setBusy(false);
     }
@@ -315,25 +360,17 @@ export function ReviewDetailView({ id }: { id: string }) {
     ? effectiveBand(data.reviewStatus, data.confidence)
     : "review";
 
-  const dirty =
-    !!data &&
-    (Boolean(reason.trim()) ||
-      value("budgetThb", String(data.budgetThb || "")) !==
-        String(data.budgetThb || "") ||
-      value("publishedAt", dateInput(data.publishedAt)) !==
-        dateInput(data.publishedAt) ||
-      value("deadline", dateInput(data.deadline)) !==
-        dateInput(data.deadline) ||
-      value("category", data.category || "") !== (data.category || "") ||
-      value("department", data.department || "") !== (data.department || "") ||
-      value("status", data.status || "") !== (data.status || ""));
+  const statusValue = value("status", data?.status || "");
+  const statusOptions = STATUS_OPTIONS.some((option) => option.value === statusValue)
+    ? STATUS_OPTIONS
+    : statusValue
+      ? [...STATUS_OPTIONS, { value: statusValue, label: statusValue }]
+      : STATUS_OPTIONS;
 
   return (
     <div>
-      <section className="relative -mt-[144px] overflow-hidden bg-surface text-foreground">
-        <ShellContent>
-        <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-[calc(144px+2rem)] sm:px-6 md:pb-12 md:pt-[calc(144px+3rem)]">
-          <Button asChild size="lg" className={frostButton}>
+      <AdminHeroShell>
+          <Button asChild size="lg" className={cn(frostButton, "self-start")}>
             <Link href={backHref}>
               <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} />
               {backLabel}
@@ -415,10 +452,7 @@ export function ReviewDetailView({ id }: { id: string }) {
               </>
             ) : null}
           </div>
-        </div>
-        </ShellContent>
-        <div aria-hidden className="h-px bg-border" />
-      </section>
+      </AdminHeroShell>
 
       <AdminBody>
         <AdminStatus loading={loading} error={error} />
@@ -564,45 +598,90 @@ export function ReviewDetailView({ id }: { id: string }) {
                       }
                     />
                   </label>
-                  <label className="text-xs text-muted-foreground">
+                  <div className="text-xs text-muted-foreground">
                     Status
-                    <input
-                      className={`${fieldClass} mt-1`}
-                      value={value("status", data.status || "")}
-                      onChange={(event) =>
-                        setFields((prev) => ({
-                          ...prev,
-                          status: event.target.value,
-                        }))
+                    <Select
+                      value={statusValue || undefined}
+                      onValueChange={(status) =>
+                        setFields((prev) => ({ ...prev, status }))
                       }
-                    />
-                  </label>
-                  <ReasonField value={reason} onChange={setReason} />
-                  <div className="pt-2 flex flex-wrap justify-end gap-2">
-                    <AdminButton
-                      disabled={busy}
-                      onClick={() => decide("approve")}
                     >
-                      Approve
-                    </AdminButton>
-                    <AdminButton
-                      tone={dirty ? "teal" : "neutral"}
-                      disabled={busy}
-                      onClick={() => decide("fix")}
-                    >
-                      Save fix
-                    </AdminButton>
-                    <AdminButton
-                      tone={dirty ? "neutral" : "red"}
-                      disabled={busy}
-                      onClick={() => decide("reject")}
-                    >
-                      Reject
-                    </AdminButton>
+                      <SelectTrigger
+                        aria-label="Status"
+                        className="mt-1 h-10! w-full rounded-full border-0 bg-[linear-gradient(180deg,var(--palette-gray-200),var(--palette-gray-100))] text-sm shadow-[inset_0_1px_0_0_rgba(255,255,255,0.92)] ring-1 ring-[color-mix(in_srgb,var(--palette-gray-300)_80%,transparent)]"
+                      >
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent
+                        position="popper"
+                        align="start"
+                        side="bottom"
+                        sideOffset={6}
+                        sticky="always"
+                      >
+                        {statusOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  {message ? (
-                    <p className="text-sm text-muted-foreground">{message}</p>
-                  ) : null}
+                  <ReasonField
+                    value={reason}
+                    invalid={reasonInvalid}
+                    onChange={(next) => {
+                      setReason(next);
+                      if (reasonInvalid && next.trim().length >= 3) {
+                        setReasonInvalid(false);
+                      }
+                    }}
+                  />
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
+                    {message ? (
+                      <p
+                        className={cn(
+                          "flex min-w-0 items-center gap-1.5 text-sm",
+                          message.tone === "ok"
+                            ? "text-[var(--palette-green-700)]"
+                            : "text-[var(--palette-red-700)]",
+                        )}
+                      >
+                        <HugeiconsIcon
+                          icon={
+                            message.tone === "ok" ? Tick02Icon : Alert02Icon
+                          }
+                          strokeWidth={2}
+                          className="size-4 shrink-0 text-current"
+                        />
+                        {message.text}
+                      </p>
+                    ) : (
+                      <span className="min-h-5 flex-1" />
+                    )}
+                    <div className="ml-auto flex flex-wrap justify-end gap-2">
+                      <AdminButton
+                        disabled={busy || dirty}
+                        onClick={() => decide("approve")}
+                      >
+                        Approve
+                      </AdminButton>
+                      <AdminButton
+                        tone={dirty ? "teal" : "neutral"}
+                        disabled={busy || !dirty}
+                        onClick={() => decide("fix")}
+                      >
+                        Save fix
+                      </AdminButton>
+                      <AdminButton
+                        tone={dirty ? "neutral" : "red"}
+                        disabled={busy}
+                        onClick={() => decide("reject")}
+                      >
+                        Reject
+                      </AdminButton>
+                    </div>
+                  </div>
                 </div>
               </AdminPanel>
             </div>

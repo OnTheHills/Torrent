@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Search01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { ListOrdered } from "lucide-react";
 
 import {
   AdminBody,
@@ -273,10 +274,11 @@ export function AuditView() {
       <AdminHero
         className="max-w-screen-2xl"
         title="Audit log"
+        icon={<ListOrdered strokeWidth={1.75} aria-hidden />}
         description="Append-only record of syncs, reviews, edits, role changes, and classification runs. Each entry keeps who, when, what changed, and why."
       />
-      <AdminBody className="max-w-screen-2xl space-y-10 md:space-y-12">
-        <div className="space-y-8">
+      <AdminBody className="max-w-screen-2xl space-y-10 pt-4 md:space-y-12 md:pt-6">
+        <div className="-mt-4 space-y-8 sm:-mt-6 md:-mt-8">
           <div className="flex items-end justify-between gap-4">
             <h2 className="text-2xl font-semibold tracking-tight md:text-[2rem] md:leading-[1.2]">
               Entries
