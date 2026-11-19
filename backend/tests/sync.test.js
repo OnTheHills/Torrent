@@ -110,6 +110,13 @@ test("e-GP RSS walks official B0/D0/W0 feeds and keeps software draft TORs", asy
 });
 
 const syncJobMocks = {
+  "@/services/tor/mergeDuplicateTors": {
+    mergeByRefIds: async () => ({
+      groups: 0, merged: 0, conflicted: 0,
+      survivorIds: [], absorbedIds: [], conflictedSurvivorIds: [],
+    }),
+    reconcileAll: async () => ({ groups: 0, merged: 0, conflicted: 0 }),
+  },
   "@/services/tor/api/bmaEgp2/files": { hydrateProjects: async (tors) => tors },
   "@/services/tor/ocr/ocrBmaPlans": { enrich: async () => ({}) },
   "@/services/admin/classification": { activeRules: async () => null },
@@ -166,7 +173,8 @@ test("sync job saves data.go projects but waits for a TOR document before matchi
   assert.deepEqual(queued, []);
   assert.deepEqual(scored, ["tor-id-egp-1"]);
   assert.deepEqual(JSON.parse(JSON.stringify(result)), [
-    { source: "EGP-PROCESS5", method: "GET", discovered: 1, process5Resolved: 1, documentLinks: 0, fetched: 1, matched: 1, created: 1, updated: 0, unchanged: 0, ocrAttempted: 1, ocrUpdated: 0, ocrSkipped: 1, ocrFailed: 0 },
+    { source: "EGP-PROCESS5", method: "GET", discovered: 1, process5Resolved: 1, documentLinks: 0, fetched: 1, matched: 1, created: 1, updated: 0, unchanged: 0, ocrAttempted: 1, ocrUpdated: 0, ocrSkipped: 1, ocrFailed: 0, mergeGroups: 0, mergeMerged: 0, mergeConflicted: 0 },
+    { source: "TOR-MERGE", groups: 0, merged: 0, conflicted: 0 },
     { source: "SME-GP", announcementRead: 0, announcementUpdated: 0, announcementSkipped: 1, announcementFailed: 0 },
   ]);
 });
@@ -212,6 +220,101 @@ test("data.go rate limit still processes saved TOR ZIPs", async () => {
   assert.equal(result.ocrUpdated, 1);
   assert.deepEqual(queued, ["ocr-id"]);
 });
+
+const allSourceNames = ["dataGoProcess5", "process3Process5", "dataGo", "bmaEgp2", "egpRss"];
+const sourceLabels = ["EGP-PROCESS5", "EGP-PROCESS5", "DATA-GO-EGP", "BMA-EGP2", "EGP-RSS"];
+
+function automaticJob({ fail = [] } = {}) {
+  const fetched = [];
+  const saved = [];
+  const queued = [];
+  const scored = [];
+  const stages = [];
+  const dependencies = {
+    ...syncJobMocks,
+    "node:path": { join: (...parts) => `${parts.at(-1)}:${parts.at(-2)}` },
+    "@/repositories/tor/torRepository": {
+      findBySource: async () => [],
+      saveChanged: async (tors) => {
+        const ids = tors.map((tor) => tor.refId);
+        saved.push(...ids);
+        stages.push(...ids.map((id) => `save:${id}`));
+        return { created: ids.length, changedTorIds: ids, createdTorIds: ids };
+      },
+      deleteMissingFromSource: async () => ({}),
+    },
+    "@/services/tor/ocr/ocrEgp": { enrich: async () => ({ updatedTorIds: [] }) },
+    "@/jobs/matchTors": { enqueueTors: async (ids) => queued.push(...ids) },
+    "@/services/admin/scoreReviewTors": { scoreTorIds: async (ids) => scored.push(...ids) },
+    "@/services/tor/smeAnnouncement": {
+      enrichStored: async () => { stages.push("sme"); return { announcementUpdated: 1 }; },
+    },
+  };
+  for (const [index, name] of allSourceNames.entries()) {
+    dependencies[`fetch:${name}`] = {
+      source: sourceLabels[index], method: "GET",
+      fetch: async () => {
+        fetched.push(name);
+        stages.push(`fetch:${name}`);
+        if (fail.includes(name)) throw new Error(`${name} unavailable`);
+        return { rows: [{ refId: name }] };
+      },
+    };
+    dependencies[`adapter:${name}`] = { adapt: (rows) => rows };
+  }
+  return { job: loadModule("../src/jobs/syncAPI.js", dependencies), fetched, saved, queued, scored, stages };
+}
+
+test("automatic ingestion persists all five sources sequentially and still enriches SME-GP", async () => {
+  const { job, fetched, saved, queued, scored, stages } = automaticJob();
+  const results = await job.syncAPI({ automatic: true });
+  assert.deepEqual(fetched, allSourceNames);
+  assert.deepEqual(saved, allSourceNames);
+  assert.deepEqual(scored, allSourceNames);
+  // data.go/process5 still waits for OCR before queuing matches.
+  assert.deepEqual(queued, allSourceNames.slice(1));
+  assert.deepEqual(stages, [
+    ...allSourceNames.flatMap((name) => [`fetch:${name}`, `save:${name}`]), "sme",
+  ]);
+  assert.deepEqual(Array.from(results.slice(0, 5), (row) => row.sourceKey), allSourceNames);
+  assert.ok(results.slice(0, 5).every((row) => row.status === "success" && row.created === 1));
+  assert.equal(results.at(-1).source, "SME-GP");
+  assert.equal(results.at(-1).announcementUpdated, 1);
+  assert.equal(results.at(-1).status, "success");
+  assert.ok(results.every((row) => !("_matchTorIds" in row) && !("_createdTorIds" in row)));
+});
+
+test("automatic ingestion continues after failed feeds and preserves each result", async () => {
+  const { job, fetched, saved, scored } = automaticJob({ fail: ["dataGoProcess5", "bmaEgp2"] });
+  const results = await job.syncAPI({ automatic: true });
+  assert.deepEqual(fetched, allSourceNames);
+  assert.deepEqual(saved, ["process3Process5", "dataGo", "egpRss"]);
+  assert.deepEqual(scored, saved);
+  const failures = results.filter((row) => row.status === "failed");
+  assert.deepEqual(Array.from(failures, (row) => row.sourceKey), ["dataGoProcess5", "bmaEgp2"]);
+  assert.equal(failures[0].error, "dataGoProcess5 unavailable");
+  assert.equal(failures[1].source, "BMA-EGP2");
+  assert.equal(results.at(-1).source, "SME-GP");
+  assert.equal(results.at(-1).status, "success");
+});
+
+test("admin manual batch keeps its original source selection and response", async () => {
+  const { job, fetched } = automaticJob();
+  const results = await job.syncAPI();
+  assert.deepEqual(fetched, ["dataGoProcess5"]);
+  assert.deepEqual(Array.from(results, (row) => row.source), ["EGP-PROCESS5", "TOR-MERGE", "SME-GP"]);
+  assert.ok(results.every((row) => !("sourceKey" in row) && !("status" in row)));
+});
+
+for (const name of allSourceNames) {
+  test(`admin individual sync still fetches only ${name}`, async () => {
+    const { job, fetched } = automaticJob();
+    const result = await job.syncSource(name);
+    assert.deepEqual(fetched, [name]);
+    assert.equal(result.source, sourceLabels[allSourceNames.indexOf(name)]);
+    assert.equal(result.created, 1);
+  });
+}
 
 test("TOR persistence bulk-writes new and changed records but skips identical records", async () => {
   const existing = [{ _id: "tor-1", refId: "data-1", source: "DATA-GO-EGP", title: "Original" }];
@@ -272,7 +375,11 @@ for (const flag of [undefined, "false", "true"]) {
     let scheduled;
     const job = loadModule("../src/scheduler/syncScheduler.js", {
       "node-cron": { schedule: (...args) => { scheduled = args; } },
-      "@/jobs/syncAPI": { syncAPI: async () => { syncs++; } },
+      "@/jobs/syncAPI": { syncAPI: async (options) => {
+        assert.equal(options.automatic, true);
+        syncs++;
+        return [];
+      } },
       "@/services/admin/syncRuns": syncRunsMock,
     }, { FETCH_ON_STARTUP: flag });
     await job.startSyncScheduler();
@@ -294,4 +401,24 @@ test("startup sync failure still enables the nightly job", async () => {
   }, { FETCH_ON_STARTUP: "true" });
   await job.startSyncScheduler();
   assert.equal(scheduled, true);
+});
+
+test("automatic batch run retains healthy feed summaries when another feed fails", async () => {
+  const finished = [];
+  const summary = [
+    { source: "BMA-EGP2", sourceKey: "bmaEgp2", status: "failed", fetched: 0, error: "Unavailable" },
+    { source: "EGP-RSS", sourceKey: "egpRss", status: "success", fetched: 4 },
+  ];
+  const job = loadModule("../src/scheduler/syncScheduler.js", {
+    "node-cron": { schedule() {} },
+    "@/jobs/syncAPI": { syncAPI: async () => summary },
+    "@/services/admin/syncRuns": {
+      ...syncRunsMock,
+      finish: async (_run, result) => finished.push(result),
+    },
+  }, { FETCH_ON_STARTUP: "true" });
+  await job.startSyncScheduler();
+  assert.equal(finished[0].status, "failed");
+  assert.equal(finished[0].summary, summary);
+  assert.equal(finished[0].error, "bmaEgp2: Unavailable");
 });

@@ -276,11 +276,14 @@ function latestRunsBySource(runs, sources) {
   for (const run of runs) {
     if (run.sourceKey === "all") {
       const rows = Array.isArray(run.summary) ? run.summary : [];
+      const automatic = run.trigger === "auto" || run.trigger === "startup";
       for (const source of sources) {
         const row = rows.find((item) => item?.source === source.source);
         if (run.status === "success" && !row) continue;
         const derived = {
           ...run,
+          // An automatic batch can finish healthy feeds even when another fails.
+          ...(automatic && row?.status ? { status: row.status, error: row.error } : {}),
           sourceKey: source.key,
           fetched: row?.fetched,
           matched: row?.matched,
