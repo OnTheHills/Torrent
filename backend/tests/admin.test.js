@@ -39,6 +39,30 @@ test("a newer full sync stands in as each feed's latest run", () => {
   assert.equal(latest.has("egpRss"), false);
 });
 
+for (const trigger of ["auto", "startup"]) {
+  test(`${trigger} partial failure does not mark healthy feeds down`, () => {
+    const now = Date.now();
+    const latest = latestRunsBySource([{
+      sourceKey: "all", trigger, status: "failed", finishedAt: now,
+      summary: [
+        { source: "BMA-EGP2", status: "failed", fetched: 0, error: "Unavailable" },
+        { source: "EGP-RSS", status: "success", fetched: 4, created: 2 },
+        { source: "SME-GP", status: "success", announcementUpdated: 1 },
+      ],
+    }], [
+      { key: "bmaEgp2", source: "BMA-EGP2" },
+      { key: "egpRss", source: "EGP-RSS" },
+      { key: "smeAnnouncements", source: "SME-GP" },
+    ]);
+    assert.equal(sourceVerdict(latest.get("bmaEgp2"), now), "red");
+    assert.equal(latest.get("bmaEgp2").error, "Unavailable");
+    assert.equal(sourceVerdict(latest.get("egpRss"), now), "green");
+    assert.equal(latest.get("egpRss").createdCount, 2);
+    assert.equal(latest.get("egpRss").error, undefined);
+    assert.equal(sourceVerdict(latest.get("smeAnnouncements"), now), "green");
+  });
+}
+
 test("confidence drops for missing budget and deadline and sets the review band", () => {
   const scored = confidenceOf({
     title: "จ้างพัฒนาระบบเว็บไซต์ของหน่วยงาน",

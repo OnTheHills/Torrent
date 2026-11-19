@@ -13,6 +13,8 @@ const apiDirectory = join(__dirname, "../services/tor/api");
 
 const ACTIVE_SOURCES = ["dataGoProcess5"];
 const MANUAL_SOURCES = ["process3Process5", "dataGo", "bmaEgp2", "egpRss"];
+// Keep the admin batch unchanged; automatic ingestion also visits every alternate feed.
+const AUTOMATIC_SOURCES = [...ACTIVE_SOURCES, ...MANUAL_SOURCES];
 
 function source(name) {
   return {
@@ -122,12 +124,30 @@ async function syncSource(name, {
   };
 }
 
-async function syncAPI() {
-  const results = await Promise.all(
-    sources().map(({ name }) =>
-      syncSource(name, { enqueueMatches: false, collectMatchIds: true, scoreCreated: false }),
-    ),
-  );
+async function syncAPI({ automatic = false } = {}) {
+  const options = { enqueueMatches: false, collectMatchIds: true, scoreCreated: false };
+  let results;
+  if (automatic) {
+    results = [];
+    // The process5 paths share records and OCR. Finish each source before the next
+    // can update or merge those records, and keep going if an alternate feed fails.
+    for (const name of AUTOMATIC_SOURCES) {
+      try {
+        results.push({ ...await syncSource(name, options), sourceKey: name, status: "success" });
+      } catch (error) {
+        console.error(`Automatic ${name} sync failed:`, error);
+        results.push({
+          source: source(name).fetcher.source,
+          sourceKey: name,
+          status: "failed",
+          error: error.message,
+          fetched: 0,
+        });
+      }
+    }
+  } else {
+    results = await Promise.all(sources().map(({ name }) => syncSource(name, options)));
+  }
   // Catch any remaining cross-source twins after the active sync batch.
   const reconcile = await reconcileAll();
   const conflictedIdSet = new Set((reconcile.conflictedSurvivorIds || []).map(String));
@@ -146,7 +166,7 @@ async function syncAPI() {
   return [
     ...results.map(({ _matchTorIds, _createdTorIds, ...result }) => result),
     { source: "TOR-MERGE", ...reconcile },
-    { source: "SME-GP", ...announcement },
+    { source: "SME-GP", ...announcement, ...(automatic ? { status: "success" } : {}) },
   ];
 }
 
