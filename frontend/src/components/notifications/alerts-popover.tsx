@@ -14,16 +14,22 @@ import {
 } from "@hugeicons/core-free-icons";
 
 import { useLocale } from "@/components/providers/locale-provider";
+import { useSession } from "@/components/providers/session-provider";
 import { chromeFrostBar, liquidGlassDim } from "@/components/ui/appbar";
 import { Button } from "@/components/ui/button";
 import { routes } from "@/config/routes";
 import {
   formatDate,
-  getTorById,
-  MOCK_NOTIFICATIONS,
   torDepartment,
   torTitle,
 } from "@/data/mock";
+import {
+  api,
+  fetchTorsForQuery,
+  storedMatchScore,
+  storedMatchTorId,
+  type StoredMatch,
+} from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { AppNotification, NotificationKind } from "@/types/tor";
 
@@ -62,10 +68,82 @@ const KIND_META: Record<
   },
 };
 
+const ALERT_STORAGE_PREFIX = "torrent-alerts";
+const CLOSING_SOON_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
+
+function storedIds(key: string) {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(key) || "[]");
+    return new Set(
+      Array.isArray(value)
+        ? value.filter((id): id is string => typeof id === "string")
+        : [],
+    );
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function saveIds(key: string, ids: Set<string>) {
+  try {
+    localStorage.setItem(key, JSON.stringify([...ids]));
+  } catch {
+    // Alerts remain usable when browser storage is unavailable.
+  }
+}
+
 function notificationHref(item: AppNotification) {
   if (item.kind === "match") return routes.app.home;
   if (item.kind === "deadline") return routes.app.tors;
   return routes.app.tor(item.torId);
+}
+
+async function fetchNotifications(): Promise<AppNotification[]> {
+  const [matches, tors] = await Promise.all([
+    api<StoredMatch[]>("/tor-matches/mine"),
+    fetchTorsForQuery(),
+  ]);
+  const byId = new Map(tors.map((tor) => [tor.id, tor]));
+  const now = Date.now();
+  const items: AppNotification[] = [];
+  for (const match of matches) {
+    const tor = byId.get(storedMatchTorId(match.torId));
+    if (!tor || match.dismissedAt || storedMatchScore(match.matchPercent) < 60) continue;
+    const body = `${torTitle(tor, "en")} · ${torDepartment(tor, "en")}`;
+    const bodyTh = `${torTitle(tor, "th")} · ${torDepartment(tor, "th")}`;
+    const add = (
+      kind: NotificationKind,
+      createdAt: string,
+      title: string,
+      titleTh: string,
+    ) => items.push({
+      id: `${kind}:${tor.id}`,
+      kind,
+      torId: tor.id,
+      title,
+      titleTh,
+      body,
+      bodyTh,
+      createdAt,
+      read: false,
+      skills: [],
+    });
+
+    add(
+      "match",
+      match.updatedAt || tor.createdAt || new Date().toISOString(),
+      "New TOR found matching your team",
+      "พบ TOR ใหม่ที่ตรงกับทีมของคุณ",
+    );
+    if (tor.integrity === "suspicious") {
+      add("risk", tor.updatedAt || match.updatedAt, "Integrity alert", "แจ้งเตือนความน่าเชื่อถือ");
+    }
+    const deadline = tor.deadline ? new Date(tor.deadline).getTime() : NaN;
+    if (Number.isFinite(deadline) && deadline > now && deadline - now <= CLOSING_SOON_WINDOW_MS) {
+      add("deadline", tor.updatedAt || match.updatedAt, "Closing soon", "ใกล้ปิดรับ");
+    }
+  }
+  return items.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
 }
 
 export function AlertsPopover({
@@ -74,9 +152,10 @@ export function AlertsPopover({
   tone?: "default" | "chrome";
 }) {
   const { locale, t } = useLocale();
+  const { user } = useSession();
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [items, setItems] = useState(MOCK_NOTIFICATIONS);
+  const [items, setItems] = useState<AppNotification[]>([]);
   const [coords, setCoords] = useState({ top: 0, right: 0 });
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -93,6 +172,31 @@ export function AlertsPopover({
 
     return () => window.clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (!user?._id) {
+      setItems([]);
+      return;
+    }
+    const prefix = `${ALERT_STORAGE_PREFIX}:${user._id}`;
+    let active = true;
+    const refresh = () =>
+      fetchNotifications()
+        .then((next) => {
+          if (!active) return;
+          const read = storedIds(`${prefix}:read`);
+          const dismissed = storedIds(`${prefix}:dismissed`);
+          setItems(
+            next
+              .filter((item) => !dismissed.has(item.id))
+              .map((item) => ({ ...item, read: read.has(item.id) })),
+          );
+        })
+        .catch(() => {});
+    void refresh();
+    const timer = window.setInterval(refresh, 60_000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [user?._id]);
 
   useLayoutEffect(() => {
     if (!open || !triggerRef.current) return;
@@ -142,16 +246,32 @@ export function AlertsPopover({
   }, [open]);
 
   function markAllRead() {
+    if (user?._id) {
+      saveIds(
+        `${ALERT_STORAGE_PREFIX}:${user._id}:read`,
+        new Set(items.map((item) => item.id)),
+      );
+    }
     setItems((prev) => prev.map((item) => ({ ...item, read: true })));
   }
 
   function markRead(id: string) {
+    if (!user?._id) return;
+    const key = `${ALERT_STORAGE_PREFIX}:${user._id}:read`;
+    const read = storedIds(key);
+    read.add(id);
+    saveIds(key, read);
     setItems((prev) =>
       prev.map((item) => (item.id === id ? { ...item, read: true } : item))
     );
   }
 
   function dismiss(id: string) {
+    if (!user?._id) return;
+    const key = `${ALERT_STORAGE_PREFIX}:${user._id}:dismissed`;
+    const dismissed = storedIds(key);
+    dismissed.add(id);
+    saveIds(key, dismissed);
     setItems((prev) => prev.filter((item) => item.id !== id));
   }
 
@@ -269,14 +389,9 @@ function AlertCard({
   const { t } = useLocale();
   const meta = KIND_META[item.kind];
   const title = meta.title[locale];
-  const tor = getTorById(item.torId);
-  const projectName = tor
-    ? torTitle(tor, locale)
-    : (locale === "th" ? item.bodyTh : item.body).split(" · ")[0]?.trim() ||
-      item.body;
-  const department = tor
-    ? torDepartment(tor, locale).trim()
-    : (locale === "th" ? item.bodyTh : item.body).split(" · ")[1]?.trim() || "";
+  const [projectName = "", department = ""] = (
+    locale === "th" ? item.bodyTh : item.body
+  ).split(" · ");
   const href = notificationHref(item);
 
   return (
