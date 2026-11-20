@@ -114,6 +114,69 @@ test("email alerts queue only IDs and send current user and TOR data", async (t)
   assert.equal(updates[0].status, "sent");
 });
 
+test("closing-soon email sends for an opted-in match and is queued only once", async (t) => {
+  for (const [key, value] of Object.entries({ RESEND_API_KEY: "test-key", EMAIL_FROM: "alerts@example.test" })) {
+    const previous = process.env[key];
+    process.env[key] = value;
+    t.after(() => {
+      if (previous === undefined) delete process.env[key];
+      else process.env[key] = previous;
+    });
+  }
+
+  const user = {
+    _id: "user", email: "vendor@example.test", emailVerified: true, disabled: false,
+    emailAlertPrefs: {
+      emailMatches: false, emailDeadlines: true, emailIntegrity: false,
+      budgetMinThb: 0, budgetMaxThb: 2_000_000, categories: ["Web Application"],
+      savedAt: new Date(),
+    },
+  };
+  const match = { _id: "match", userId: "user", torId: "tor", matchPercent: 80, createdAt: new Date(0) };
+  const tor = {
+    _id: "tor", title: "Closing project", category: "Web Application",
+    budgetThb: 1_000_000, status: "draft",
+    deadline: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+  };
+  t.mock.method(userRepository, "findUsersEligibleForEmailAlerts", async () => [user]);
+  t.mock.method(userRepository, "findEmailDeliveryUserById", async () => user);
+  t.mock.method(torMatchRepository, "findActiveEmailMatchesByUserId", async () => [match]);
+  t.mock.method(torMatchRepository, "findActiveEmailMatch", async () => match);
+  t.mock.method(torRepository, "findEmailAlertTorsByIds", async () => [tor]);
+  t.mock.method(torRepository, "findById", async () => tor);
+  const keys = new Set();
+  const pending = [];
+  t.mock.method(emailAlertRepository, "queue", async (alert) => {
+    if (keys.has(alert.key)) return 0;
+    keys.add(alert.key);
+    pending.push({ ...alert, _id: "alert", attempts: 1 });
+    return 1;
+  });
+  t.mock.method(emailAlertRepository, "claimNext", async () => pending.shift() || null);
+  const updates = [];
+  t.mock.method(emailAlertRepository, "updateSending", async (_id, fields) => updates.push(fields));
+  const requests = [];
+  t.mock.method(global, "fetch", async (_url, options) => {
+    requests.push(options);
+    return { ok: true };
+  });
+
+  assert.deepEqual(await runEmailAlerts(), { queued: 1, sent: 1 });
+  assert.equal(keys.size, 1);
+  assert.match([...keys][0], /^deadline:user:tor:\d{4}-\d{2}-\d{2}$/);
+  assert.deepEqual(JSON.parse(requests[0].body).to, ["vendor@example.test"]);
+  assert.match(JSON.parse(requests[0].body).subject, /deadline approaching: Closing project/);
+  assert.equal(updates[0].status, "sent");
+  assert.deepEqual(await runEmailAlerts(), { queued: 0, sent: 0 });
+  assert.equal(requests.length, 1);
+
+  tor.deadline = new Date(Date.now() + 4 * 24 * 60 * 60 * 1000);
+  assert.deepEqual(await runEmailAlerts(), { queued: 0, sent: 0 });
+  user.emailAlertPrefs.emailDeadlines = false;
+  tor.deadline = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+  assert.deepEqual(await runEmailAlerts(), { queued: 0, sent: 0 });
+});
+
 test("email delivery drops alerts whose source details have changed", async (t) => {
   const previousKey = process.env.RESEND_API_KEY;
   const previousFrom = process.env.EMAIL_FROM;
