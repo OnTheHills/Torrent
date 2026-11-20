@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
@@ -20,16 +20,8 @@ import { Button } from "@/components/ui/button";
 import { routes } from "@/config/routes";
 import {
   formatDate,
-  torDepartment,
-  torTitle,
 } from "@/data/mock";
-import {
-  api,
-  fetchTorsForQuery,
-  storedMatchScore,
-  storedMatchTorId,
-  type StoredMatch,
-} from "@/lib/api";
+import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { AppNotification, NotificationKind } from "@/types/tor";
 
@@ -68,83 +60,19 @@ const KIND_META: Record<
   },
 };
 
-const ALERT_STORAGE_PREFIX = "torrent-alerts";
-const CLOSING_SOON_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
-
-function storedIds(key: string) {
-  try {
-    const value: unknown = JSON.parse(localStorage.getItem(key) || "[]");
-    return new Set(
-      Array.isArray(value)
-        ? value.filter((id): id is string => typeof id === "string")
-        : [],
-    );
-  } catch {
-    return new Set<string>();
-  }
-}
-
-function saveIds(key: string, ids: Set<string>) {
-  try {
-    localStorage.setItem(key, JSON.stringify([...ids]));
-  } catch {
-    // Alerts remain usable when browser storage is unavailable.
-  }
-}
-
 function notificationHref(item: AppNotification) {
   if (item.kind === "match") return routes.app.home;
   if (item.kind === "deadline") return routes.app.tors;
   return routes.app.tor(item.torId);
 }
 
-async function fetchNotifications(): Promise<AppNotification[]> {
-  const [matches, tors] = await Promise.all([
-    api<StoredMatch[]>("/tor-matches/mine"),
-    fetchTorsForQuery(),
-  ]);
-  const byId = new Map(tors.map((tor) => [tor.id, tor]));
-  const now = Date.now();
-  const items: AppNotification[] = [];
-  for (const match of matches) {
-    const tor = byId.get(storedMatchTorId(match.torId));
-    if (!tor || match.dismissedAt || storedMatchScore(match.matchPercent) < 60) continue;
-    const body = `${torTitle(tor, "en")} · ${torDepartment(tor, "en")}`;
-    const bodyTh = `${torTitle(tor, "th")} · ${torDepartment(tor, "th")}`;
-    const add = (
-      kind: NotificationKind,
-      createdAt: string,
-      title: string,
-      titleTh: string,
-    ) => items.push({
-      id: `${kind}:${tor.id}`,
-      kind,
-      torId: tor.id,
-      title,
-      titleTh,
-      body,
-      bodyTh,
-      createdAt,
-      read: false,
-      skills: [],
-    });
-
-    add(
-      "match",
-      match.updatedAt || tor.createdAt || new Date().toISOString(),
-      "New TOR found matching your team",
-      "พบ TOR ใหม่ที่ตรงกับทีมของคุณ",
-    );
-    if (tor.integrity === "suspicious") {
-      add("risk", tor.updatedAt || match.updatedAt, "Integrity alert", "แจ้งเตือนความน่าเชื่อถือ");
-    }
-    const deadline = tor.deadline ? new Date(tor.deadline).getTime() : NaN;
-    if (Number.isFinite(deadline) && deadline > now && deadline - now <= CLOSING_SOON_WINDOW_MS) {
-      add("deadline", tor.updatedAt || match.updatedAt, "Closing soon", "ใกล้ปิดรับ");
-    }
-  }
-  return items.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
-}
+type StoredNotification = Pick<
+  AppNotification,
+  "kind" | "body" | "bodyTh" | "createdAt" | "read"
+> & {
+  _id: string;
+  torId: string | { _id?: string };
+};
 
 export function AlertsPopover({
   tone = "default",
@@ -156,14 +84,13 @@ export function AlertsPopover({
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [items, setItems] = useState<AppNotification[]>([]);
+  const [itemsForUser, setItemsForUser] = useState<string | null>(null);
   const [coords, setCoords] = useState({ top: 0, right: 0 });
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const unread = useMemo(
-    () => items.filter((item) => !item.read).length,
-    [items]
-  );
+  const currentItems = user?._id === itemsForUser ? items : [];
+  const unread = currentItems.filter((item) => !item.read).length;
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -174,23 +101,28 @@ export function AlertsPopover({
   }, []);
 
   useEffect(() => {
-    if (!user?._id) {
-      setItems([]);
-      return;
-    }
-    const prefix = `${ALERT_STORAGE_PREFIX}:${user._id}`;
+    if (!user?._id) return;
+    const userId = user._id;
     let active = true;
     const refresh = () =>
-      fetchNotifications()
+      api<StoredNotification[]>("/notifications/mine", { cache: "no-store" })
         .then((next) => {
           if (!active) return;
-          const read = storedIds(`${prefix}:read`);
-          const dismissed = storedIds(`${prefix}:dismissed`);
           setItems(
-            next
-              .filter((item) => !dismissed.has(item.id))
-              .map((item) => ({ ...item, read: read.has(item.id) })),
+            next.map((item) => ({
+              id: item._id,
+              kind: item.kind,
+              torId: typeof item.torId === "string" ? item.torId : item.torId?._id || "",
+              title: KIND_META[item.kind].title.en,
+              titleTh: KIND_META[item.kind].title.th,
+              body: item.body,
+              bodyTh: item.bodyTh,
+              createdAt: item.createdAt,
+              read: item.read,
+              skills: [],
+            })),
           );
+          setItemsForUser(userId);
         })
         .catch(() => {});
     void refresh();
@@ -246,33 +178,26 @@ export function AlertsPopover({
   }, [open]);
 
   function markAllRead() {
-    if (user?._id) {
-      saveIds(
-        `${ALERT_STORAGE_PREFIX}:${user._id}:read`,
-        new Set(items.map((item) => item.id)),
-      );
-    }
     setItems((prev) => prev.map((item) => ({ ...item, read: true })));
+    void api("/notifications/mine/read-all", { method: "PATCH" }).catch(() => {});
   }
 
   function markRead(id: string) {
-    if (!user?._id) return;
-    const key = `${ALERT_STORAGE_PREFIX}:${user._id}:read`;
-    const read = storedIds(key);
-    read.add(id);
-    saveIds(key, read);
     setItems((prev) =>
       prev.map((item) => (item.id === id ? { ...item, read: true } : item))
     );
+    void api(`/notifications/mine/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ read: true }),
+    }).catch(() => {});
   }
 
   function dismiss(id: string) {
-    if (!user?._id) return;
-    const key = `${ALERT_STORAGE_PREFIX}:${user._id}:dismissed`;
-    const dismissed = storedIds(key);
-    dismissed.add(id);
-    saveIds(key, dismissed);
     setItems((prev) => prev.filter((item) => item.id !== id));
+    void api(`/notifications/mine/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ dismissed: true }),
+    }).catch(() => {});
   }
 
   const panel =
@@ -309,7 +234,7 @@ export function AlertsPopover({
             </div>
 
             <div className="grid min-h-0 flex-1 auto-rows-max grid-cols-1 gap-2 overflow-y-auto p-3">
-              {items.map((item) => (
+              {currentItems.map((item) => (
                 <AlertCard
                   key={item.id}
                   item={item}

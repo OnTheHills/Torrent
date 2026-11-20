@@ -4,6 +4,7 @@ const userRepository = require("@/repositories/user/userRepository");
 const torRepository = require("@/repositories/tor/torRepository");
 const torMatchRepository = require("@/repositories/tor/torMatchRepository");
 const emailAlertRepository = require("@/repositories/email/emailAlertRepository");
+const notificationService = require("@/services/notificationService");
 const { fitScoreApplies } = require("@/jobs/matchTors");
 const { alertMessage } = require("@/utils/email/alertTemplate");
 const {
@@ -133,10 +134,13 @@ async function deliverPendingAlerts(now = new Date()) {
 }
 
 async function runEmailAlerts() {
-  if (!readSecret("RESEND_API_KEY") || !process.env.EMAIL_FROM) return { skipped: "email provider not configured" };
+  const notificationsCreated = await notificationService.syncCurrentAlerts();
+  if (!readSecret("RESEND_API_KEY") || !process.env.EMAIL_FROM) {
+    return { notificationsCreated, skipped: "email provider not configured" };
+  }
   const queued = await queueEligibleAlerts();
   const sent = await deliverPendingAlerts();
-  return { queued, sent };
+  return { notificationsCreated, queued, sent };
 }
 
 module.exports = { runEmailAlerts };

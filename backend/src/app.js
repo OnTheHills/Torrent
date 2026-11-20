@@ -13,6 +13,7 @@ const syncRouter = require("@/routes/syncRoute");
 const adminRouter = require("@/routes/adminRoute");
 const lineRouter = require("@/routes/lineRoute");
 const emailAlertRouter = require("@/routes/emailAlertRoute");
+const notificationRouter = require("@/routes/notificationRoute");
 
 // Configure the HTTP application. Database connection and jobs start in server.js.
 const app = express();
@@ -54,6 +55,7 @@ app.use("/api/sync", syncRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/line", lineRouter);
 app.use("/api/email-alerts", emailAlertRouter);
+app.use("/api/notifications", notificationRouter);
 
 app.get("/", (req, res) => {
   res.json({ message: "Backend is running" });

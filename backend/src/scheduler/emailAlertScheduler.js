@@ -3,14 +3,16 @@ const { runEmailAlerts } = require("@/services/email/alertDeliveryService");
 const { EMAIL_ALERT_CRON, EMAIL_ALERT_TIME_ZONE } = require("@/constants/emailAlertConstants");
 
 function startEmailAlertScheduler() {
-  cron.schedule(EMAIL_ALERT_CRON, async () => {
+  const run = async () => {
     try {
       const result = await runEmailAlerts();
-      if (!result.skipped && (result.queued || result.sent)) console.log("Email alerts", result);
+      if (result.notificationsCreated || result.queued || result.sent) console.log("Alerts", result);
     } catch (error) {
-      console.error("Email alert job failed:", error);
+      console.error("Alert job failed:", error);
     }
-  }, { timezone: EMAIL_ALERT_TIME_ZONE, noOverlap: true });
+  };
+  void run();
+  cron.schedule(EMAIL_ALERT_CRON, run, { timezone: EMAIL_ALERT_TIME_ZONE, noOverlap: true });
 }
 
 module.exports = { startEmailAlertScheduler };

@@ -57,6 +57,17 @@ async function findEmailAlertTorsByIds(ids) {
     .lean();
 }
 
+async function findNotificationTors(now, deadlineLimit) {
+  return TOR.find({
+    hidden: { $ne: true },
+    $or: [
+      { integrityStatus: { $in: ["flagged", "confirmed"] } },
+      { deadline: { $gt: now, $lte: deadlineLimit } },
+      { "ocr.deadline": { $gt: now, $lte: deadlineLimit } },
+    ],
+  }).select("_id title titleTh department departmentTh deadline ocr.deadline integrityStatus integrityFlags").lean();
+}
+
 async function findNewTorsSince(since) {
   return TOR.find({
     hidden: { $ne: true },
@@ -186,6 +197,7 @@ module.exports = {
   findBudgetPeers,
   findById,
   findEmailAlertTorsByIds,
+  findNotificationTors,
   findNewTorsSince,
   findBySource,
   findEgpDeptIds,
