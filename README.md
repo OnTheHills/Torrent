@@ -26,88 +26,116 @@ The development services are:
 
 > The current frontend primarily renders its own mock data. The Express API runs separately and exposes CRUD endpoints; it is not yet the source for every frontend screen.
 
-## Option 1: run locally with npm
+## Installation with Docker Compose
 
 ### Prerequisites
 
-Install these tools before starting:
+Install Docker Desktop, or Docker Engine with Docker Compose v2.24 or newer,
+and make sure Docker is running. The commands below use a macOS/Linux shell
+(or WSL). Node.js, npm, and MongoDB do not need to be installed on the host.
 
-- Node.js 22 (the Docker images use Node 22)
-- npm (included with Node.js)
-- MongoDB 8 locally, **or** Docker if you only want Docker to provide MongoDB
-
-No global npm libraries are required. Each application's dependencies are declared in its own `package.json` and lockfile.
-
-### 1. Configure the backend
-
-From the repository root, create the local environment file:
+### 1. Clone and create the environment files
 
 ```bash
+git clone https://github.com/OnTheHills/Torrent.git
+cd Torrent
 cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
 ```
 
-For a MongoDB server running directly on your computer, set `backend/.env` to:
+### 2. Configure the environment
 
-```dotenv
-PORT=5175
-MONGO_URI=mongodb://127.0.0.1:27017/csp_project
-```
+Edit `backend/.env` before creating the secrets:
 
-You may use a MongoDB Atlas connection string instead. Do not commit `backend/.env` or credentials.
+- Keep `PORT=5175` and use `MONGO_URI=mongodb://mongo:27017/Torrent` for the
+  included MongoDB container. An external MongoDB/Atlas URI also works if the
+  container can reach it. Inside the backend container, `localhost` refers to
+  the backend itself, so use the service name `mongo` for the included database.
+- Replace the `JWT_SECRET` placeholder with a long random value. Generate one
+  with Docker, then copy its output into `JWT_SECRET`:
 
-If MongoDB is not installed locally, start only the Compose database and keep the localhost URI above:
+  ```bash
+  docker run --rm node:22-alpine node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"
+  ```
 
-```bash
-docker compose up -d mongo
-```
+- Fill in optional API keys and integration secrets only for services you use;
+  leave unused optional secrets blank. These values are temporary setup inputs:
+  remove them from `.env` after the secret files are created in step 3.
+- Set `GOOGLE_CLIENT_ID` in `backend/.env` and
+  `NEXT_PUBLIC_GOOGLE_CLIENT_ID` in `frontend/.env` to the same Google OAuth web
+  client ID for Google sign-in. A client ID is public; never put a client secret
+  or other private values in `NEXT_PUBLIC_*` variables.
+- Keep `NEXT_PUBLIC_API_URL=http://localhost:5175/api` in `frontend/.env`.
+- For Vertex AI, place your service-account JSON at
+  `backend/.secret/vertex-sa.json` and configure the ordinary Vertex settings
+  in `backend/.env`. The credentials directory is mounted read-only.
 
-### 2. Install dependencies
+Never commit `.env`, `.secrets/`, or service-account credentials. No real secret
+values belong in this README or the committed `.env.example` files.
 
-Run `npm ci` in both applications. It performs a reproducible install from the committed lockfiles:
+### 3. Create Docker secrets, then remove secret entries from `.env`
+
+From the repository root, enter `backend/` and run:
 
 ```bash
 cd backend
-npm ci
-
-cd ../frontend
-npm ci
+../process.sh secrets
 ```
 
-Use `npm install` instead if you intentionally need to update dependencies or lockfiles.
+This command builds and runs the Docker Compose `secrets-init` helper, reads
+`backend/.env`, and creates the secret files in `backend/.secrets/`. Wait for
+it to finish successfully before proceeding.
 
-### 3. Start the backend
+**After the secrets are created, comment out or delete all eight secret
+assignments from `backend/.env`, including blank optional ones:**
 
-In terminal 1:
+- `JWT_SECRET`
+- `MONGO_URI`
+- `LINE_CHANNEL_ACCESS_TOKEN`
+- `LINE_CHANNEL_SECRET`
+- `COOKIE_SECRET`
+- `DATA_GO_API_KEY`
+- `CSRF_SECRET`
+- `RESEND_API_KEY`
+
+Keep ordinary settings such as `PORT`, `GOOGLE_CLIENT_ID`, `CORS_ORIGIN`, and
+feature flags active. Do not delete the files in `.secrets/`. Setup preserves
+existing secret files when their assignments are omitted or commented out;
+an active blank optional assignment would overwrite its file with an empty value.
+Compose supplies the `*_FILE` paths automatically.
+
+### 4. Build and start the stack
+
+Still in `backend/`, return to the repository root and start everything:
 
 ```bash
-cd backend
-npm run dev
+cd ..
+./process.sh
 ```
 
-The API waits for MongoDB, creates its Mongoose indexes, and then listens at http://localhost:5175. Verify it with:
+This prepares secrets again, preserving the files created in step 3, then
+builds and starts the complete stack in the background. Compose will:
+
+1. pull MongoDB 8;
+2. build the frontend and backend Node 22 images;
+3. install each app's npm dependencies during the image build;
+4. wait for MongoDB's health check before starting the backend; and
+5. expose the frontend on port 3000 and the backend on port 5175.
+
+Open http://localhost:3000. Verify the backend and follow startup logs with:
 
 ```bash
 curl http://localhost:5175/api/hello
+docker compose logs -f
 ```
 
-### 4. Start the frontend
-
-In terminal 2:
-
-```bash
-cd frontend
-npm run dev
-```
-
-Open http://localhost:3000.
-
-## Option 2: run the complete stack with Docker Compose
+### Optional integration settings
 
 Set `FETCH_ON_STARTUP` in `backend/.env` to `true` to run the e-GP pipeline
 when the backend starts. It finds tech project IDs through data.go, verifies
 project details and budgets with process5, resolves public e-GP document ZIPs,
 and extracts TOR details and bid deadlines from the PDFs. Configure
-`DATA_GO_API_KEY` in `backend/.env`; `EGP_MAX_PROJECTS_PER_SYNC` limits new
+`backend/.secrets/data_go_api_key`; `EGP_MAX_PROJECTS_PER_SYNC` limits new
 project lookups per run (default 20). The sync response reports
 `process5Resolved`, `documentLinks`, `ocrUpdated`, and per-project errors.
 Run `POST /api/sync/data-go-process5` to trigger one batch manually. Projects
@@ -117,8 +145,9 @@ daily sync at **00:00 Asia/Bangkok**, regardless of the container timezone.
 The older process3 RSS path remains available through
 `POST /api/sync/process3-process5` for manual comparison.
 
-Smart Alert email is enabled when `RESEND_API_KEY` and `EMAIL_FROM` are set in
-`backend/.env`. Verify a sending domain in Resend and use an address on it.
+Smart Alert email is enabled when `backend/.secrets/resend_api_key` contains
+your Resend API key and `EMAIL_FROM` is set in `backend/.env`. Verify a sending
+domain in Resend and use an address on it.
 Set `FRONTEND_URL` to the site origin for links in messages. Vendors opt in
 by saving email preferences in `/app/alerts`; the worker checks for new matches,
 TORs closing within three days, and integrity warnings every ten minutes. It
@@ -127,65 +156,15 @@ matches are not emailed when a user first opts in. Delivery needs a verified
 user email address.
 Apply changed secrets or settings with `./process.sh up backend`.
 An initial fetch failure is logged and the backend still starts with the nightly
-schedule enabled. For npm development, set `FETCH_ON_STARTUP` in `backend/.env`.
-
-### Prerequisites
-
-Install Docker Desktop, or Docker Engine with Docker Compose v2.24 or newer.
-Secret setup and all application services run through Docker. Node.js, npm,
-and MongoDB do not need to be installed on the host.
-
-### 1. Configure the backend for Compose
-
-Create `backend/.env` if it does not exist:
-
-```bash
-cp backend/.env.example backend/.env
-```
-
-To use the MongoDB container included in `docker-compose.yml`, set:
-
-```dotenv
-PORT=5175
-MONGO_URI=mongodb://mongo:27017/csp_project
-```
-
-`mongo` is the Compose service name. Do not use `localhost` here: inside the backend container, `localhost` means the backend container itself. An external MongoDB/Atlas URI also works if the container can reach it.
-
-### 2. Create secrets, build, and start everything
-
-From the repository root:
-
-```bash
-./process.sh
-```
-
-This reads `backend/.env`, prepares Docker Compose secrets, and starts the stack
-in the background. The root shell script runs the backend's setup code in the
-Compose `secrets-init` helper, then builds and starts the application services.
-Run `./process.sh secrets` to prepare files without restarting anything, or
-`./process.sh up backend` to prepare files and recreate just the backend.
-
-Compose will:
-
-1. pull MongoDB 8;
-2. build the frontend and backend Node 22 images;
-3. install each app's npm dependencies during the image build;
-4. wait for MongoDB's health check before starting the backend; and
-5. expose the frontend on port 3000 and the backend on port 5175.
-
-Open http://localhost:3000. Follow startup logs with:
-
-```bash
-docker compose logs -f
-```
+schedule enabled.
 
 ### Secret storage and rotation
 
-Put real values in the ignored `backend/.env`, then run `./process.sh`.
-It parses the file as data and writes owner-only files to the ignored
-`backend/.secrets/` directory (directory mode `0700`, files `0600`). It never
-prints values or passes them as command arguments.
+After initial setup, keep real values in the ignored `backend/.secrets/`
+files and remove or comment out their assignments in `backend/.env`.
+Setup enforces directory mode `0700` and file mode `0600`. The files on the host
+use lowercase names, for example `JWT_SECRET` is stored in
+`backend/.secrets/jwt_secret`; Compose mounts them at the paths below.
 
 | Input setting | Backend secret file |
 | --- | --- |
@@ -198,28 +177,24 @@ prints values or passes them as command arguments.
 | `CSRF_SECRET` | `/run/secrets/csrf_secret` |
 | `RESEND_API_KEY` | `/run/secrets/resend_api_key` |
 
-`JWT_SECRET` and `MONGO_URI` must be nonempty. Blank integration secrets remain
-blank and retain the existing disabled/unconfigured behavior. Set the LINE
-token and signing secret together when enabling LINE. A blank `CSRF_SECRET`
-uses `COOKIE_SECRET`, then `JWT_SECRET`, as before. Use a long random value for
-each signing secret, for example from `openssl rand -base64 32`.
+The `jwt_secret` and `mongo_uri` files must be nonempty. Blank integration
+secret files retain the existing disabled/unconfigured behavior. Set the LINE
+token and signing secret files together when enabling LINE. A blank
+`csrf_secret` uses `cookie_secret`, then `jwt_secret`. Use a separate long
+random value for each signing secret, such as `openssl rand -base64 32`.
 
-After initial provisioning, omitted or commented secret settings preserve their
-existing files. An explicitly blank optional secret clears its file; required
-secrets cannot be blank. Provide a new active value to replace a secret.
+To rotate a secret, update its host file and keep its assignment absent or
+commented out in `backend/.env`. To disable an optional integration, empty its
+secret file. The setup script imports active assignments from `.env` during initial setup;
+remove or comment out those assignments after successful secret creation.
+An active blank optional assignment clears its file; required secrets cannot be
+blank.
 
 Ordinary settings such as `PORT`, `CORS_ORIGIN`, and feature flags stay active
-in `backend/.env` and are loaded directly through Compose's `env_file`. Setup
-creates only individual secret files; it does not generate a second env file.
-Compose explicitly overrides the raw secret variables and `MONGO_URI_HOST` with
-empty values, even if the input file still contains credentials. It also sets
-the `*_FILE` paths itself. Only the backend receives the secret mounts.
-In Docker, `SECRETS_ONLY=true` requires file paths and forbids falling back to
-raw env values. The backend does not load `.env` from disk, and its
-development mounts expose only source, scripts, uploads, and the existing
-read-only Vertex credentials directory. Env files and credential directories
-are excluded from the backend build context. Direct npm development can still
-read `backend/.env`, or use `*_FILE` variables explicitly.
+in `backend/.env` and are loaded through Compose's `env_file`. Setup creates
+only individual secret files, with no second env file. Only the backend receives
+the secret mounts. In Docker, `SECRETS_ONLY=true` requires file paths and
+forbids falling back to raw env values.
 
 After any env change, regenerate and recreate the backend:
 
@@ -235,9 +210,8 @@ The Mongo URI is now taken from your input without the old hardcoded override;
 use `mongo` as the hostname for the included database, or your external URI.
 
 Compose secrets keep these values out of the container environment and images,
-but their host files and the input env file remain plaintext. Protect both on
-the host. This workflow uses Compose file-backed secrets, not `docker secret
-create`; Docker's encrypted secret store requires Swarm services. See
+but their host files remain plaintext. Protect them on the host. This workflow
+uses Compose file-backed secrets, not `docker secret create`; Docker's encrypted secret store requires Swarm services. See
 [Docker's Compose secrets documentation](https://docs.docker.com/compose/how-tos/use-secrets/)
 and [Swarm secrets documentation](https://docs.docker.com/engine/swarm/secrets/).
 
@@ -263,7 +237,6 @@ should be the admin, then promote it from the server:
 docker compose exec backend npm run promote-admin -- you@example.com
 ```
 
-Without Docker, run `npm run promote-admin -- you@example.com` from `backend`.
 The change is recorded in the audit log. After that, admins can grant or remove
 the admin role for other users from **Admin → Users**.
 
