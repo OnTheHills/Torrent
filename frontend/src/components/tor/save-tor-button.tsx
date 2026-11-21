@@ -7,6 +7,8 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { useSaved } from "@/components/providers/saved-provider";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+import { useSession } from "@/components/providers/session-provider";
 
 export function SaveTorButton({
   torId,
@@ -24,12 +26,19 @@ export function SaveTorButton({
   appearance?: "button" | "frost-circle";
 }) {
   const { t } = useLocale();
-  const { isSaved, toggleSaved, ready } = useSaved();
+  const { isSaved, toggleSaved, ready, saving } = useSaved();
+  const { user, loading } = useSession();
+  const router = useRouter();
+  const disabled = loading || saving || (Boolean(user) && !ready);
   const saved = ready && isSaved(torId);
 
   function toggle(event: React.MouseEvent) {
     event.preventDefault();
     event.stopPropagation();
+    if (!user) {
+      router.push("/login");
+      return;
+    }
     toggleSaved(torId);
   }
 
@@ -37,6 +46,7 @@ export function SaveTorButton({
     return (
       <button
         type="button"
+        disabled={disabled}
         className={cn(
           "inline-flex size-7 items-center justify-center rounded-full shadow-[inset_0_1px_0_0_color-mix(in_srgb,white_88%,transparent)] backdrop-blur-md backdrop-saturate-150 transition-[transform,background-color,color] duration-200 ease-out hover:-translate-y-0.5 hover:scale-110 motion-reduce:transition-none motion-reduce:hover:transform-none",
           saved
@@ -60,6 +70,7 @@ export function SaveTorButton({
   return (
     <Button
       type="button"
+      disabled={disabled}
       variant={saved ? "default" : variant}
       size={size}
       className={cn(className)}

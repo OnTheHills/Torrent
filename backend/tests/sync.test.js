@@ -89,10 +89,7 @@ test("e-GP RSS walks official B0/D0/W0 feeds and keeps software draft TORs", asy
           <guid>egp-${type}-road</guid>
         </item>
       </channel></rss>`;
-    return {
-      ok: true,
-      arrayBuffer: async () => new TextEncoder().encode(xml).buffer,
-    };
+    return new Response(xml);
   });
   const raw = await egpFetch.fetch();
   const tors = egpAdapter.adapt(raw.rows);

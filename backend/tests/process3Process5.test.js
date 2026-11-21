@@ -12,11 +12,7 @@ test("process5 project lookup accepts its XML response", async (t) => {
     const field = new URL(url).pathname.endsWith("getProjectDetail")
       ? "<projectName>พัฒนาระบบ &amp; เว็บไซต์</projectName>"
       : "<deptId>0703</deptId><projectMoney>2000000.00</projectMoney>";
-    return {
-      ok: true,
-      headers: { get: () => "application/xml" },
-      text: async () => `<ApiSuccessView><response><responseCode>0</responseCode></response><data><projectId>${id}</projectId>${field}</data></ApiSuccessView>`,
-    };
+    return new Response(`<ApiSuccessView><response><responseCode>0</responseCode></response><data><projectId>${id}</projectId>${field}</data></ApiSuccessView>`, { headers: { "content-type": "application/xml" } });
   });
   const detail = await source.projectDetail("69109054191");
   assert.equal(detail.project.projectName, "พัฒนาระบบ & เว็บไซต์");
@@ -36,14 +32,14 @@ test("process3 project ID resolves process5 department and exact budget", async 
       const xml = target.searchParams.get("deptId") || target.searchParams.get("anounceType") !== "B0"
         ? "<rss><channel></channel></rss>"
         : `<rss><channel><item><title>จ้างพัฒนาระบบสารสนเทศ</title><link>https://process5.gprocurement.go.th/egp-upload-service/v1/downloadFileTest?fileId=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</link><description>69109200267, ร่างประกาศ</description><pubDate>2026-10-15</pubDate></item></channel></rss>`;
-      return { ok: true, arrayBuffer: async () => Buffer.from(xml) };
+      return new Response(xml);
     }
     const projectId = target.searchParams.get("projectId");
     assert.equal(projectId, "69109200267");
     const data = target.pathname.endsWith("getProjectDetail")
       ? { projectId, projectName: "จ้างพัฒนาระบบสารสนเทศ", budgetYear: "2570" }
       : { projectId, deptId: "001419900", deptSubId: "00141990016000000", deptSubName: "โรงพยาบาลมะเร็งลพบุรี", projectMoney: 4000000, priceBuild: 3900000 };
-    return { ok: true, json: async () => ({ data, response: { responseCode: 0 } }) };
+    return Response.json({ data, response: { responseCode: 0 } });
   });
   const result = await source.fetch();
   const tors = adapt(result.rows);
@@ -70,14 +66,14 @@ test("configured departments skip the global feed and resolve only tech titles",
       const item = target.searchParams.get("anounceType") === "B0"
         ? '<item><title>จ้างพัฒนาระบบสารสนเทศ</title><link>https://process5.gprocurement.go.th/tor.zip</link><description>69109200267, ร่างประกาศ</description></item><item><title>จ้างทำความสะอาดอาคาร</title><link>https://process5.gprocurement.go.th/other.zip</link><description>69109200268, ร่างประกาศ</description></item>'
         : "";
-      return { ok: true, arrayBuffer: async () => Buffer.from(`<rss><channel>${item}</channel></rss>`) };
+      return new Response(`<rss><channel>${item}</channel></rss>`);
     }
     const projectId = new URL(url).searchParams.get("projectId");
     projects.push(projectId);
     const data = new URL(url).pathname.endsWith("getProjectDetail")
       ? { projectId, projectName: "จ้างพัฒนาระบบสารสนเทศ" }
       : { projectId, deptId: "0703", deptSubId: "0700300006", deptSubName: "กรมชลประทาน", projectMoney: 2000000 };
-    return { ok: true, json: async () => ({ data, response: { responseCode: 0 } }) };
+    return Response.json({ data, response: { responseCode: 0 } });
   });
 
   const result = await source.fetch();

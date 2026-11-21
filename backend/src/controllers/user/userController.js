@@ -37,7 +37,7 @@ async function updateUser(request, response) {
 
     return response.status(200).json(user);
   } catch (error) {
-    return response.status(500).json({ message: error.message });
+    return response.status(error.statusCode || 500).json({ message: error.message });
   }
 }
 

@@ -61,6 +61,7 @@ test("email preferences validate input and preserve alert start times", async (t
 });
 
 test("email alerts queue only IDs and send current user and TOR data", async (t) => {
+  t.mock.method(torRepository, "findNotificationTors", async () => []);
   for (const [key, value] of Object.entries({ RESEND_API_KEY: "test-key", EMAIL_FROM: "alerts@example.test" })) {
     const previous = process.env[key];
     process.env[key] = value;
@@ -106,7 +107,7 @@ test("email alerts queue only IDs and send current user and TOR data", async (t)
     return { ok: true };
   });
 
-  assert.deepEqual(await runEmailAlerts(), { queued: 1, sent: 1 });
+  assert.deepEqual(await runEmailAlerts(), { notificationsCreated: 0, queued: 1, sent: 1 });
   assert.deepEqual(Object.keys(queuedAlert).sort(), ["key", "kind", "torId", "userId"]);
   assert.deepEqual(JSON.parse(request.body).to, ["current@example.test"]);
   assert.match(request.headers["Idempotency-Key"], /^match:user:tor:match:[a-f0-9]{16}$/);
@@ -115,6 +116,7 @@ test("email alerts queue only IDs and send current user and TOR data", async (t)
 });
 
 test("closing-soon email sends for an opted-in match and is queued only once", async (t) => {
+  t.mock.method(torRepository, "findNotificationTors", async () => []);
   for (const [key, value] of Object.entries({ RESEND_API_KEY: "test-key", EMAIL_FROM: "alerts@example.test" })) {
     const previous = process.env[key];
     process.env[key] = value;
@@ -161,23 +163,24 @@ test("closing-soon email sends for an opted-in match and is queued only once", a
     return { ok: true };
   });
 
-  assert.deepEqual(await runEmailAlerts(), { queued: 1, sent: 1 });
+  assert.deepEqual(await runEmailAlerts(), { notificationsCreated: 0, queued: 1, sent: 1 });
   assert.equal(keys.size, 1);
   assert.match([...keys][0], /^deadline:user:tor:\d{4}-\d{2}-\d{2}$/);
   assert.deepEqual(JSON.parse(requests[0].body).to, ["vendor@example.test"]);
   assert.match(JSON.parse(requests[0].body).subject, /deadline approaching: Closing project/);
   assert.equal(updates[0].status, "sent");
-  assert.deepEqual(await runEmailAlerts(), { queued: 0, sent: 0 });
+  assert.deepEqual(await runEmailAlerts(), { notificationsCreated: 0, queued: 0, sent: 0 });
   assert.equal(requests.length, 1);
 
   tor.deadline = new Date(Date.now() + 4 * 24 * 60 * 60 * 1000);
-  assert.deepEqual(await runEmailAlerts(), { queued: 0, sent: 0 });
+  assert.deepEqual(await runEmailAlerts(), { notificationsCreated: 0, queued: 0, sent: 0 });
   user.emailAlertPrefs.emailDeadlines = false;
   tor.deadline = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
-  assert.deepEqual(await runEmailAlerts(), { queued: 0, sent: 0 });
+  assert.deepEqual(await runEmailAlerts(), { notificationsCreated: 0, queued: 0, sent: 0 });
 });
 
 test("email delivery drops alerts whose source details have changed", async (t) => {
+  t.mock.method(torRepository, "findNotificationTors", async () => []);
   const previousKey = process.env.RESEND_API_KEY;
   const previousFrom = process.env.EMAIL_FROM;
   process.env.RESEND_API_KEY = "test-key";
@@ -213,6 +216,6 @@ test("email delivery drops alerts whose source details have changed", async (t) 
   t.mock.method(emailAlertRepository, "updateSending", async (_id, fields) => updates.push(fields));
   t.mock.method(global, "fetch", async () => { throw new Error("Stale alert was sent"); });
 
-  assert.deepEqual(await runEmailAlerts(), { queued: 0, sent: 0 });
+  assert.deepEqual(await runEmailAlerts(), { notificationsCreated: 0, queued: 0, sent: 0 });
   assert.deepEqual(updates.map((update) => update.status), ["failed", "failed"]);
 });

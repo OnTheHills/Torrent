@@ -79,13 +79,26 @@ for (const method of ["searchTors", "reviewQueue", "auditLog"]) {
     const patterns = await searchPatterns(t, method, "(a+)+$");
     assert.deepEqual(await probe({ mode: "literal-search", patterns, length: 200000 }), { ok: true });
   });
+  test(`V1.3.12: ${method} limits a long metacharacter-only search to 200 literal characters`, async (t) => {
+    const patterns = await searchPatterns(t, method, "*".repeat(100000));
+    for (const regex of patterns) {
+      assert.equal(regex.source.length, 400); // Each of the 200 stars is escaped.
+      assert.equal(regex.test("*".repeat(199)), false);
+      assert.equal(regex.test("*".repeat(200)), true);
+    }
+    assert.deepEqual(await probe({ mode: "literal-search", patterns, length: 200000 }), { ok: true });
+  });
 }
 
 for (const [mode, length] of [
   ["announcement-budget", 100000],
   ["rss-budget", 100000],
   ["rss-unclosed-items", 20000],
+  ["rss-unclosed-cdata", 40000],
+  ["rss-spaces", 100000],
+  ["pdf-spaces", 100000],
   ["html-unclosed-tags", 100000],
+  ["html-encoded-unclosed-tags", 100000],
 ]) {
   test(`V1.3.12: ${mode} finishes within the isolated CPU budget`, async () => {
     assert.deepEqual(await probe({ mode, length }), { ok: true });

@@ -86,6 +86,12 @@ const userSchema = new mongoose.Schema(
     picture: { type: String, trim: true },
     emailVerified: { type: Boolean, default: false },
     disabled: { type: Boolean, default: false },
+    // Private account data; only the self-service watchlist endpoints select it.
+    watchlist: {
+      type: [{ type: mongoose.Schema.Types.ObjectId, ref: "TOR" }],
+      default: [],
+      select: false,
+    },
   },
   {
     timestamps: true,

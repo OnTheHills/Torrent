@@ -10,6 +10,14 @@ const probes = [
   ["CANARY<%=7*7%>END", "CANARY&lt;%=7*7%&gt;END"],
   ["CANARY#{7*7}END", "CANARY#{7*7}END"],
   ['CANARY${process.env.SSTI_TEST_CANARY}END', 'CANARY${process.env.SSTI_TEST_CANARY}END'],
+  [
+    'CANARY{{constructor.constructor("return 7*7")()}}END',
+    'CANARY{{constructor.constructor(&quot;return 7*7&quot;)()}}END',
+  ],
+  [
+    'CANARY<% throw new Error("template executed") %>END',
+    'CANARY&lt;% throw new Error(&quot;template executed&quot;) %&gt;END',
+  ],
 ];
 
 for (const kind of ["match", "deadline", "integrity"]) {
