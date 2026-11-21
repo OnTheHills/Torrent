@@ -1,4 +1,4 @@
-# TORRENT — CSP Project
+# TORRENT
 
 TORRENT is a web application for discovering, monitoring, and matching Thai public-sector Terms of Reference (TOR) opportunities. The repository currently contains a Next.js frontend, an Express/Mongoose REST API, and MongoDB persistence. The frontend also includes mock TOR data and a server-side source-health probe for public procurement feeds and agency pages.
 
