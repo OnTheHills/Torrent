@@ -35,7 +35,7 @@ test("process3 project ID resolves process5 department and exact budget", async 
       feeds.push(`${target.searchParams.get("deptId") || "all"}/${target.searchParams.get("anounceType")}`);
       const xml = target.searchParams.get("deptId") || target.searchParams.get("anounceType") !== "B0"
         ? "<rss><channel></channel></rss>"
-        : `<rss><channel><item><title>จ้างพัฒนาระบบสารสนเทศ</title><link>https://process5.gprocurement.go.th/file.zip</link><description>69109200267, ร่างประกาศ</description><pubDate>2026-10-15</pubDate></item></channel></rss>`;
+        : `<rss><channel><item><title>จ้างพัฒนาระบบสารสนเทศ</title><link>https://process5.gprocurement.go.th/egp-upload-service/v1/downloadFileTest?fileId=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</link><description>69109200267, ร่างประกาศ</description><pubDate>2026-10-15</pubDate></item></channel></rss>`;
       return { ok: true, arrayBuffer: async () => Buffer.from(xml) };
     }
     const projectId = target.searchParams.get("projectId");
@@ -53,7 +53,7 @@ test("process3 project ID resolves process5 department and exact budget", async 
   assert.equal(tors[0].egpDeptId, "001419900");
   assert.equal(tors[0].budgetThb, 4000000);
   assert.equal(tors[0].priceBuildThb, 3900000);
-  assert.equal(tors[0].documentUrl, "https://process5.gprocurement.go.th/file.zip");
+  assert.equal(tors[0].documentUrl, "https://process5.gprocurement.go.th/egp-upload-service/v1/downloadFileTest?fileId=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
 });
 
 test("configured departments skip the global feed and resolve only tech titles", async (t) => {
@@ -87,13 +87,14 @@ test("configured departments skip the global feed and resolve only tech titles",
 });
 
 test("process5 ZIP prefers the text-layer TOR over a large scanned attachment", async (t) => {
+  t.mock.method(require("node:dns/promises"), "lookup", async () => [{ address: "8.8.8.8", family: 4 }]);
   const zip = zipSync({
     "Attach_TOR_1.pdf": new TextEncoder().encode("%PDF-scan"),
     "tor_69109200267.pdf": new TextEncoder().encode("%PDF-text"),
     "annoudoc.pdf": new TextEncoder().encode("%PDF-notice"),
   });
   t.mock.method(globalThis, "fetch", async () => ({ ok: true, arrayBuffer: async () => zip.buffer.slice(zip.byteOffset, zip.byteOffset + zip.byteLength) }));
-  const result = await downloadTor("https://process5.gprocurement.go.th/file.zip");
+  const result = await downloadTor("https://process5.gprocurement.go.th/egp-upload-service/v1/downloadFileTest?fileId=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
   assert.equal(result.fileName, "tor_69109200267.pdf");
   assert.equal(result.pdf.toString(), "%PDF-text");
   assert.equal(result.noticePdf.toString(), "%PDF-notice");

@@ -12,6 +12,7 @@ import {
   Calendar03Icon,
   CancelCircleIcon,
   Clock01Icon,
+  DatabaseIcon,
   File01Icon,
   HeartIcon,
   Message01Icon,
