@@ -1,5 +1,6 @@
 import Script from "next/script";
 import { IBM_Plex_Sans_Thai, Inter, Prompt } from "next/font/google";
+import { headers } from "next/headers";
 
 import type { Metadata } from "next";
 
@@ -39,9 +40,11 @@ export const metadata: Metadata = {
     "Discover software-related procurement TORs from five Thai government agencies, benchmark budgets, and get matched as a vendor.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html
       lang="th"
@@ -50,7 +53,12 @@ export default function RootLayout({
       className={`${prompt.variable} ${inter.variable} ${ibmPlexSansThai.variable}`}
     >
       <body>
-        <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
+        {/* GIS is host-allowlisted in CSP; Google rotates the bundle so SRI hashes are not practical. */}
+        <Script
+          src="https://accounts.google.com/gsi/client"
+          strategy="afterInteractive"
+          nonce={nonce}
+        />
         {/* React Query powers live TOR lists; SessionProvider keeps OAuth state global. */}
         <QueryProvider>
           <LocaleProvider>

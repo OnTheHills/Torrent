@@ -1,6 +1,6 @@
 const { randomBytes } = require("node:crypto");
 const { doubleCsrf } = require("csrf-csrf");
-const { COOKIE_NAME } = require("@/utils/session");
+const { readSessionToken, useHostCookies } = require("@/utils/session");
 const { readSecret } = require("@/config/secrets");
 
 function isLineWebhook(request) {
@@ -12,7 +12,7 @@ function createCsrfProtection(origins) {
   if (!secret || secret === "default-fallback-secret-key-change-me") {
     throw new Error("Configure CSRF_SECRET, COOKIE_SECRET, or JWT_SECRET for CSRF protection.");
   }
-  const secure = process.env.NODE_ENV === "production" || process.env.COOKIE_SECURE === "true";
+  const secure = useHostCookies();
   const prefix = secure ? "__Host-" : "";
   const identityCookie = `${prefix}torrent_csrf_session`;
   const cookieOptions = { httpOnly: true, sameSite: "lax", secure, path: "/" };
@@ -21,7 +21,8 @@ function createCsrfProtection(origins) {
     getSecret: () => secret,
     // Before login, use a random browser identifier. After login, bind tokens
     // to the JWT so a token from another session cannot authorize a write.
-    getSessionIdentifier: (request) => request.cookies[COOKIE_NAME] || request.cookies[identityCookie] || "",
+    getSessionIdentifier: (request) =>
+      readSessionToken(request.cookies) || request.cookies[identityCookie] || "",
     cookieName: `${prefix}torrent_csrf`,
     cookieOptions,
     getCsrfTokenFromRequest: (request) => request.get("x-csrf-token"),

@@ -3,6 +3,8 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const { requireMutationAuth } = require("@/middleware/requireMutationAuth");
 const { createCsrfProtection, isLineWebhook } = require("@/middleware/csrfProtection");
+const { createRateLimiter } = require("@/middleware/rateLimit");
+const { securityHeaders } = require("@/middleware/securityHeaders");
 const authRouter = require("@/routes/authRoute");
 const userRouter = require("@/routes/userRoute");
 const vendorProfileRouter = require("@/routes/vendorProfileRoute");
@@ -21,6 +23,9 @@ const corsOrigins = process.env.CORS_ORIGIN.split(",").map((origin) =>
   origin.trim(),
 );
 
+app.set("trust proxy", 1);
+app.use(securityHeaders);
+
 // Credentials allow the browser's HTTP-only session cookie to accompany API calls.
 app.use(
   cors({
@@ -30,11 +35,39 @@ app.use(
 );
 app.use(cookieParser());
 const csrf = createCsrfProtection(corsOrigins);
-app.get("/api/auth/csrf", csrf.issueToken);
+
+const csrfRateLimit = createRateLimiter({
+  name: "csrf",
+  windowMs: 60_000,
+  max: Number(process.env.RATE_LIMIT_CSRF_MAX) || 60,
+});
+const googleAuthRateLimit = createRateLimiter({
+  name: "google-auth",
+  windowMs: 15 * 60_000,
+  max: Number(process.env.RATE_LIMIT_GOOGLE_AUTH_MAX) || 20,
+});
+const adminWriteRateLimit = createRateLimiter({
+  name: "admin-write",
+  windowMs: 60_000,
+  max: Number(process.env.RATE_LIMIT_ADMIN_WRITE_MAX) || 120,
+});
+
+app.get("/api/auth/csrf", csrfRateLimit, csrf.issueToken);
 
 // Reject unauthenticated writes before parsing JSON or accepting file uploads.
 app.use(requireMutationAuth);
 app.use(csrf.protect);
+app.use((request, response, next) => {
+  if (
+    request.method !== "GET" &&
+    request.method !== "HEAD" &&
+    request.method !== "OPTIONS" &&
+    /^\/api\/admin(?:\/|$)/i.test(request.path)
+  ) {
+    return adminWriteRateLimit(request, response, next);
+  }
+  return next();
+});
 // Preserve raw bytes for LINE webhook HMAC (x-line-signature).
 app.use(
   express.json({
@@ -45,6 +78,14 @@ app.use(
     },
   }),
 );
+
+app.use((request, response, next) => {
+  if (request.method === "POST" && /^\/api\/auth\/google\/?$/i.test(request.path)) {
+    return googleAuthRateLimit(request, response, next);
+  }
+  return next();
+});
+
 app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/vendor-profiles", vendorProfileRouter);

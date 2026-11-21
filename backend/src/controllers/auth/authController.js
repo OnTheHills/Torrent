@@ -1,12 +1,16 @@
 const authService = require("@/services/auth/authService");
+const { revokeJti } = require("@/services/auth/sessionRevocation");
 const {
-  COOKIE_NAME,
+  sessionCookieName,
+  readSessionToken,
   signUserToken,
+  verifyUserToken,
   cookieOptions,
+  clearSessionCookies,
 } = require("@/utils/session");
 
 function setSession(response, user) {
-  response.cookie(COOKIE_NAME, signUserToken(user), cookieOptions());
+  response.cookie(sessionCookieName(), signUserToken(user), cookieOptions());
 }
 
 async function googleLogin(request, response) {
@@ -21,6 +25,8 @@ async function googleLogin(request, response) {
       credential,
       requestedRole,
     );
+    // Replace any previous browser session cookie (including legacy name).
+    clearSessionCookies(response);
     setSession(response, user);
     return response.status(200).json(publicUser);
   } catch (error) {
@@ -41,12 +47,24 @@ async function me(request, response) {
 
     return response.status(200).json(user);
   } catch (error) {
-    return response.status(500).json({ message: error.message });
+    return response.status(500).json({ message: "Could not load the current user." });
   }
 }
 
 async function logout(request, response) {
-  response.clearCookie(COOKIE_NAME, { ...cookieOptions(), maxAge: 0 });
+  const token = readSessionToken(request.cookies);
+  if (token) {
+    try {
+      const claims = verifyUserToken(token);
+      if (claims.jti && claims.exp) {
+        await revokeJti(claims.jti, claims.exp * 1000);
+      }
+    } catch {
+      // Cookie clear still proceeds when the token is already invalid.
+    }
+  }
+
+  clearSessionCookies(response);
   return response.status(200).json({ ok: true });
 }
 

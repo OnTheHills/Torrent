@@ -1,5 +1,7 @@
 import { cookies } from "next/headers";
 
+import { readSessionCookie, sessionCookieHeader } from "@/lib/session-cookie";
+
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -112,13 +114,13 @@ export async function GET(
   }
 
   const jar = await cookies();
-  const session = jar.get("torrent_session")?.value;
+  const session = readSessionCookie(jar);
   if (!session) {
     return Response.json({ message: "Not signed in." }, { status: 401 });
   }
 
   const torResponse = await fetch(`${backendApiBase()}/admin/tors/${id}`, {
-    headers: { cookie: `torrent_session=${session}` },
+    headers: { cookie: sessionCookieHeader(session.name, session.value) },
     cache: "no-store",
   });
   if (!torResponse.ok) {
