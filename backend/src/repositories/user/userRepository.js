@@ -25,7 +25,7 @@ async function findPublicById(id) {
 }
 
 async function findAuthById(id) {
-  return User.findById(id).select("_id role email disabled").lean();
+  return User.findById(id).select("_id role email disabled sessionVersion").lean();
 }
 
 async function findEmailAlertPrefsById(id) {

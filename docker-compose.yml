@@ -67,6 +67,7 @@ services:
   mongo:
     image: mongo:8.0.0
 
+    # Host publish is for local scripts (promote-admin). Do not expose in production.
     ports:
       - "27017:27017"
 

@@ -1,5 +1,6 @@
 const authService = require("@/services/auth/authService");
 const { revokeJti } = require("@/services/auth/sessionRevocation");
+const { securityLog } = require("@/utils/securityLog");
 const {
   sessionCookieName,
   readSessionToken,
@@ -10,14 +11,16 @@ const {
 } = require("@/utils/session");
 
 function setSession(response, user) {
+  // Explicit Google credential + CSRF-protected POST is the only session mint path.
   response.cookie(sessionCookieName(), signUserToken(user), cookieOptions());
 }
 
 async function googleLogin(request, response) {
   try {
-    const { credential, role: requestedRole } = request.body;
+    const { credential, role: requestedRole } = request.body || {};
 
-    if (!credential) {
+    if (!credential || typeof credential !== "string") {
+      securityLog("auth_login", { outcome: "failure", code: "missing_credential" }, request);
       return response.status(400).json({ message: "Missing Google credential." });
     }
 
@@ -28,11 +31,29 @@ async function googleLogin(request, response) {
     // Replace any previous browser session cookie (including legacy name).
     clearSessionCookies(response);
     setSession(response, user);
+    securityLog(
+      "auth_login",
+      {
+        outcome: "success",
+        actorId: user._id?.toString?.() || String(user._id),
+        actorEmail: user.email,
+        actorRole: user.role,
+        registering: requestedRole === "vendor" || requestedRole === "public",
+      },
+      request,
+    );
     return response.status(200).json(publicUser);
   } catch (error) {
-    return response.status(error.statusCode || 500).json({
-      message: error.message,
-      ...(error.code ? { code: error.code } : {}),
+    securityLog(
+      "auth_login",
+      { outcome: "failure", code: error.code || "auth_error", status: error.statusCode || 500 },
+      request,
+    );
+    const status = error.statusCode || 500;
+    return response.status(status).json({
+      message: status >= 500 ? "Something went wrong." : error.message,
+      // Surface only non-enumerating UX codes used by the register flow.
+      ...(error.code === "email_registered" ? { code: error.code } : {}),
     });
   }
 }
@@ -46,7 +67,7 @@ async function me(request, response) {
     }
 
     return response.status(200).json(user);
-  } catch (error) {
+  } catch {
     return response.status(500).json({ message: "Could not load the current user." });
   }
 }
@@ -59,6 +80,11 @@ async function logout(request, response) {
       if (claims.jti && claims.exp) {
         await revokeJti(claims.jti, claims.exp * 1000);
       }
+      securityLog(
+        "auth_logout",
+        { outcome: "success", actorId: claims.sub },
+        request,
+      );
     } catch {
       // Cookie clear still proceeds when the token is already invalid.
     }

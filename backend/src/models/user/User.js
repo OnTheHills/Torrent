@@ -21,8 +21,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    // Legacy field only — TORRENT uses Google OIDC; never accept password logins.
     passwordHash: {
       type: String,
+      select: false,
     },
     role: {
       type: String,
@@ -31,8 +33,13 @@ const userSchema = new mongoose.Schema(
     },
     provider: {
       type: String,
-      enum: ["google", "password"],
+      enum: ["google"],
       default: "google",
+    },
+    /** Bumped on role/disable changes so all prior JWTs fail immediately. */
+    sessionVersion: {
+      type: Number,
+      default: 0,
     },
     googleId: {
       type: String,

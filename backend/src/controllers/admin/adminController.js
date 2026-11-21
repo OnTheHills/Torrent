@@ -1,30 +1,36 @@
 const admin = require("@/services/admin/adminService");
 const { runLineWeeklyDigest } = require("@/services/line/lineDigestService");
+const { clientMessage, statusOf } = require("@/middleware/errorHandler");
 
 function send(work) {
-  return async function (request, response) {
+  return async function (request, response, next) {
     try {
       return response.status(200).json(await work(request));
     } catch (error) {
-      return response.status(error.statusCode || 500).json({ message: error.message });
+      const status = statusOf(error);
+      if (status >= 500) return next(error);
+      return response.status(status).json({
+        message: clientMessage(error, status),
+        ...(error?.code ? { code: error.code } : {}),
+      });
     }
   };
 }
 
 module.exports = {
-  runLineDigest: async (_request, response) => {
+  runLineDigest: async (_request, response, next) => {
     try {
       return response.json(await runLineWeeklyDigest());
     } catch (error) {
       console.error("line-digest/run failed", error);
-      return response.status(500).json({ message: error.message || "Digest failed" });
+      return next(error);
     }
   },
   applyRules: send((request) => admin.applyRules(request.user, request.body)),
   auditLog: send((request) => admin.auditLog(request.query)),
   bulkTors: send((request) => admin.bulkTors(request.user, request.body)),
   getTor: send((request) => admin.getTor(request.params.id)),
-  streamTorPdf: async (request, response) => {
+  streamTorPdf: async (request, response, next) => {
     try {
       const { bytes, contentType, filename } = await admin.streamTorPdf(request.params.id);
       response.setHeader("Content-Type", contentType);
@@ -32,7 +38,9 @@ module.exports = {
       response.setHeader("Cache-Control", "private, max-age=300");
       return response.send(bytes);
     } catch (error) {
-      return response.status(error.statusCode || 500).json({ message: error.message });
+      const status = statusOf(error);
+      if (status >= 500) return next(error);
+      return response.status(status).json({ message: clientMessage(error, status) });
     }
   },
   matchJobs: send(() => admin.matchJobs()),

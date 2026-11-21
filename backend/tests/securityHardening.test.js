@@ -165,4 +165,58 @@ test("security hardening: Host session cookies, revoke, rate limits, headers", {
     }
     assert.ok(limited >= 1);
   });
+
+  await t.test("rejects TRACE and conflicting Content-Length + Transfer-Encoding", async () => {
+    const http = require("node:http");
+    const port = server.address().port;
+
+    function rawRequest(method, path, headers) {
+      return new Promise((resolve, reject) => {
+        const req = http.request(
+          { host: "127.0.0.1", port, method, path, headers },
+          (res) => {
+            res.resume();
+            res.on("end", () => resolve(res.statusCode));
+          },
+        );
+        req.on("error", reject);
+        req.end();
+      });
+    }
+
+    assert.equal(await rawRequest("TRACE", "/api/hello", {}), 405);
+    assert.equal(
+      await rawRequest("POST", "/api/auth/logout", {
+        Origin: environment.CORS_ORIGIN,
+        "Content-Length": "2",
+        "Transfer-Encoding": "chunked",
+        "Content-Type": "application/json",
+      }),
+      400,
+    );
+  });
+
+  await t.test("unknown API routes stay opaque without a session", async () => {
+    const anonymous = await fetch(`${base}/api/does-not-exist`);
+    assert.equal(anonymous.status, 401);
+    const body = await anonymous.json();
+    assert.equal(body.message, "Not signed in.");
+    assert.equal(body.stack, undefined);
+  });
+
+  await t.test("stale sessionVersion is rejected", async () => {
+    t.mock.method(userRepository, "findAuthById", async () => ({
+      _id: user._id,
+      email: user.email,
+      role: "vendor",
+      disabled: false,
+      sessionVersion: 2,
+    }));
+    const token = signUserToken({ ...user, sessionVersion: 0 });
+    const me = await fetch(`${base}/api/auth/me`, {
+      headers: { Cookie: `${HOST_SESSION_COOKIE}=${token}` },
+    });
+    assert.equal(me.status, 401);
+    await me.arrayBuffer();
+  });
 });

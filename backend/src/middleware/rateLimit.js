@@ -1,3 +1,5 @@
+const { securityLog } = require("@/utils/securityLog");
+
 /**
  * Simple fixed-window rate limiter (no Redis). Suitable for single-node Compose
  * and ASVS anti-automation on auth/CSRF endpoints.
@@ -35,6 +37,11 @@ function createRateLimiter({
 
     if (bucket.count > max) {
       response.setHeader("Retry-After", String(Math.ceil((bucket.resetAt - now) / 1000)));
+      securityLog(
+        "rate_limited",
+        { outcome: "denied", limiter: name, status: 429 },
+        request,
+      );
       return response.status(429).json({
         message: "Too many requests. Try again shortly.",
         code: "RATE_LIMITED",

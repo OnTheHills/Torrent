@@ -1,66 +1,82 @@
 const userBioService = require("@/services/user/userBioService");
+const { clientMessage, statusOf } = require("@/middleware/errorHandler");
 
-async function createUserBio(request, response) {
+async function respond(work, request, response, next, successStatus = 200) {
   try {
-    const userBio = await userBioService.createUserBio(request.body);
-    return response.status(201).json(userBio);
+    const result = await work();
+    if (response.headersSent) return undefined;
+    return response.status(successStatus).json(result);
   } catch (error) {
-    return response.status(500).json({ message: error.message });
+    const status = statusOf(error);
+    if (status >= 500) return next(error);
+    return response.status(status).json({ message: clientMessage(error, status) });
   }
 }
 
-async function getAllUserBios(request, response) {
-  try {
-    const userBios = await userBioService.getAllUserBios();
-    return response.status(200).json(userBios);
-  } catch (error) {
-    return response.status(500).json({ message: error.message });
-  }
+async function createUserBio(request, response, next) {
+  return respond(
+    () => userBioService.createUserBio(request.body),
+    request,
+    response,
+    next,
+    201,
+  );
 }
 
-async function getUserBioById(request, response) {
-  try {
+async function getAllUserBios(request, response, next) {
+  return respond(
+    () => userBioService.getUserBiosForActor(request.user),
+    request,
+    response,
+    next,
+  );
+}
+
+async function getUserBioById(request, response, next) {
+  return respond(async () => {
     const userBio = await userBioService.getUserBioById(request.params.id);
-
     if (!userBio) {
-      return response.status(404).json({ message: "User bio not found." });
+      const error = new Error("User bio not found.");
+      error.statusCode = 404;
+      throw error;
     }
-
-    return response.status(200).json(userBio);
-  } catch (error) {
-    return response.status(500).json({ message: error.message });
-  }
+    if (
+      request.user.role !== "admin" &&
+      String(userBio.userId) !== String(request.user.sub)
+    ) {
+      const error = new Error("Forbidden.");
+      error.statusCode = 403;
+      throw error;
+    }
+    return userBio;
+  }, request, response, next);
 }
 
-async function updateUserBio(request, response) {
-  try {
+async function updateUserBio(request, response, next) {
+  return respond(async () => {
     const userBio = await userBioService.updateUserBio(
       request.params.id,
       request.body,
     );
-
     if (!userBio) {
-      return response.status(404).json({ message: "User bio not found." });
+      const error = new Error("User bio not found.");
+      error.statusCode = 404;
+      throw error;
     }
-
-    return response.status(200).json(userBio);
-  } catch (error) {
-    return response.status(500).json({ message: error.message });
-  }
+    return userBio;
+  }, request, response, next);
 }
 
-async function deleteUserBio(request, response) {
-  try {
+async function deleteUserBio(request, response, next) {
+  return respond(async () => {
     const userBio = await userBioService.deleteUserBio(request.params.id);
-
     if (!userBio) {
-      return response.status(404).json({ message: "User bio not found." });
+      const error = new Error("User bio not found.");
+      error.statusCode = 404;
+      throw error;
     }
-
-    return response.status(200).json(userBio);
-  } catch (error) {
-    return response.status(500).json({ message: error.message });
-  }
+    return userBio;
+  }, request, response, next);
 }
 
 module.exports = {
