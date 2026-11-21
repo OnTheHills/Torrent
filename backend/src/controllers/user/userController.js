@@ -1,14 +1,5 @@
 const userService = require("@/services/user/userService");
 
-async function createUser(request, response) {
-  try {
-    const user = await userService.createUser(request.body);
-    return response.status(201).json(user);
-  } catch (error) {
-    return response.status(500).json({ message: error.message });
-  }
-}
-
 async function getAllUsers(request, response) {
   try {
     const users = await userService.getAllUsers();
@@ -65,7 +56,6 @@ async function deleteUser(request, response) {
 }
 
 module.exports = {
-  createUser,
   getAllUsers,
   getUserById,
   updateUser,

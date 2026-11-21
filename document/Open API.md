@@ -174,16 +174,15 @@ Google authentication errors can include:
 
 | Method | Path | Access | Success |
 | --- | --- | --- | --- |
-| POST | `/users` | Admin | `201` created user |
 | GET | `/users` | Admin | `200` user array |
 | GET | `/users/{id}` | Self/admin | `200` user |
 | PATCH | `/users/{id}` | Self/admin | `200` updated user |
 | DELETE | `/users/{id}` | Admin | `200` deleted user |
 
-Ordinary profile fields include `username`, `firstname`, and `lastname`. Admin
-creation also accepts account fields defined in the User model, including required
-unique `email`, and `role` (`public`, `vendor`, `admin`). End-user registration
-should use `/auth/google`.
+Ordinary profile fields include `username`, `firstname`, and `lastname`.
+Accounts are created through Google registration at `/auth/google`, which verifies
+the Google credential and permits only `public` or `vendor` registration. There is
+no direct user-creation endpoint, including for admins.
 
 ```json
 {"firstname":"Somchai","lastname":"Example","username":"somchai"}
@@ -286,25 +285,7 @@ Responses use `Cache-Control: private, no-store` and `X-Content-Type-Options: no
 Profile writes may return `400` validation errors, `403` owner violations, `404`
 missing profiles, `409` duplicate profiles, or `413` upload-size errors.
 
-## 7. User bios
-
-| Method | Path | Access | Success |
-| --- | --- | --- | --- |
-| POST | `/user-bios` | Session | `201` created bio |
-| GET | `/user-bios` | Public | `200` bio array |
-| GET | `/user-bios/{id}` | Public | `200` bio |
-| PATCH | `/user-bios/{id}` | Session | `200` updated bio |
-| DELETE | `/user-bios/{id}` | Session | `200` deleted bio |
-
-The bio schema contains required unique `userId`, optional `userPhone`, and optional
-`userEmail`. `{id}` is the bio document's ID. These mutation routes require a
-session through the global write middleware.
-
-```json
-{"userId":"507f1f77bcf86cd799439011","userPhone":"<example phone number>","userEmail":"vendor@example.test"}
-```
-
-## 8. TOR catalog and dashboard aggregates
+## 7. TOR catalog and dashboard aggregates
 
 | Method | Path | Access | Request / success |
 | --- | --- | --- | --- |
@@ -350,7 +331,7 @@ TOR create/update may queue asynchronous matching; a successful HTTP response do
 not mean every vendor score is ready. TOR detail reads may also persist missing
 English translations/requirement grouping during enrichment.
 
-## 9. Vendor–TOR matches
+## 8. Vendor–TOR matches
 
 | Method | Path | Access | Request / success |
 | --- | --- | --- | --- |
@@ -383,7 +364,7 @@ mutation returns `404`.
 `GET /mine` currently removes matches that are no longer eligible as a cleanup
 side effect.
 
-## 10. Administrator operations
+## 9. Administrator operations
 
 Every `/admin` endpoint requires an admin session, including GET operations.
 Except PDF delivery, successful responses below use `200 application/json`.
@@ -470,7 +451,7 @@ Example review:
 }
 ```
 
-## 11. Source synchronization
+## 10. Source synchronization
 
 All routes in this table are admin-only POST requests. No request body is required.
 
@@ -493,7 +474,7 @@ can continue after the response. Failures return `500 {"message":...}` and are
 recorded against the sync run when possible. Provider credentials/configuration
 are supplied on the backend; clients do not send provider API keys here.
 
-## 12. LINE account linking and notifications
+## 11. LINE account linking and notifications
 
 | Method | Path | Access | Input / success |
 | --- | --- | --- | --- |
@@ -517,7 +498,7 @@ Missing/invalid signatures receive `401 {"message":"Invalid signature"}`. The
 server acknowledges valid requests before processing events; a `200` acknowledgement
 does not guarantee every event or notification completed successfully.
 
-## 13. Next.js endpoints on the frontend host
+## 12. Next.js endpoints on the frontend host
 
 These two endpoints run on port 3000 in local development. They are separate from
 the Express server and do not pass through its global write middleware.
@@ -535,7 +516,7 @@ non-PDF responses. Successful delivery is inline `application/pdf` with a privat
 five-minute cache. `/sources/health` performs network probes; it is not the same
 as the stored source-run report at backend `/admin/sources`.
 
-## 14. Calling the API
+## 13. Calling the API
 
 Authenticated JSON request from the browser (the browser supplies Origin):
 
@@ -587,7 +568,7 @@ before the next write, including logout, because the token is now bound to the
 JWT. Supply the refreshed header token and allowed Origin on that write. The
 shared frontend client handles this exchange, cookies, JSON headers, and errors.
 
-## 15. Errors and current response behavior
+## 14. Errors and current response behavior
 
 Most controller-generated errors use:
 
@@ -614,7 +595,7 @@ Not all generic CRUD validation errors currently map to `400`. Clients should
 handle unexpected `5xx` responses and avoid treating error-message text as a
 stable contract. Do not assume a uniform status/schema across every route.
 
-## 16. Implementation references
+## 15. Implementation references
 
 The request flow is CORS, cookie parsing, global write authentication, Origin/CSRF checks, JSON parsing
 (including LINE raw-body capture), then route middleware and controllers. A

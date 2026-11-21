@@ -65,9 +65,8 @@ Google Identity script -> GoogleButton -> POST /api/auth/google
 | API | Router | Controller responsibility |
 | --- | --- | --- |
 | `/api/auth` | `authRoute.js` | Google login, current session lookup, logout. |
-| `/api/users` | `userRoute.js` | User CRUD. |
+| `/api/users` | `userRoute.js` | Read, update, and delete users; creation requires Google registration. |
 | `/api/vendor-profiles` | `vendorProfileRoute.js` | Vendor company/profile CRUD; a create or update queues eligible TORs for matching. |
-| `/api/user-bios` | `userBioRoute.js` | Public user bio CRUD. |
 | `/api/tors` | `torRoute.js` | Read and maintain procurement TORs. |
 | `/api/tor-matches` | `torMatchRoute.js` | Persist a vendor-to-TOR match; authenticated `GET /mine` returns the signed-in vendor's matches. |
 | `/api/sync` | `syncRoute.js` | Starts all-source, SME-GP-only, or BMA e-GP2-only imports. |
@@ -83,7 +82,6 @@ Each CRUD controller follows the same shape: read `request.body` or
 | `TOR.js` | `tors` | A normalized procurement opportunity from any source. `refId` is the stable external identity used during sync. |
 | `User.js` | `users` | Local account, Google identity fields, and role. |
 | `VendorProfile.js` | `vendor_profiles` | Vendor-facing company/profile information. Saving it queues eligible TORs for matching. |
-| `UserBio.js` | `userbios` | Public profile/bio data. |
 | `TORMatch.js` | `tor_matches` | A user's stored, above-threshold match to a TOR, including the score and reason. |
 | `TorMatchJob.js` | `tor_match_jobs_by_tor` | Durable TOR-centric matching queue, including cursor, retry, and lease state. |
 

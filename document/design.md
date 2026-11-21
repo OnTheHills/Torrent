@@ -375,9 +375,10 @@ Overview, sources, review queue + rescore, TOR search/bulk/PDF stream, audit, us
 | POST | /link/start, /unlink | vendor/admin | Account linking |
 | PATCH | /digest | vendor/admin | Weekly digest toggle |
 
-#### Users / bios — /api/users, /api/user-bios
+#### Users — /api/users
 
-Standard CRUD helpers for accounts and public bios.
+Read, update, and delete helpers for accounts. Account creation requires verified
+Google registration; admins cannot create accounts directly.
 
 #### Health
 
@@ -441,7 +442,6 @@ MongoDB is document-oriented; the ER view treats **collections as tables** and M
     audit_logs
     sync_runs
     admin_settings
-    userbios (if still used)
 </diagram:er-diagram>
 ```
 

@@ -51,7 +51,7 @@ test("the application requires a session for mutations and preserves public exce
   // Exercise the real application, routes, JWT, role checks, and LINE signature
   // verification while keeping controllers away from databases/external APIs.
   const controllerGroups = {
-    auth: "auth", user: "user", userBio: "user", vendorProfile: "vendor",
+    auth: "auth", user: "user", vendorProfile: "vendor",
     tor: "tor", torMatch: "tor", sync: "sync", admin: "admin",
   };
   for (const [name, group] of Object.entries(controllerGroups)) {
@@ -80,13 +80,8 @@ test("the application requires a session for mutations and preserves public exce
   });
   const lineService = require("@/services/line/lineService");
   t.mock.method(lineService, "processWebhookEvents", async () => { calls.push("line.processWebhookEvents"); });
-  const bioId = "507f1f77bcf86cd799439012";
   const matchId = "507f1f77bcf86cd799439012";
-  const userBioRepository = require("@/repositories/user/userBioRepository");
   const torMatchRepository = require("@/repositories/tor/torMatchRepository");
-  t.mock.method(userBioRepository, "findById", async (id) => (
-    id === bioId ? { _id: bioId, userId: user._id } : null
-  ));
   t.mock.method(torMatchRepository, "findById", async (id) => (
     id === matchId ? { _id: matchId, userId: user._id } : null
   ));
@@ -127,9 +122,9 @@ test("the application requires a session for mutations and preserves public exce
     };
   }
   const mutations = [
-    ["POST", "/api/user-bios", "{}"],
+    ["POST", "/api/tor-matches", "{}"],
     ["PUT", "/api/email-alerts/mutation-auth-test"],
-    ["PATCH", `/api/user-bios/${bioId}`, "{}"],
+    ["PATCH", `/api/tor-matches/${matchId}`, "{}"],
     ["DELETE", `/api/tor-matches/${matchId}`],
   ];
   async function mutationRequest(method, path, body, headers) {
@@ -180,7 +175,7 @@ test("the application requires a session for mutations and preserves public exce
   });
 
   await t.test("a bearer header does not replace the session cookie", async () => {
-    const response = await fetch(base + "/api/user-bios", {
+    const response = await fetch(base + "/api/tor-matches", {
       method: "POST", headers: { Authorization: `Bearer ${token}` },
     });
     assert.equal(response.status, 401);
@@ -208,7 +203,7 @@ test("the application requires a session for mutations and preserves public exce
   });
 
   await t.test("protected GET routes reject a stale cookie before controllers", async () => {
-    for (const path of ["/api/user-bios", "/api/tor-matches"]) {
+    for (const path of ["/api/vendor-profiles", "/api/tor-matches"]) {
       for (const method of ["GET", "HEAD"]) {
         const response = await fetch(base + path, { method, headers: cookie("stale") });
         assert.equal(response.status, 401, `${method} ${path}`);
@@ -218,7 +213,7 @@ test("the application requires a session for mutations and preserves public exce
   });
 
   await t.test("CORS preflight does not require a session", async () => {
-    const response = await fetch(base + "/api/user-bios", {
+    const response = await fetch(base + "/api/tor-matches", {
       method: "OPTIONS", headers: {
         Origin: environment.CORS_ORIGIN,
         "Access-Control-Request-Method": "POST",
@@ -249,9 +244,29 @@ test("the application requires a session for mutations and preserves public exce
     authById[user._id].role = "vendor";
   });
 
+  await t.test("admins and vendors cannot create users through the removed CRUD endpoint", async () => {
+    const before = calls.length;
+    try {
+      for (const role of ["admin", "vendor"]) {
+        authById[user._id].role = role;
+        const session = signUserToken({ ...user, role });
+        for (const path of ["/api/users", "/api/users/", "/API/USERS"]) {
+          const response = await mutationRequest("POST", path, JSON.stringify({
+            email: "created@example.test", role: "admin",
+          }), await csrfHeaders(session));
+          assert.equal(response.status, 404, `${role} POST ${path}`);
+          await response.arrayBuffer();
+        }
+      }
+      assert.equal(calls.length, before);
+    } finally {
+      authById[user._id].role = "vendor";
+    }
+  });
+
   await t.test("disabled accounts and demoted roles are enforced from the database", async () => {
     authById[user._id].disabled = true;
-    const disabled = await fetch(base + "/api/user-bios", {
+    const disabled = await fetch(base + "/api/tor-matches", {
       method: "POST",
       headers: await csrfHeaders(),
     });
@@ -260,7 +275,7 @@ test("the application requires a session for mutations and preserves public exce
     authById[user._id].disabled = false;
 
     authById[user._id].role = "public";
-    const demoted = await fetch(base + "/api/user-bios", {
+    const demoted = await fetch(base + "/api/tor-matches", {
       method: "POST",
       headers: await csrfHeaders(),
     });
@@ -349,7 +364,7 @@ test("the application requires a session for mutations and preserves public exce
       const headers = { ...valid };
       if (origin === undefined) delete headers.Origin;
       else headers.Origin = origin;
-      const response = await fetch(base + "/api/user-bios", { method: "POST", headers });
+      const response = await fetch(base + "/api/tor-matches", { method: "POST", headers });
       assert.equal(response.status, 403);
       assert.equal((await response.json()).code, "INVALID_ORIGIN");
     }
@@ -374,13 +389,13 @@ test("the application requires a session for mutations and preserves public exce
     const old = await csrfHeaders();
     const changed = jwt.sign({ sub: user._id, role: "vendor", email: user.email, jti: "another-session" }, environment.JWT_SECRET, { expiresIn: "1h" });
     const oldCookies = old.Cookie.split("; ").filter((value) => !value.startsWith("torrent_session=")).join("; ");
-    const response = await mutationRequest("POST", "/api/user-bios", "{}", {
+    const response = await mutationRequest("POST", "/api/tor-matches", "{}", {
       ...old, Cookie: `${oldCookies}; torrent_session=${changed}`,
     });
     assert.equal(response.status, 403);
     assert.equal((await response.json()).code, "INVALID_CSRF_TOKEN");
     const renewed = await csrfHeaders(changed, oldCookies);
-    const allowed = await mutationRequest("POST", "/api/user-bios", "{}", renewed);
+    const allowed = await mutationRequest("POST", "/api/tor-matches", "{}", renewed);
     assert.equal(allowed.status, 200);
     await allowed.arrayBuffer();
   });

@@ -300,7 +300,6 @@ The backend provides JSON CRUD routes for:
 
 - `/api/users`
 - `/api/vendor-profiles`
-- `/api/user-bios`
 - `/api/tors`
 - `/api/tor-matches`
 
