@@ -14,6 +14,12 @@ const HOSTS = {
 
 const UUID = /^[a-f\d]{8}(?:-[a-f\d]{4}){3}-[a-f\d]{12}$/i;
 
+function isAllowedTorHost(hostname, source = "all") {
+  const hosts = source === "all" ? [...HOSTS.egp, ...HOSTS.bma] :
+    source === "egp-api" ? HOSTS.egp : HOSTS[source];
+  return Boolean(hosts?.includes(String(hostname).toLowerCase()));
+}
+
 function allowedQuery(url, key, pattern) {
   const entries = [...url.searchParams];
   return entries.length === 1 && entries[0][0] === key && pattern.test(entries[0][1]);
@@ -54,10 +60,8 @@ function validateTorUrl(value, source = "all") {
   if (typeof raw !== "string" || /[\s\\\u0000-\u001f\u007f]/u.test(raw)) throw denied();
   let url;
   try { url = new URL(raw); } catch { throw denied(); }
-  const hosts = source === "all" ? [...HOSTS.egp, ...HOSTS.bma] :
-    source === "egp-api" ? HOSTS.egp : HOSTS[source];
   // URL normalizes explicit :443 to an empty port, so both forms are allowed.
-  if (!hosts?.includes(url.hostname) || url.protocol !== "https:" || url.port ||
+  if (!isAllowedTorHost(url.hostname, source) || url.protocol !== "https:" || url.port ||
       url.username || url.password || url.hash) throw denied();
   if (!allowedPath(url, raw, source)) throw denied();
   return url;
@@ -130,6 +134,7 @@ async function fetchTorUrl(value, options = {}, source = "all") {
 }
 
 module.exports = {
+  isAllowedTorHost,
   validateTorUrl, fetchTorUrl, isPublicAddress, resolveTorDestination,
   pinnedLookup, curlDestinationArgs,
 };

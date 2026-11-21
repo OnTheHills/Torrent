@@ -26,10 +26,14 @@ function authError(message, statusCode, code) {
  * not reveal whether an email is registered (ASVS V6.3.8). Internal `code`
  * values stay available for server-side security logs.
  */
-async function loginWithGoogle(credential, requestedRole) {
+async function loginWithGoogle(credential, requestedRole, { nonce } = {}) {
+  if (!nonce || typeof nonce !== "string" || nonce.length < 16 || nonce.length > 128) {
+    throw authError("Sign-in failed.", 401, "invalid_nonce");
+  }
+
   let profile;
   try {
-    profile = await verifyGoogleIdToken(credential);
+    profile = await verifyGoogleIdToken(credential, { nonce });
   } catch {
     throw authError("Sign-in failed.", 401, "invalid_credential");
   }

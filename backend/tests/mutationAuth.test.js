@@ -473,7 +473,14 @@ test("the application requires a session for mutations and preserves public exce
 
   await t.test("tokens are bound to the JWT and can be renewed after session changes", async () => {
     const old = await csrfHeaders();
-    const changed = jwt.sign({ sub: user._id, role: "vendor", email: user.email, jti: "another-session" }, environment.JWT_SECRET, { expiresIn: "1h" });
+    // New session must still be a valid torrent_session JWT (aud/typ); CSRF
+    // binding to the prior JWT is what must fail.
+    const changed = signUserToken({
+      _id: user._id,
+      role: "vendor",
+      email: user.email,
+      sessionVersion: 0,
+    });
     const oldCookies = old.Cookie.split("; ").filter((value) => !value.startsWith("torrent_session=")).join("; ");
     const response = await mutationRequest("POST", "/api/tor-matches/ensure", "{}", {
       ...old, Cookie: `${oldCookies}; torrent_session=${changed}`,

@@ -16,7 +16,9 @@ function stripTags(value) {
   return decodeEntities(value)
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/(p|tr|div|li)>/gi, "\n")
-    .replace(/<[^>]+>/g, " ")
+    // Do not let a failed tag match scan across subsequent '<' characters:
+    // repeated unclosed tags otherwise cause quadratic backtracking.
+    .replace(/<[^<>]+>/g, " ")
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{2,}/g, "\n")
     .replace(/[ \t]{2,}/g, " ")

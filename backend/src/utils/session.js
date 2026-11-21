@@ -4,6 +4,11 @@ const { readSecret } = require("@/config/secrets");
 
 const SESSION_COOKIE_BASE = "torrent_session";
 const HOST_SESSION_COOKIE = `__Host-${SESSION_COOKIE_BASE}`;
+const SESSION_TOKEN_TYP = "torrent_session";
+
+function sessionAudience() {
+  return process.env.JWT_AUDIENCE || "torrent";
+}
 
 /** Match CSRF: Host-prefixed Secure cookies in production / COOKIE_SECURE. */
 function useHostCookies() {
@@ -44,14 +49,28 @@ function signUserToken(user) {
       // Session version invalidates all cookies when privilege state changes.
       sv: Number(user.sessionVersion) || 0,
       jti: randomUUID(),
+      // Distinguish app session JWTs from Google ID tokens / other JWTs (ASVS V9.2).
+      typ: SESSION_TOKEN_TYP,
     },
     readSecret("JWT_SECRET", { required: true }),
-    { expiresIn: process.env.JWT_EXPIRES_IN || "7d" },
+    {
+      expiresIn: process.env.JWT_EXPIRES_IN || "7d",
+      audience: sessionAudience(),
+    },
   );
 }
 
 function verifyUserToken(token) {
-  return jwt.verify(token, readSecret("JWT_SECRET", { required: true }));
+  const claims = jwt.verify(token, readSecret("JWT_SECRET", { required: true }), {
+    audience: sessionAudience(),
+    clockTolerance: 5,
+  });
+  if (claims.typ !== SESSION_TOKEN_TYP) {
+    const error = new Error("Invalid session token type.");
+    error.name = "JsonWebTokenError";
+    throw error;
+  }
+  return claims;
 }
 
 function cookieOptions() {
@@ -78,6 +97,8 @@ function clearSessionCookies(response) {
 module.exports = {
   SESSION_COOKIE_BASE,
   HOST_SESSION_COOKIE,
+  SESSION_TOKEN_TYP,
+  sessionAudience,
   useHostCookies,
   sessionCookieName,
   readSessionToken,

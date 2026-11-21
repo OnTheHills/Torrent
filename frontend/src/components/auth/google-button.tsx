@@ -7,7 +7,14 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { useSession } from "@/components/providers/session-provider";
 import { googleLogin, type SessionUser } from "@/lib/auth";
 import { routes } from "@/config/routes";
+import { safeAppPath } from "@/lib/safe-path";
 import { cn } from "@/lib/utils";
+
+function freshOidcNonce() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
 
 /** Same translucent white frost as hero cards. */
 const frostButton =
@@ -55,6 +62,7 @@ declare global {
         id: {
           initialize: (config: {
             client_id: string;
+            nonce?: string;
             callback: (response: { credential: string }) => void;
           }) => void;
           renderButton: (el: HTMLElement, opts: Record<string, unknown>) => void;
@@ -129,14 +137,20 @@ export function GoogleButton({
       window.clearInterval(timer);
       if (cancelled) return;
 
+      // Bind GIS ID token to this browser transaction (ASVS V10.1.2).
+      const oidcNonce = freshOidcNonce();
       window.google.accounts.id.initialize({
         client_id: clientId,
+        nonce: oidcNonce,
         callback: async ({ credential }) => {
           try {
-            const user = await googleLogin(credential, roleRef.current);
+            // Credential is posted once to the backend BFF — never stored in JS storage.
+            const user = await googleLogin(credential, roleRef.current, oidcNonce);
             await refresh();
             const href =
-              user.role === "vendor" ? afterVendor : homeFor(user);
+              user.role === "vendor"
+                ? safeAppPath(afterVendor, routes.app.home)
+                : homeFor(user);
             router.push(href);
           } catch (err) {
             const code =
@@ -144,7 +158,6 @@ export function GoogleButton({
                 ? err.code
                 : "";
             if (code === "email_registered") setError(t("emailAlreadyRegistered"));
-            else if (code === "email_unknown") setError(t("emailNotRegistered"));
             else setError(err instanceof Error ? err.message : "Sign-in failed.");
           }
         },

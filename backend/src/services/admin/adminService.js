@@ -693,6 +693,7 @@ async function downloadPdfBytes(pdfUrl) {
           Accept: "application/pdf,*/*",
           "User-Agent": PDF_USER_AGENT,
         },
+        signal: AbortSignal.timeout(40_000),
       });
       if (!response.ok) {
         const failed = new Error(`Could not fetch PDF (${response.status}).`);
