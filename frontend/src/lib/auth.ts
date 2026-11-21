@@ -12,10 +12,18 @@ export type SessionUser = {
 
 // Google returns a short-lived identity credential. The backend verifies it and
 // responds by setting an HTTP-only session cookie, not by exposing a JWT here.
-export function googleLogin(credential: string, role?: "public" | "vendor") {
+// `nonce` must match the value passed to GIS initialize() (ASVS V10.1.2).
+export function googleLogin(
+  credential: string,
+  role?: "public" | "vendor",
+  nonce?: string,
+) {
+  const body: Record<string, string> = { credential };
+  if (role) body.role = role;
+  if (nonce) body.nonce = nonce;
   return api<SessionUser>("/api/auth/google", {
     method: "POST",
-    body: JSON.stringify(role ? { credential, role } : { credential }),
+    body: JSON.stringify(body),
   });
 }
 

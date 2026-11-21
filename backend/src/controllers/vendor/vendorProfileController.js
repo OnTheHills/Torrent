@@ -114,7 +114,14 @@ async function getCertificate(request, response) {
     if (!profile || !Object.keys(CERTIFICATE_FIELDS).some((field) => profile[field]?.includes(`upload/${filename}`))) {
       return response.status(404).json({ message: "Certificate not found." });
     }
-    response.set({ "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" });
+    response.set({
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
+      // Force download/attachment context so browsers do not navigate into raw bytes as HTML.
+      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Content-Security-Policy": "default-src 'none'; sandbox",
+      "Cross-Origin-Resource-Policy": "same-site",
+    });
     return response.sendFile(filename, { root: UPLOAD_DIRECTORY }, (error) => {
       if (error && !response.headersSent) response.status(error.statusCode === 404 ? 404 : 500).json({ message: "Unable to open certificate." });
     });

@@ -15,9 +15,14 @@ function setSession(response, user) {
   response.cookie(sessionCookieName(), signUserToken(user), cookieOptions());
 }
 
+function noStore(response) {
+  response.set("Cache-Control", "no-store");
+  response.set("Pragma", "no-cache");
+}
+
 async function googleLogin(request, response) {
   try {
-    const { credential, role: requestedRole } = request.body || {};
+    const { credential, role: requestedRole, nonce } = request.body || {};
 
     if (!credential || typeof credential !== "string") {
       securityLog("auth_login", { outcome: "failure", code: "missing_credential" }, request);
@@ -27,10 +32,12 @@ async function googleLogin(request, response) {
     const { publicUser, user } = await authService.loginWithGoogle(
       credential,
       requestedRole,
+      { nonce },
     );
     // Replace any previous browser session cookie (including legacy name).
     clearSessionCookies(response);
     setSession(response, user);
+    noStore(response);
     securityLog(
       "auth_login",
       {
@@ -50,6 +57,7 @@ async function googleLogin(request, response) {
       request,
     );
     const status = error.statusCode || 500;
+    noStore(response);
     return response.status(status).json({
       message: status >= 500 ? "Something went wrong." : error.message,
       // Surface only non-enumerating UX codes used by the register flow.
@@ -63,11 +71,14 @@ async function me(request, response) {
     const user = await authService.getCurrentUser(request.user.sub);
 
     if (!user || user.disabled) {
+      noStore(response);
       return response.status(401).json({ message: "Not signed in." });
     }
 
+    noStore(response);
     return response.status(200).json(user);
   } catch {
+    noStore(response);
     return response.status(500).json({ message: "Could not load the current user." });
   }
 }
@@ -91,6 +102,9 @@ async function logout(request, response) {
   }
 
   clearSessionCookies(response);
+  noStore(response);
+  // Drop client caches/storage for this origin after session end (ASVS V14.3.1).
+  response.set("Clear-Site-Data", '"cookies", "storage"');
   return response.status(200).json({ ok: true });
 }
 

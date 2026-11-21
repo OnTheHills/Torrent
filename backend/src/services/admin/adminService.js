@@ -18,6 +18,10 @@ const { matchingSoftwareTerms } = require("@/services/tor/api/dataGo/adapter");
 const classification = require("@/services/admin/classification");
 const { record, requireReason } = require("@/services/admin/audit");
 const { escapeRegex, requireObjectId } = require("@/utils/validate");
+const {
+  assertSafeOutboundUrl,
+  assertSafeOutboundUrlResolved,
+} = require("@/utils/outboundUrl");
 
 const execFileAsync = promisify(execFile);
 const {
@@ -641,6 +645,7 @@ function messageFromNonPdfBody(raw) {
 async function downloadPdfBytes(pdfUrl) {
   // Prefer curl: e-GP often rejects Node's fetch fingerprint, and Alpine
   // containers resolve DNS more reliably through curl's resolver path.
+  const safeUrl = await assertSafeOutboundUrlResolved(pdfUrl, { label: "PDF URL" });
   const id = randomBytes(8).toString("hex");
   const bodyPath = join(tmpdir(), `torrent-review-pdf-${id}.pdf`);
   try {
@@ -649,6 +654,10 @@ async function downloadPdfBytes(pdfUrl) {
       [
         "-sS",
         "-L",
+        "--max-redirs",
+        "3",
+        "--proto-redir",
+        "=https,http",
         "--max-time",
         "40",
         "-A",
@@ -657,7 +666,7 @@ async function downloadPdfBytes(pdfUrl) {
         "Accept: application/pdf,*/*",
         "-o",
         bodyPath,
-        pdfUrl,
+        safeUrl,
       ],
       { timeout: 45000 },
     );
@@ -673,17 +682,21 @@ async function downloadPdfBytes(pdfUrl) {
     if (error.statusCode) throw error;
     if (error.code === "ENOENT") {
       // curl missing — fall back to fetch.
-      const response = await fetch(pdfUrl, {
+      const response = await fetch(safeUrl, {
         headers: {
           Accept: "application/pdf,*/*",
           "User-Agent": PDF_USER_AGENT,
         },
+        redirect: "follow",
+        signal: AbortSignal.timeout(40_000),
       });
       if (!response.ok) {
         const failed = new Error(`Could not fetch PDF (${response.status}).`);
         failed.statusCode = 502;
         throw failed;
       }
+      // Re-check final URL after redirects when the runtime exposes it.
+      if (response.url) assertSafeOutboundUrl(response.url, { label: "PDF URL" });
       return Buffer.from(await response.arrayBuffer());
     }
     const failed = new Error(
