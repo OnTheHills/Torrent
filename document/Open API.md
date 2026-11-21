@@ -336,12 +336,12 @@ English translations/requirement grouping during enrichment.
 | Method | Path | Access | Request / success |
 | --- | --- | --- | --- |
 | POST | `/tor-matches` | Session | Match JSON; `201` created match |
-| GET | `/tor-matches` | Public | `200` match array |
-| GET | `/tor-matches/pending` | Public | `200` array of TOR IDs with unfinished matching jobs |
-| GET | `/tor-matches/mine` | Session | `200` signed-in user's eligible match array |
+| GET | `/tor-matches` | Admin | `200` match array across all users |
+| GET | `/tor-matches/pending` | Vendor/admin | `200` array of TOR IDs with unfinished matching jobs |
+| GET | `/tor-matches/mine` | Vendor/admin; scoped to current user | `200` signed-in user's eligible match array |
 | PATCH | `/tor-matches/mine/{id}` | Session; scoped to current user | Dismiss/report body; `200` updated match |
 | POST | `/tor-matches/ensure` | Session | `{torIds:[...]}`; `200 {queued:number}` |
-| GET | `/tor-matches/{id}` | Public | `200` match |
+| GET | `/tor-matches/{id}` | Admin | `200` match |
 | PATCH | `/tor-matches/{id}` | Session | Match changes; `200` updated match |
 | DELETE | `/tor-matches/{id}` | Session | `200` deleted match |
 
@@ -350,6 +350,9 @@ Match records have required `userId` and `torId`, plus `matchPercent`, `matchRea
 Decimal128 and may serialize as an Extended JSON decimal object rather than a
 JavaScript number. Use the `/mine` operations for user-specific dismiss/report
 actions; these operations scope the match lookup to the signed-in user.
+Vendors cannot read the all-user list or fetch any match by ID through the generic
+GET endpoint, even if they own it. Both reads are admin-only and return `403` for
+vendors; vendors read their match results through `/mine`.
 
 ```json
 {"dismissed":true}

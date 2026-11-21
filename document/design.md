@@ -333,11 +333,12 @@ Roles: `public` | `vendor` | `admin`. Middleware: `requireAuth`, `requireRole(..
 
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
-| GET | /mine | vendor | Signed-in vendor matches |
+| GET | /mine | vendor/admin | Signed-in user's matches |
 | PATCH | /mine/:id | vendor | Dismiss / feedback |
 | POST | /ensure | yes | Ensure scores exist for current user |
-| CRUD | /, /:id | mixed | Persist / admin tooling |
-| GET | /pending | — | Pending job ids (ops) |
+| GET | /, /:id | admin | All-user match list / match by ID |
+| POST / PATCH / DELETE | /, /:id | vendor/admin; owner checks on PATCH/DELETE | Persist matches |
+| GET | /pending | vendor/admin | Pending TOR job IDs, without match results |
 
 #### Vendor profiles — /api/vendor-profiles
 

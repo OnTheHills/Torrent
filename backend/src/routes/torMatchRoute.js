@@ -24,8 +24,8 @@ torMatchRouter.get("/mine", requireAuth, getMyTorMatches);
 torMatchRouter.patch("/mine/:id", requireAuth, setMyMatchDismissed);
 torMatchRouter.post("/ensure", requireAuth, ensureTorMatchScores);
 torMatchRouter.get("/pending", getPendingTorMatchIds);
-torMatchRouter.get("/", getAllTorMatches);
-torMatchRouter.get("/:id", getTorMatchById);
+torMatchRouter.get("/", requireRole("admin"), getAllTorMatches);
+torMatchRouter.get("/:id", requireRole("admin"), getTorMatchById);
 torMatchRouter.patch("/:id", ownerOnly, requireOwnUserId, updateTorMatch);
 torMatchRouter.delete("/:id", ownerOnly, deleteTorMatch);
 

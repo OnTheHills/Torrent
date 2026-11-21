@@ -244,6 +244,34 @@ test("the application requires a session for mutations and preserves public exce
     authById[user._id].role = "vendor";
   });
 
+  await t.test("match reads allow vendors only through mine and retain admin access", async () => {
+    try {
+      for (const role of ["vendor", "admin"]) {
+        authById[user._id].role = role;
+        const headers = cookie(signUserToken({ ...user, role }));
+        for (const path of [
+          "/api/tor-matches", "/api/tor-matches/", "/API/TOR-MATCHES?userId=someone-else",
+          `/api/tor-matches/${matchId}`, `/api/tor-matches/${matchId}/`,
+        ]) {
+          for (const method of ["GET", "HEAD"]) {
+            const before = calls.length;
+            const response = await fetch(base + path, { method, headers });
+            assert.equal(response.status, role === "admin" ? 200 : 403, `${role} ${method} ${path}`);
+            if (role === "vendor") assert.equal(calls.length, before);
+            await response.arrayBuffer();
+          }
+        }
+        const mine = await fetch(base + "/api/tor-matches/mine?userId=someone-else", { headers });
+        assert.equal(mine.status, 200);
+        const payload = await mine.json();
+        assert.equal(payload.action, "getMyTorMatches");
+        assert.equal(payload.user.sub, user._id);
+      }
+    } finally {
+      authById[user._id].role = "vendor";
+    }
+  });
+
   await t.test("admins and vendors cannot create users through the removed CRUD endpoint", async () => {
     const before = calls.length;
     try {

@@ -68,7 +68,7 @@ Google Identity script -> GoogleButton -> POST /api/auth/google
 | `/api/users` | `userRoute.js` | Read, update, and delete users; creation requires Google registration. |
 | `/api/vendor-profiles` | `vendorProfileRoute.js` | Vendor company/profile CRUD; a create or update queues eligible TORs for matching. |
 | `/api/tors` | `torRoute.js` | Read and maintain procurement TORs. |
-| `/api/tor-matches` | `torMatchRoute.js` | Persist a vendor-to-TOR match; authenticated `GET /mine` returns the signed-in vendor's matches. |
+| `/api/tor-matches` | `torMatchRoute.js` | Vendors read their own matches through `GET /mine`; listing all matches and `GET /:id` require admin. |
 | `/api/sync` | `syncRoute.js` | Starts all-source, SME-GP-only, or BMA e-GP2-only imports. |
 
 Each CRUD controller follows the same shape: read `request.body` or
