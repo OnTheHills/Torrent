@@ -1,10 +1,6 @@
 const TORMatch = require("@/models/tor/TORMatch");
 const TorMatchJob = require("@/models/tor/TorMatchJob");
 
-async function create(data) {
-  return TORMatch.create(data);
-}
-
 async function findAll() {
   return TORMatch.find();
 }
@@ -73,7 +69,6 @@ async function remove(id) {
 }
 
 module.exports = {
-  create,
   findAll,
   findById,
   findByUserId,

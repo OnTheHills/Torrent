@@ -327,18 +327,23 @@ Roles: `public` | `vendor` | `admin`. Middleware: `requireAuth`, `requireRole(..
 | GET | /budget-peers | public | Peers for budget compare |
 | GET | /top-departments-by-budget | public | Dashboard |
 | GET | /category-distribution | public | Dashboard |
-| POST / PATCH / DELETE | /, /:id | admin | Maintain TOR rows |
+| PATCH / DELETE | /:id | admin | Edit / delete existing TOR rows |
+
+TOR creation is handled by source ingestion, with no manual creation API.
 
 #### Matches — /api/tor-matches
 
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
 | GET | /mine | vendor/admin | Signed-in user's matches |
-| PATCH | /mine/:id | vendor | Dismiss / feedback |
-| POST | /ensure | yes | Ensure scores exist for current user |
+| PATCH | /mine/:id | vendor/admin | Own dismiss / feedback |
+| POST | /ensure | vendor/admin | Queue shared TOR score computation |
 | GET | /, /:id | admin | All-user match list / match by ID |
-| POST / PATCH / DELETE | /, /:id | vendor/admin; owner checks on PATCH/DELETE | Persist matches |
+| PATCH / DELETE | /:id | admin | Maintain existing match records |
 | GET | /pending | vendor/admin | Pending TOR job IDs, without match results |
+
+Match creation is job-only. Vendors use `/mine` for reads and `/mine/:id` for
+dismissal/feedback; they cannot submit or edit AI scores.
 
 #### Vendor profiles — /api/vendor-profiles
 

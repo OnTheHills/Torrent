@@ -1,6 +1,10 @@
 # TORRENT REST API reference
 
-Updated: 9 November 2026.
+Updated: 21 November 2026.
+
+Scope: all currently mounted Express routes and the two Next.js API handlers.
+This reference records current behavior, including remaining authorization gaps;
+it does not mark ASVS V8.1 complete.
 
 This is a human-readable reference for the currently implemented REST API. It is
 Markdown documentation, not an importable OpenAPI YAML/JSON specification. Access
@@ -31,8 +35,11 @@ The URLs above describe the existing development setup.
   `201`. Deletes return the deleted document rather than an empty `204` response.
 - Most collection responses are plain arrays without pagination. Admin endpoints
   use the response objects described below.
-- No backend `PUT` endpoint is currently registered. The global authentication
-  middleware covers PUT requests if a route is added later.
+- `PUT /email-alerts/preferences` replaces the current user’s email preferences.
+- GET routes also handle HEAD with the same access checks and no response body.
+- Express route matching is case-insensitive and accepts trailing slashes by
+  default. Query strings do not bypass authorization.
+- JSON request bodies default to a 256 KiB limit, configurable with `JSON_BODY_LIMIT`.
 - Public TOR responses generally use `_id`; admin TOR presentation uses `id`.
   Omitted fields, optional fields and `__v` may vary by stored document.
 
@@ -40,17 +47,19 @@ The URLs above describe the existing development setup.
 
 ### Session cookie
 
-Successful Google authentication sets the `torrent_session` cookie containing a
-signed JWT with `sub` (local user ID), `role`, `email`, `iat`, and `exp` claims.
+Successful Google authentication sets `torrent_session` locally, or
+`__Host-torrent_session` in production / when `COOKIE_SECURE=true`. It contains a
+signed JWT with `sub` (local user ID), `role`, `email`, `sv` (session version),
+`jti` (token identifier), `iat`, and `exp` claims.
 The response body contains user data; the local JWT is not returned as a body field.
 
 | Setting | Current behavior |
 | --- | --- |
 | `HttpOnly` | Enabled |
 | `SameSite` | `lax` |
-| `Secure` | Enabled when `COOKIE_SECURE=true` |
+| `Secure` | Enabled in production or when `COOKIE_SECURE=true`; Host cookie has no Domain |
 | Cookie path | `/` |
-| Cookie maximum age | Seven days |
+| Cookie maximum age | `JWT_EXPIRES_IN` when formatted as integer + `s`, `m`, `h`, or `d`; otherwise seven-day fallback |
 | JWT lifetime | `JWT_EXPIRES_IN`, default `7d` |
 
 Browser requests that need the session must use `credentials: "include"`.
@@ -58,7 +67,16 @@ The API expects the session cookie; an `Authorization: Bearer ...` header alone
 does not authenticate these routes. `CORS_ORIGIN` is a comma-separated allowlist
 of frontend origins, with credentialed CORS responses enabled.
 
-### Authentication for writes
+Protected requests re-read the account from MongoDB. The database role takes
+precedence over stale JWT role claims. Missing/deleted/disabled users, revoked
+JWT IDs, and mismatched session versions are rejected. Authenticated sessions may
+rotate after half their lifetime; role/email changes also refresh claims. Clients
+must retain Set-Cookie responses and renew CSRF tokens after session changes.
+The dedicated `/admin/users/{id}` privilege update increments the session version
+when role/disabled state changes. The generic user PATCH does not perform that
+same version increment or audit workflow.
+
+### Global authentication gate
 
 `requireMutationAuth` runs after cookie parsing and before JSON/upload processing.
 Every backend POST, PUT, PATCH, and DELETE requires a valid, unexpired session,
@@ -74,9 +92,16 @@ return `401 {"message":"Not signed in."}`. Expired or invalid tokens return
 `401 {"message":"Session expired or invalid."}`. A valid session does not bypass
 additional route-specific role or ownership checks.
 
-GET, HEAD, and OPTIONS do not acquire a new login requirement from this global
-middleware. Existing private GET routes remain private. CORS preflight is handled
-before route authentication.
+The gate also protects GET/HEAD requests. Public read exceptions are the visible
+TOR list, its three aggregate endpoints, valid ObjectId TOR detail paths, enabled
+`/api/hello`, and `/api/auth/csrf` (registered before the gate). Unknown `/api`
+paths also encounter this gate before route lookup. A missing session can therefore
+produce `401` even for an unregistered endpoint.
+
+A signed-in `public` account may call `/auth/me` and `/auth/logout`, plus public
+endpoints, but cannot access vendor/admin resources. Vendor access to a mounted
+API family still requires its route-specific role/ownership checks. CORS preflight
+is handled before route authentication.
 
 ### Access labels used below
 
@@ -84,8 +109,8 @@ before route authentication.
 | --- | --- |
 | Public | No local session required |
 | Session | Any valid local session; no extra role/owner restriction on that route |
-| Self/admin | Session subject matches the requested user ID, or role is `admin` |
-| Owner/admin | Session owns the vendor profile/certificate, or role is `admin` |
+| Self/admin | Vendor session subject matches the requested user ID, or role is `admin` |
+| Owner/admin | Vendor session owns the requested record/certificate, or role is `admin` |
 | Vendor/admin | Role is `vendor` or `admin` |
 | Admin | Role is `admin` |
 | LINE signature | Valid `x-line-signature`; browser session is not required |
@@ -121,8 +146,73 @@ The private HMAC key comes from `CSRF_SECRET`, falling back to configured
 
 The implementation follows the [csrf-csrf signed double-submit pattern](https://github.com/Psifi-Solutions/csrf-csrf).
 
-Logout clears the session cookie in that browser. The access labels describe
+Logout revokes the current JWT ID until expiry and clears both supported session
+cookie names in that browser. Revocation uses an in-memory mirror and MongoDB
+when available; persistence failures leave the current process’s mirror in place. The access labels describe
 authentication requirements; they are not a claim of complete security compliance.
+
+### Role and ownership summary
+
+| Resource / function | Guest or signed-in public | Vendor | Admin |
+| --- | --- | --- | --- |
+| Visible TOR catalog and budget aggregates | Read | Read | Read |
+| Account registration | Verified Google registration as public/vendor | Same registration flow; existing accounts cannot register again | No direct account creation |
+| Own session (`/auth/me`, logout) | Signed-in public only | Yes | Yes |
+| Generic user records | No | Own read/update/delete | All read/update/delete |
+| Vendor profiles / certificate bytes | No | Own | All existing; creation still binds to own session |
+| Match result reads | No | `/mine` only | `/mine`, all-user list, by-ID |
+| Match writes | No | Own dismissal/report/restore through `/mine/{id}` only | Generic PATCH/DELETE and own mine feedback; no manual creation |
+| Notifications, LINE settings, email preferences | No | Own | Own through these endpoints |
+| Admin review, audit, settings, job inspection | No | No | Yes |
+| Source sync / OCR operations | No | No | Trigger configured jobs |
+| Manual TOR creation | No | No | No; ingestion creates records |
+
+Ownership means comparing the resource’s stored `userId` with the verified session
+subject, not trusting a user ID supplied in query/body. Match creation is performed
+by the matching job, with no manual creation endpoint. Backend checks are authoritative; Next.js
+also gates `/app` to vendor/admin and `/admin` to admin through `/auth/me`.
+
+Removed APIs: `POST /users`, `POST /tors`, `POST /tor-matches`, and all `/user-bios` routes are no longer
+registered. After applicable authentication/CSRF checks they fall through to 404;
+anonymous/private API requests can receive 401 first. The separate vendor-profile
+`bio` field remains supported. There is no watchlist API: saved TOR IDs currently
+use browser localStorage rather than account-scoped server persistence.
+
+### Current field access and state rules
+
+These describe implementation behavior, including broad fields still accepted.
+They are not a proposed stricter policy or a completed ASVS assessment.
+
+| Resource | Fields returned to an authorized reader | Write restrictions / resource attributes |
+| --- | --- | --- |
+| Auth / generic users | Stored user fields except schema-hidden `passwordHash`; no explicit allowlist for remaining identity, LINE, preference or session-version fields | Vendor account PATCH allows only `username`, `firstname`, `lastname`, `picture`; admin generic PATCH is broader |
+| Dedicated admin user views | Explicit presentation of identity/status, profile completeness and certificate metadata; detail adds profile summary and LINE status | `/admin/users/{id}` accepts role/disabled plus reason, audits, increments session version when privilege state changes |
+| Vendor profile | Stored profile fields, `userId`, certificate metadata/paths and timestamps | Controller allowlist; immutable owner; image retention/upload ownership rules below |
+| Public TOR list | Stored list fields except `description`, `requirements`, `sources`, `mergeConflicts`, `reviewNote`, `reviewScoreReason`, integrity notes, and heavy OCR requirement/summary/error fields; adds `matchEligible` | Public cannot write; hidden records excluded |
+| Public TOR detail | Visible stored TOR including OCR/requirements/source/review fields and `matchEligible`; no separate audience-specific detail projection | Hidden/missing records return 404; enrichment may persist translations/grouping |
+| Generic admin TOR PATCH | Updated TOR and `matchEligible` | Admin required; passes update to repository without the dedicated edit allowlist/reason/audit workflow |
+| Dedicated admin TOR views | Presented administrative fields, detail/source/PDF metadata | Edit and review field allowlists below; review decisions change approved/rejected/hidden state |
+| AI match | Stored owner/TOR IDs, score, reason, dismissal/feedback times and timestamps | Job creates results; admin generic reads/PATCH/DELETE; vendors read own mine and update dismissal/feedback only |
+| Notification | Own stored notification fields | Only boolean `read`/`dismissed`; owner is session-bound; dismissed items omitted from list |
+| Email preferences | Own preference fields and server dates plus `deliveryConfigured` | Validated complete preference body; server controls dates; cannot choose recipient/user ID |
+| LINE status | Own linking/digest status, pending code/expiry and OA URL | Only own link/unlink and boolean digest toggle; enabling requires linked account; webhook requires signature |
+
+### Rate limits
+
+Limits are per client IP in each running backend process, with in-memory buckets.
+`TRUST_PROXY` controls Express proxy trust (default 1). These are not shared counters
+across multiple backend instances.
+
+| Endpoint / action | Default | Environment override |
+| --- | --- | --- |
+| `GET /auth/csrf` | 60 requests per minute | `RATE_LIMIT_CSRF_MAX` |
+| `POST /auth/google` | 20 requests per 15 minutes | `RATE_LIMIT_GOOGLE_AUTH_MAX` |
+| Non-read `/admin` actions | 120 requests per minute | `RATE_LIMIT_ADMIN_WRITE_MAX` |
+
+Rate-limited responses are `429 {message:"Too many requests. Try again shortly.",
+code:"RATE_LIMITED"}` with `Retry-After` and `X-RateLimit-Limit`,
+`X-RateLimit-Remaining`, `X-RateLimit-Reset` headers. Admin limits do not cover
+writes under `/tors`, `/users`, or `/sync` just because an admin performs them.
 
 ## 3. Health endpoints
 
@@ -133,7 +223,9 @@ These paths are on the Express host and are not both under the `/api` base.
 | GET | `/` | Public | `200 {"message":"Backend is running"}` |
 | GET | `/api/hello` | Public | `200 {"message":"Hello from Express!"}` |
 
-These responses confirm the HTTP application is reachable; they are not a full
+These routes exist only when diagnostics are enabled: `ENABLE_DIAGNOSTICS=true`
+enables them, `false` disables them, and the default is enabled outside production.
+They confirm the HTTP application is reachable; they are not a full
 database or external-provider health report.
 
 ## 4. Authentication endpoints
@@ -159,16 +251,18 @@ account returns `409` rather than signing into that account.
 }
 ```
 
-Google authentication errors can include:
+Google authentication responses intentionally hide internal account-lookup codes:
 
-| Status | Code | Meaning |
+| Status | Response | Meaning |
 | --- | --- | --- |
-| 400 | Not supplied | Missing credential |
-| 401 | `invalid_credential` | Google credential verification failed |
-| 403 | `account_disabled` | Local account is disabled |
-| 404 | `email_unknown` | Login requested for an unregistered account |
-| 409 | `email_registered` | Registration requested for an existing account |
-| 409 | `email_linked` | Email is linked to a different Google subject |
+| 400 | `{message:"Missing Google credential."}` | Missing/non-string credential |
+| 401 | `{message:"Sign-in failed."}` | Invalid Google credential, unknown account on login, conflicting Google identity, or disabled account |
+| 409 | `{message:"This email is already registered. Log in instead.",code:"email_registered"}` | Registration requested for an existing account |
+| 500 | `{message:"Something went wrong."}` | Unexpected authentication failure |
+
+Other internal authentication codes are logged server-side rather than returned.
+A role other than `public` or `vendor` does not enter registration mode; it cannot
+create an admin account. Login preserves the stored role.
 
 ## 5. Users
 
@@ -177,9 +271,16 @@ Google authentication errors can include:
 | GET | `/users` | Admin | `200` user array |
 | GET | `/users/{id}` | Self/admin | `200` user |
 | PATCH | `/users/{id}` | Self/admin | `200` updated user |
-| DELETE | `/users/{id}` | Admin | `200` deleted user |
+| DELETE | `/users/{id}` | Self/admin | `200` deleted user |
 
-Ordinary profile fields include `username`, `firstname`, and `lastname`.
+All `/users` routes require vendor/admin, including self access; signed-in public
+accounts cannot use these endpoints. Vendor PATCH accepts only `username`,
+`firstname`, `lastname`, and `picture`; additional top-level fields receive `403`.
+Admins bypass that field allowlist on the generic PATCH, which passes the supplied
+update to the repository without the dedicated admin reason/audit workflow.
+Reads and successful updates/deletes return stored user documents, with the
+schema-excluded `passwordHash` omitted. There is no narrow response allowlist for
+other account fields on these generic endpoints.
 Accounts are created through Google registration at `/auth/google`, which verifies
 the Google credential and permits only `public` or `vendor` registration. There is
 no direct user-creation endpoint, including for admins.
@@ -197,17 +298,25 @@ account field being part of a stable response contract.
 
 | Method | Path | Access | Success |
 | --- | --- | --- | --- |
-| POST | `/vendor-profiles` | Session; owner bound to session | `201` created profile |
-| GET | `/vendor-profiles` | Public | `200` profile array |
+| POST | `/vendor-profiles` | Vendor/admin; owner bound to session | `201` created profile |
+| GET | `/vendor-profiles` | Admin | `200` profile array |
 | GET | `/vendor-profiles/get/{userId}` | Self/admin | `200` profile for that user |
-| GET | `/vendor-profiles/{id}` | Public | `200` profile by profile ID |
+| GET | `/vendor-profiles/{id}` | Owner/admin | `200` profile by profile ID |
 | PATCH | `/vendor-profiles/{id}` | Owner/admin | `200` updated profile |
 | DELETE | `/vendor-profiles/{id}` | Owner/admin | `200` deleted profile |
 | GET | `/vendor-profiles/certificates/{filename}` | Owner/admin | `200 image/png` |
 
-Creation binds `userId` to the signed-in user. Updates cannot change the owner.
-The general profile GET endpoints currently return stored profile data publicly;
-certificate image delivery has its own owner/admin checks.
+All profile routes require vendor/admin. Creation binds `userId` to the signed-in
+user, including when the caller is an admin; this POST cannot create a profile for
+another user. Updates cannot change the owner. Admins may inspect/update/delete
+existing profiles belonging to other users. Profile reads and writes return the
+stored profile, including its certificate metadata/path arrays; certificate image
+bytes require the separate owner/admin-protected endpoint.
+
+Only the fields below are forwarded by the profile controller. The `certificates`
+review metadata array is managed through `/admin/certificates`, not profile writes.
+Saving a profile does not explicitly enqueue matching again. The profile’s `bio`
+is used when AI matching next processes that profile.
 
 Allowed create/update fields:
 
@@ -294,7 +403,6 @@ missing profiles, `409` duplicate profiles, or `413` upload-size errors.
 | GET | `/tors/top-departments-by-budget` | Public | `200 {departments:[{department,totalBudget,torCount}]}` |
 | GET | `/tors/category-distribution` | Public | `200 {categories:[{category,frequency}]}` |
 | GET | `/tors/{id}` | Public | `200` TOR detail; hidden/missing TOR returns `404` |
-| POST | `/tors` | Admin | TOR JSON; `201` created TOR |
 | PATCH | `/tors/{id}` | Admin | Changed TOR fields; `200` updated TOR |
 | DELETE | `/tors/{id}` | Admin | `200` deleted TOR |
 
@@ -327,7 +435,10 @@ departments. Category distribution returns the top seven named categories with
 the remaining categories combined into `Others`; no records yields an empty array.
 The two dashboard aggregate responses set `Cache-Control: no-store`.
 
-TOR create/update may queue asynchronous matching; a successful HTTP response does
+TORs are created through source ingestion; there is no manual creation endpoint,
+including for admins. Admins can edit and delete existing TORs.
+
+TOR ingestion/update may queue asynchronous matching; a successful HTTP response does
 not mean every vendor score is ready. TOR detail reads may also persist missing
 English translations/requirement grouping during enrichment.
 
@@ -335,15 +446,14 @@ English translations/requirement grouping during enrichment.
 
 | Method | Path | Access | Request / success |
 | --- | --- | --- | --- |
-| POST | `/tor-matches` | Session | Match JSON; `201` created match |
 | GET | `/tor-matches` | Admin | `200` match array across all users |
 | GET | `/tor-matches/pending` | Vendor/admin | `200` array of TOR IDs with unfinished matching jobs |
 | GET | `/tor-matches/mine` | Vendor/admin; scoped to current user | `200` signed-in user's eligible match array |
-| PATCH | `/tor-matches/mine/{id}` | Session; scoped to current user | Dismiss/report body; `200` updated match |
-| POST | `/tor-matches/ensure` | Session | `{torIds:[...]}`; `200 {queued:number}` |
+| PATCH | `/tor-matches/mine/{id}` | Vendor/admin; scoped to current user | Dismiss/report body; `200` updated match |
+| POST | `/tor-matches/ensure` | Vendor/admin | `{torIds:[...]}`; `200 {queued:number}` |
 | GET | `/tor-matches/{id}` | Admin | `200` match |
-| PATCH | `/tor-matches/{id}` | Session | Match changes; `200` updated match |
-| DELETE | `/tor-matches/{id}` | Session | `200` deleted match |
+| PATCH | `/tor-matches/{id}` | Admin | Match changes; `200` updated match |
+| DELETE | `/tor-matches/{id}` | Admin | `200` deleted match |
 
 Match records have required `userId` and `torId`, plus `matchPercent`, `matchReason`,
 `dismissedAt`, `badResultAt`, and timestamps. `matchPercent` is stored as MongoDB
@@ -363,7 +473,26 @@ the match as a bad result and dismiss it. An empty body defaults to dismissal.
 `{id}` identifies a match, not its TOR. A missing or non-owned match on the mine
 mutation returns `404`.
 
-`/ensure` queues eligible TORs for the worker; it does not return completed scores.
+Match records are created by the AI matching job through its MongoDB upsert;
+`POST /tor-matches` is removed for every role, including admins. `/ensure` only
+queues computation and does not accept caller-supplied match results.
+
+Generic PATCH/DELETE are admin-only. Vendors receive `403` even for their own
+match ID and cannot change score, reason, TOR, or owner through those operations.
+The own-only `/mine/{id}` handler reads only `dismissed` and `badResult` intent;
+extra fields such as `matchPercent`, `matchReason`, `torId`, and `userId` are not
+forwarded to persistence. Dismissal/restore writes only `dismissedAt`; bad-result
+feedback sets `badResultAt` and `dismissedAt`. Both updates filter by the stored
+owner and session subject, so a non-owned match returns `404`.
+
+`/mine` ignores caller-supplied user IDs and uses the session subject, including
+for admins. Read responses contain stored match fields. Admin generic PATCH still
+passes the supplied update to the repository; no new admin field allowlist is
+introduced by the vendor restrictions.
+
+`/pending` returns shared job TOR IDs, not other vendors’ match records.
+`/ensure` queues eligible TORs for shared worker processing; it is not scoped to
+only the caller’s profile and does not return completed scores.
 `GET /mine` currently removes matches that are no longer eligible as a cleanup
 side effect.
 
@@ -394,7 +523,7 @@ Except PDF delivery, successful responses below use `200 application/json`.
 | GET | `/admin/settings` | None | Keyword lists, thresholds and `updatedAt` |
 | POST | `/admin/settings/preview` | `{includeKeywords?,excludeKeywords?}` | Current/next match counts and sample added/removed titles |
 | POST | `/admin/settings/apply` | `{reason,includeKeywords?,excludeKeywords?,autoThreshold?,reviewThreshold?}` | `{hidden,restored,autoThreshold,reviewThreshold}` |
-| POST | `/admin/line-digest/run` | None | Digest result; temporary manual QA operation |
+| POST | `/admin/line-digest/run` | None | `{sent,tors,recipients}`, or `{sent:0,skipped:true}` / `{sent:0,quotaExhausted:true}` |
 
 `reason` must contain at least three characters after trimming wherever shown.
 Admin write actions generally record an audit entry. IDs for `/admin/matches/retry`
@@ -460,7 +589,7 @@ All routes in this table are admin-only POST requests. No request body is requir
 
 | Method | Path | Work triggered |
 | --- | --- | --- |
-| POST | `/sync` | Full configured source sync |
+| POST | `/sync` | Configured manual batch (currently dataGoProcess5, then SME announcement enrichment) |
 | POST | `/sync/all` | Alias for full source sync |
 | POST | `/sync/process3-process5` | Process3/Process5 pipeline |
 | POST | `/sync/data-go-process5` | data.go discovery and Process5 pipeline |
@@ -476,6 +605,10 @@ These controllers await the sync/extraction work and return
 can continue after the response. Failures return `500 {"message":...}` and are
 recorded against the sync run when possible. Provider credentials/configuration
 are supplied on the backend; clients do not send provider API keys here.
+The automatic ingestion job also visits the alternate source feeds; it does not
+call the HTTP API. Fetched/adapted rows are inserted or updated directly through
+`torRepository.saveChanged()`. No client-supplied TOR creation body is accepted by
+these sync controllers.
 
 ## 11. LINE account linking and notifications
 
@@ -501,14 +634,81 @@ Missing/invalid signatures receive `401 {"message":"Invalid signature"}`. The
 server acknowledges valid requests before processing events; a `200` acknowledgement
 does not guarantee every event or notification completed successfully.
 
-## 12. Next.js endpoints on the frontend host
+## 12. Email alert preferences
+
+| Method | Path | Access | Input / success |
+| --- | --- | --- | --- |
+| GET | `/email-alerts/preferences` | Vendor/admin; own session | `200` preferences plus `deliveryConfigured` |
+| PUT | `/email-alerts/preferences` | Vendor/admin; own session | Complete preference body below; `200` saved preferences plus `deliveryConfigured` |
+
+Both operations use the signed-in user’s ID, including for admins. There is no
+endpoint here to change another user’s preferences or send an arbitrary email.
+PUT requires all six fields below; partial settings objects receive `400`.
+
+| Field | Validation | Default returned before first save |
+| --- | --- | --- |
+| `emailMatches` | Boolean | `true` |
+| `emailDeadlines` | Boolean | `true` |
+| `emailIntegrity` | Boolean | `false` |
+| `budgetMinThb` | Finite non-negative number | `1000000` |
+| `budgetMaxThb` | Finite number >= minimum | `20000000` |
+| `categories` | Unique array of supported strings | `["Web Application","AI / Analytics"]` |
+
+Supported categories: `Software Development`, `Web Application`,
+`Mobile Application`, `Data Platform`, `Digital Platform`, `AI / Analytics`,
+`Cybersecurity`, `GIS`, `Others`. An empty array means no category restriction.
+Extra fields are not persisted by this service. The server controls `savedAt`,
+`matchSince`, and `integritySince`; those dates may appear after preferences are
+saved. `deliveryConfigured` reports whether a Resend key and `EMAIL_FROM` exist;
+it does not prove provider availability or successful delivery.
+
+```json
+{
+  "emailMatches": true,
+  "emailDeadlines": true,
+  "emailIntegrity": false,
+  "budgetMinThb": 1000000,
+  "budgetMaxThb": 20000000,
+  "categories": ["Web Application", "AI / Analytics"]
+}
+```
+
+Unconfigured delivery does not prevent saving preferences. Delivery jobs require
+an enabled, verified account and use its current `User.email`, not vendor-profile
+email or removed UserBio data. Current delivery checks require an active match
+of at least 60%, visible/eligible TOR and matching preferences. Deadline alerts
+use a three-day window. Returned defaults alone are not a saved opt-in: eligible
+email recipients must have saved preferences. Missing users receive `404`;
+invalid preference bodies receive `400`.
+
+## 13. In-app notifications
+
+| Method | Path | Access | Input / success |
+| --- | --- | --- | --- |
+| GET | `/notifications/mine` | Vendor/admin; own session | `200` own non-dismissed notifications, newest first |
+| PATCH | `/notifications/mine/read-all` | Vendor/admin; own session | No body; `200 {ok:true}` |
+| PATCH | `/notifications/mine/{id}` | Vendor/admin; own session | `{read?:boolean,dismissed?:boolean}`; `200` updated notification |
+
+Records contain `_id`, unique `key`, `userId`, `torId`, `kind` (`match`, `risk`,
+`deadline`), `body`, `bodyTh`, `read`, `dismissed`, and timestamps. The list is an
+unpaginated stored-record array. Jobs create notifications; there is no public
+notification-creation endpoint.
+
+Updates match both notification ID and session user ID; missing/non-owned records
+return `404`. At least one boolean `read` or `dismissed` is required, otherwise
+`400`. Additional fields are ignored, so callers cannot change owner, TOR, text,
+or kind through this endpoint. Setting `dismissed:false` can restore an owned
+notification by ID. Read-all marks unread, non-dismissed records only. Admins
+operate on their own notifications here and cannot select another user by query.
+
+## 14. Next.js endpoints on the frontend host
 
 These two endpoints run on port 3000 in local development. They are separate from
 the Express server and do not pass through its global write middleware.
 
 | Method | Full path | Access | Response |
 | --- | --- | --- | --- |
-| GET | `/api/sources/health` | Public | `{probedAt,summary,results}` from live source probes |
+| GET | `/api/sources/health` | Admin, verified through backend | `{probedAt,summary,results}` from live source probes |
 | GET | `/api/admin/tors/{id}/pdf` | Admin, verified through backend | PDF bytes proxied on the Next.js host |
 
 The PDF proxy checks the ID format, forwards the session cookie to the backend
@@ -517,9 +717,11 @@ admin TOR lookup, checks the PDF host, and verifies PDF magic bytes. It returns
 errors as applicable, `404` for no attached PDF, and `502` for upstream download or
 non-PDF responses. Successful delivery is inline `application/pdf` with a private
 five-minute cache. `/sources/health` performs network probes; it is not the same
-as the stored source-run report at backend `/admin/sources`.
+as the stored source-run report at backend `/admin/sources`. Source health returns
+`401` for missing/invalid sessions, `403` for non-admin users, and `503` if its
+backend authentication request cannot be completed.
 
-## 13. Calling the API
+## 15. Calling the API
 
 Authenticated JSON request from the browser (the browser supplies Origin):
 
@@ -571,7 +773,7 @@ before the next write, including logout, because the token is now bound to the
 JWT. Supply the refreshed header token and allowed Origin on that write. The
 shared frontend client handles this exchange, cookies, JSON headers, and errors.
 
-## 14. Errors and current response behavior
+## 16. Errors and current response behavior
 
 Most controller-generated errors use:
 
@@ -579,42 +781,83 @@ Most controller-generated errors use:
 {"message":"Description of the error"}
 ```
 
-Google authentication errors may also contain a `code`. Framework body-parser and
-unmatched-route errors are not guaranteed to use this JSON envelope; callers
-should handle an unreadable/non-JSON error body.
+Google registration conflicts, CSRF failures, and rate-limit failures may also
+contain a `code`. Thrown errors reaching the central error handler use JSON;
+malformed JSON receives `400 {message:"Invalid JSON body."}`, and unexpected 5xx
+messages are sanitized there. Some generic controllers still send their caught
+error’s message directly. Unmatched routes fall through to Express’s default 404
+response and are not guaranteed to use JSON; callers should handle non-JSON bodies.
 
 | Status | Typical meaning |
 | --- | --- |
 | 400 | Explicit input validation failure or malformed input |
 | 401 | Missing/invalid/expired local session, invalid Google credential, invalid webhook signature |
-| 403 | Invalid Origin/CSRF token, role/ownership rejection, or disabled account during login |
+| 403 | Invalid Origin/CSRF token or role/ownership rejection |
 | 404 | Missing resource or unmatched route |
 | 409 | Registration/link conflict or duplicate vendor profile |
+| 405 | TRACE or another unsupported HTTP method |
 | 413 | File/request exceeds an enforced size limit |
+| 429 | Per-client rate limit exceeded; inspect `Retry-After` |
 | 500 | Database, provider, parser or other server failure |
 | 502 | Upstream PDF failure on paths that map the error to a gateway failure |
+| 503 | Next.js source-health authentication service unavailable |
 
 Not all generic CRUD validation errors currently map to `400`. Clients should
 handle unexpected `5xx` responses and avoid treating error-message text as a
 stable contract. Do not assume a uniform status/schema across every route.
 
-## 15. Implementation references
+## 17. Implementation references
 
-The request flow is CORS, cookie parsing, global write authentication, Origin/CSRF checks, JSON parsing
-(including LINE raw-body capture), then route middleware and controllers. A
+The request flow is HTTP method/framing guards, security headers, CORS and cookie
+parsing, the public rate-limited CSRF endpoint, global API authentication,
+Origin/CSRF checks, admin-write rate limiting, JSON parsing (including LINE raw
+bytes), Google-login rate limiting, then route middleware and controllers. A
 middleware can return an error immediately instead of calling the next handler.
 
-- [Application and mounted routers](../../backend/src/app.js)
-- [Global write authentication](../../backend/src/middleware/requireMutationAuth.js)
-- [CSRF token generation and validation](../../backend/src/middleware/csrfProtection.js)
-- [Session verification](../../backend/src/middleware/requireAuth.js)
-- [JWT and cookie settings](../../backend/src/utils/session.js)
-- [Endpoint route definitions](../../backend/src/routes)
-- [Controllers and response status handling](../../backend/src/controllers)
-- [Mongoose field definitions](../../backend/src/models)
-- [Admin filters and action bodies](../../backend/src/services/admin/adminService.js)
-- [Browser API client](../../frontend/src/lib/api.ts)
-- [Mutation authentication regression tests](../../backend/tests/mutationAuth.test.js)
+- [Application and mounted routers](../backend/src/app.js)
+- [Global API authentication](../backend/src/middleware/requireMutationAuth.js)
+- [CSRF token generation and validation](../backend/src/middleware/csrfProtection.js)
+- [Session verification](../backend/src/middleware/requireAuth.js)
+- [JWT and cookie settings](../backend/src/utils/session.js)
+- [Endpoint route definitions](../backend/src/routes)
+- [Controllers and response status handling](../backend/src/controllers)
+- [Mongoose field definitions](../backend/src/models)
+- [Admin filters and action bodies](../backend/src/services/admin/adminService.js)
+- [Browser API client](../frontend/src/lib/api.ts)
+- [Mutation authentication regression tests](../backend/tests/mutationAuth.test.js)
+
+## 18. Verification and maintenance
+
+Documentation reconciliation on 21 November 2026:
+
+- Checked all 73 registered Express method/path combinations, including conditional
+  diagnostics and the CSRF endpoint, against the endpoint tables.
+- Checked both Next.js API handlers against the frontend endpoint table.
+- Checked role/ownership middleware, controller/service write handling, response
+  projections, session settings, upload constants, and notification/email settings.
+- Confirmed removed manual user/TOR/match creation and standalone UserBio APIs are not
+  listed as available operations.
+- Checked relative implementation links resolve from this document.
+
+Useful existing regression checks, run from `backend/` with dependencies installed:
+
+```bash
+node --require module-alias/register --test tests/mutationAuth.test.js tests/securityHardening.test.js tests/torMatchAuthorization.test.js tests/sync.test.js tests/certificateUploads.test.js tests/lineNotifications.test.js tests/vendorType.test.js tests/categoryDistribution.test.js tests/departmentBudget.test.js
+```
+
+HTTP tests bind temporary localhost ports. MongoDB aggregate integration cases
+require an explicitly configured `TOR_AGGREGATION_TEST_URI`; they are skipped when
+it is absent. A source/documentation review is not a deployed-system test. Record
+the actual test command, result, and environment when using this document as issue
+acceptance evidence.
+
+For subsequent changes, verify that guests/public accounts cannot use private
+routes; vendors cannot read another user’s protected resources; admin-only reads
+reject vendors; field allowlists match accepted and returned fields; and conditional
+routes, request limits, errors, and job side effects remain accurately described.
+The broad generic admin user/TOR/match update behavior noted above is still present.
+Match creation is job-only and vendor feedback is owner-scoped and field-restricted;
+those changes alone do not establish complete ASVS coverage.
 
 Keep this reference synchronized when routes, request/response shapes, ownership
 checks, cookies or CSRF protections change. The SRS records the intended behavior;

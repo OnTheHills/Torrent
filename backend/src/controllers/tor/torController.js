@@ -89,16 +89,6 @@ async function getTopDepartmentsByBudget(request, response, next) {
   }
 }
 
-async function createTor(request, response, next) {
-  try {
-    const tor = await torCrudService.createTor(request.body);
-    return response.status(201).json(withMatchEligibility(tor));
-  } catch (error) {
-    if (typeof next === "function") return next(error);
-    return response.status(500).json({ message: "Something went wrong." });
-  }
-}
-
 async function getAllTors(request, response, next) {
   try {
     const tors = await torCrudService.getAllTors();
@@ -166,7 +156,6 @@ async function deleteTor(request, response, next) {
 }
 
 module.exports = {
-  createTor,
   deleteTor,
   getAllTors,
   getBudgetPeers,

@@ -17,6 +17,7 @@ test("the application requires a session for mutations and preserves public exce
     COOKIE_SECRET: "mutation-cookie-test-secret-used-only-by-tests",
     COOKIE_SECURE: "false",
     NODE_ENV: "test",
+    RATE_LIMIT_CSRF_MAX: "500",
   };
   // Exercise Docker's strict file transport throughout the HTTP protection suite.
   const secretDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "torrent-auth-secrets-"));
@@ -81,10 +82,6 @@ test("the application requires a session for mutations and preserves public exce
   const lineService = require("@/services/line/lineService");
   t.mock.method(lineService, "processWebhookEvents", async () => { calls.push("line.processWebhookEvents"); });
   const matchId = "507f1f77bcf86cd799439012";
-  const torMatchRepository = require("@/repositories/tor/torMatchRepository");
-  t.mock.method(torMatchRepository, "findById", async (id) => (
-    id === matchId ? { _id: matchId, userId: user._id } : null
-  ));
 
   const app = require("@/app");
   // Mount under a vendor-allowed prefix so the global gate still applies to a
@@ -122,10 +119,10 @@ test("the application requires a session for mutations and preserves public exce
     };
   }
   const mutations = [
-    ["POST", "/api/tor-matches", "{}"],
+    ["POST", "/api/tor-matches/ensure", "{}"],
     ["PUT", "/api/email-alerts/mutation-auth-test"],
-    ["PATCH", `/api/tor-matches/${matchId}`, "{}"],
-    ["DELETE", `/api/tor-matches/${matchId}`],
+    ["PATCH", `/api/tor-matches/mine/${matchId}`, "{}"],
+    ["DELETE", `/api/users/${user._id}`],
   ];
   async function mutationRequest(method, path, body, headers) {
     const init = { method, headers: { ...headers } };
@@ -175,7 +172,7 @@ test("the application requires a session for mutations and preserves public exce
   });
 
   await t.test("a bearer header does not replace the session cookie", async () => {
-    const response = await fetch(base + "/api/tor-matches", {
+    const response = await fetch(base + "/api/tor-matches/ensure", {
       method: "POST", headers: { Authorization: `Bearer ${token}` },
     });
     assert.equal(response.status, 401);
@@ -213,7 +210,7 @@ test("the application requires a session for mutations and preserves public exce
   });
 
   await t.test("CORS preflight does not require a session", async () => {
-    const response = await fetch(base + "/api/tor-matches", {
+    const response = await fetch(base + "/api/tor-matches/ensure", {
       method: "OPTIONS", headers: {
         Origin: environment.CORS_ORIGIN,
         "Access-Control-Request-Method": "POST",
@@ -230,7 +227,11 @@ test("the application requires a session for mutations and preserves public exce
     const signedIn = await fetch(base + "/api/auth/me", { headers: cookie() });
     assert.equal(signedIn.status, 200);
     await signedIn.arrayBuffer();
-    for (const [method, path] of [["GET", "/api/admin/overview"], ["POST", "/api/tors"]]) {
+    for (const [method, path] of [
+      ["GET", "/api/admin/overview"],
+      ["PATCH", `/api/tors/${matchId}`],
+      ["DELETE", `/api/tors/${matchId}`],
+    ]) {
       authById[user._id].role = "vendor";
       const forbidden = await fetch(base + path, { method, headers: await csrfHeaders() });
       assert.equal(forbidden.status, 403);
@@ -242,6 +243,26 @@ test("the application requires a session for mutations and preserves public exce
       await allowed.arrayBuffer();
     }
     authById[user._id].role = "vendor";
+  });
+
+  await t.test("admins and vendors cannot manually create TORs", async () => {
+    const before = calls.length;
+    try {
+      for (const role of ["admin", "vendor"]) {
+        authById[user._id].role = role;
+        const session = signUserToken({ ...user, role });
+        for (const path of ["/api/tors", "/api/tors/", "/API/TORS?source=manual"]) {
+          const response = await mutationRequest("POST", path, JSON.stringify({
+            title: "Manually invented TOR", source: "EGP-PROCESS5",
+          }), await csrfHeaders(session));
+          assert.equal(response.status, 404, `${role} POST ${path}`);
+          await response.arrayBuffer();
+        }
+      }
+      assert.equal(calls.length, before);
+    } finally {
+      authById[user._id].role = "vendor";
+    }
   });
 
   await t.test("match reads allow vendors only through mine and retain admin access", async () => {
@@ -272,6 +293,43 @@ test("the application requires a session for mutations and preserves public exce
     }
   });
 
+  await t.test("match creation is job-only and generic match writes require admin", async () => {
+    try {
+      for (const role of ["vendor", "admin"]) {
+        authById[user._id].role = role;
+        const session = signUserToken({ ...user, role });
+        for (const path of ["/api/tor-matches", "/API/TOR-MATCHES/?userId=another-user"]) {
+          const before = calls.length;
+          const response = await mutationRequest("POST", path, JSON.stringify({
+            userId: "507f1f77bcf86cd799439099", torId: matchId, matchPercent: 100,
+          }), await csrfHeaders(session));
+          assert.equal(response.status, 404, `${role} POST ${path}`);
+          assert.equal(calls.length, before);
+          await response.arrayBuffer();
+        }
+        // Include the known own-match ID: vendors cannot edit even their own scores.
+        for (const id of [matchId, "507f1f77bcf86cd799439099"]) {
+          for (const method of ["PATCH", "DELETE"]) {
+            const before = calls.length;
+            const response = await mutationRequest(method, `/api/tor-matches/${id}`, JSON.stringify({
+              matchPercent: 100, matchReason: "Forged score", userId: user._id,
+            }), await csrfHeaders(session));
+            assert.equal(response.status, role === "admin" ? 200 : 403);
+            if (role === "vendor") assert.equal(calls.length, before);
+            else assert.equal((await response.json()).action, method === "PATCH" ? "updateTorMatch" : "deleteTorMatch");
+            if (role === "vendor") await response.arrayBuffer();
+          }
+        }
+        const feedback = await mutationRequest("PATCH", `/api/tor-matches/mine/${matchId}`,
+          JSON.stringify({ dismissed: true }), await csrfHeaders(session));
+        assert.equal(feedback.status, 200);
+        assert.equal((await feedback.json()).action, "setMyMatchDismissed");
+      }
+    } finally {
+      authById[user._id].role = "vendor";
+    }
+  });
+
   await t.test("admins and vendors cannot create users through the removed CRUD endpoint", async () => {
     const before = calls.length;
     try {
@@ -294,7 +352,7 @@ test("the application requires a session for mutations and preserves public exce
 
   await t.test("disabled accounts and demoted roles are enforced from the database", async () => {
     authById[user._id].disabled = true;
-    const disabled = await fetch(base + "/api/tor-matches", {
+    const disabled = await fetch(base + "/api/tor-matches/ensure", {
       method: "POST",
       headers: await csrfHeaders(),
     });
@@ -303,7 +361,7 @@ test("the application requires a session for mutations and preserves public exce
     authById[user._id].disabled = false;
 
     authById[user._id].role = "public";
-    const demoted = await fetch(base + "/api/tor-matches", {
+    const demoted = await fetch(base + "/api/tor-matches/ensure", {
       method: "POST",
       headers: await csrfHeaders(),
     });
@@ -392,7 +450,7 @@ test("the application requires a session for mutations and preserves public exce
       const headers = { ...valid };
       if (origin === undefined) delete headers.Origin;
       else headers.Origin = origin;
-      const response = await fetch(base + "/api/tor-matches", { method: "POST", headers });
+      const response = await fetch(base + "/api/tor-matches/ensure", { method: "POST", headers });
       assert.equal(response.status, 403);
       assert.equal((await response.json()).code, "INVALID_ORIGIN");
     }
@@ -417,13 +475,13 @@ test("the application requires a session for mutations and preserves public exce
     const old = await csrfHeaders();
     const changed = jwt.sign({ sub: user._id, role: "vendor", email: user.email, jti: "another-session" }, environment.JWT_SECRET, { expiresIn: "1h" });
     const oldCookies = old.Cookie.split("; ").filter((value) => !value.startsWith("torrent_session=")).join("; ");
-    const response = await mutationRequest("POST", "/api/tor-matches", "{}", {
+    const response = await mutationRequest("POST", "/api/tor-matches/ensure", "{}", {
       ...old, Cookie: `${oldCookies}; torrent_session=${changed}`,
     });
     assert.equal(response.status, 403);
     assert.equal((await response.json()).code, "INVALID_CSRF_TOKEN");
     const renewed = await csrfHeaders(changed, oldCookies);
-    const allowed = await mutationRequest("POST", "/api/tor-matches", "{}", renewed);
+    const allowed = await mutationRequest("POST", "/api/tor-matches/ensure", "{}", renewed);
     assert.equal(allowed.status, 200);
     await allowed.arrayBuffer();
   });
@@ -432,8 +490,8 @@ test("the application requires a session for mutations and preserves public exce
     const form = new FormData();
     form.append("example", "value");
     // Multipart bodies skip requireOwnUserId's JSON object check on routes that
-    // only need the global session + CSRF gate; tor-matches POST is enough.
-    const response = await fetch(base + "/api/tor-matches", {
+    // only need the global session + CSRF gate; score-queue POST is enough.
+    const response = await fetch(base + "/api/tor-matches/ensure", {
       method: "POST", headers: await csrfHeaders(), body: form,
     });
     assert.equal(response.status, 200);
