@@ -354,7 +354,7 @@ Example JSON profile:
 A project requires `name`. Its `budget` is a non-negative number or null;
 `description`, `isGovernment`, `completedAt`, and `urls` are optional.
 
-### Profile input validation rules (ASVS V2.1.1)
+### Profile input validation rules
 
 The following rules describe the current vendor-profile form. Browser-native
 constraints run on normal form submission; explicit JavaScript checks run before
