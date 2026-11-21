@@ -9,6 +9,9 @@ async function getUserById(id) {
 }
 
 async function updateUser(id, data, actorRole) {
+  if (Object.keys(data).some((key) => key === "watchlist" || key.startsWith("watchlist.") || key.startsWith("$"))) {
+    throw Object.assign(new Error("Use your own watchlist endpoint."), { statusCode: 403 });
+  }
   const updates = { ...data };
   if (actorRole !== "admin") {
     delete updates.role;

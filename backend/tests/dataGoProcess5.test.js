@@ -17,7 +17,7 @@ test("data.go IDs are verified against process5 before mapping budgets", async (
     const data = new URL(url).pathname.endsWith("getProjectDetail")
       ? { projectId, projectName: "จ้างพัฒนาระบบสารสนเทศ", budgetYear: "2570" }
       : { projectId, deptId: "0703", projectMoney: 2000000, priceBuild: 1800000 };
-    return { ok: true, json: async () => ({ data, response: { responseCode: 0 } }) };
+    return Response.json({ data, response: { responseCode: 0 } });
   });
   const result = await pipeline.fetch();
   const mapped = adapt(result.rows);

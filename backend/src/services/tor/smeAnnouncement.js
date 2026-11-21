@@ -10,6 +10,7 @@ const execFileAsync = promisify(execFile);
 const torRepository = require("@/repositories/tor/torRepository");
 const { readPdfText } = require("@/services/tor/ocr/readPdfText");
 const { parseAnnouncementBudget } = require("@/utils/torUtils");
+const { resolveTorDestination, curlDestinationArgs, fetchTorUrl } = require("@/utils/torFetch");
 
 const SOURCE = "SME-GP";
 const LISTING_ORIGIN = "https://process5.gprocurement.go.th/egp-agpc01-web/announcement/procurement";
@@ -107,11 +108,10 @@ function filenameFromDisposition(header) {
 }
 
 async function fetchEgp(url, accept) {
-  const response = await fetch(url, {
+  const response = await fetchTorUrl(url, {
     headers: { Accept: accept, "User-Agent": USER_AGENT },
-    redirect: "follow",
     signal: AbortSignal.timeout(25000),
-  });
+  }, "egp-api");
   return response;
 }
 
@@ -127,12 +127,11 @@ async function fetchEgpJson(url) {
 }
 
 async function projectIdFromPdfHeaders(pdfUrl) {
-  const response = await fetch(pdfUrl, {
+  const response = await fetchTorUrl(pdfUrl, {
     method: "HEAD",
     headers: { Accept: "application/pdf,*/*", "User-Agent": USER_AGENT },
-    redirect: "follow",
     signal: AbortSignal.timeout(25000),
-  });
+  }, "egp");
   const filename = filenameFromDisposition(response.headers.get("content-disposition"));
   return projectIdFromFilename(filename);
 }
@@ -150,10 +149,10 @@ async function egpStage(projectId) {
 }
 
 async function downloadAnnouncement(pdfUrl) {
+  const destination = await resolveTorDestination(pdfUrl, "egp");
+  pdfUrl = destination.url.href;
   // e-GP rejects Node's fetch fingerprint and returns an HTML block page.
   // curl is accepted and returns the announcement PDF.
-  const { assertSafeOutboundUrlResolved } = require("@/utils/outboundUrl");
-  const safeUrl = await assertSafeOutboundUrlResolved(pdfUrl, { label: "Announcement PDF" });
   const id = crypto.randomBytes(8).toString("hex");
   const bodyPath = join(tmpdir(), `torrent-announcement-${id}.pdf`);
   const headerPath = join(tmpdir(), `torrent-announcement-${id}.hdr`);
@@ -161,12 +160,12 @@ async function downloadAnnouncement(pdfUrl) {
     await execFileAsync(
       "curl",
       [
+        "-q",
         "-sS",
-        "-L",
-        "--max-redirs",
-        "3",
-        "--proto-redir",
-        "=https,http",
+        "--globoff",
+        "--proto", "=https",
+        "--no-location",
+        ...curlDestinationArgs(destination),
         "--max-time",
         "40",
         "-A",
@@ -177,7 +176,7 @@ async function downloadAnnouncement(pdfUrl) {
         headerPath,
         "-o",
         bodyPath,
-        safeUrl,
+        "--", pdfUrl,
       ],
       { timeout: 45000 },
     );

@@ -52,6 +52,18 @@ async function save(user) {
   return user.save();
 }
 
+async function findWatchlist(id) {
+  return User.findById(id).select("+watchlist").lean();
+}
+
+async function setWatchlistTor(id, torId, saved) {
+  // Atomic, idempotent updates avoid duplicate saves and concurrent-tab losses.
+  return User.findByIdAndUpdate(id,
+    saved ? { $addToSet: { watchlist: torId } } : { $pull: { watchlist: torId } },
+    { returnDocument: "after", runValidators: true },
+  ).select("+watchlist").lean();
+}
+
 async function update(id, data) {
   return User.findByIdAndUpdate(id, data, {
     returnDocument: "after",
@@ -64,6 +76,8 @@ async function remove(id) {
 }
 
 module.exports = {
+  findWatchlist,
+  setWatchlistTor,
   create,
   findAll,
   findByEmail,

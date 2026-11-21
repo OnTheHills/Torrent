@@ -23,16 +23,25 @@ test("outbound URL allowlist rejects private and foreign hosts", () => {
 
   assert.throws(
     () => assertSafeOutboundUrl("https://169.254.169.254/latest/meta-data/", { label: "PDF" }),
-    /private|allowlisted|invalid/i,
+    { statusCode: 400 },
   );
   assert.throws(
     () => assertSafeOutboundUrl("file:///etc/passwd", { label: "PDF" }),
-    /http/i,
+    { statusCode: 400 },
   );
-  const ok = assertSafeOutboundUrl("https://process3.gprocurement.go.th/path.pdf", {
+  const ok = assertSafeOutboundUrl("https://process5.gprocurement.go.th/egp-upload-service/v1/downloadFileTest?fileId=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", {
     label: "PDF",
   });
-  assert.match(ok, /^https:\/\/process3\.gprocurement\.go\.th\//);
+  assert.match(ok, /^https:\/\/process5\.gprocurement\.go\.th\//);
+  for (const url of [
+    "http://localhost:5175/private.pdf",
+    "https://unlisted.gprocurement.go.th/path.pdf",
+    "https://process5.gprocurement.go.th/arbitrary.pdf",
+    "https://process5.gprocurement.go.th:3000/arbitrary.pdf",
+  ]) assert.throws(() => assertSafeOutboundUrl(url), { statusCode: 400 });
+  for (const ip of ["127.1.2.3", "::ffff:127.0.0.1", "100.64.0.1", "192.0.2.1"]) {
+    assert.equal(isPrivateIp(ip), true);
+  }
 });
 
 test("safeAppPath blocks open redirects", () => {

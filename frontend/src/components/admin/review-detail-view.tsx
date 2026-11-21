@@ -11,6 +11,7 @@ import {
   BankIcon,
   File01Icon,
   LinkSquare02Icon,
+  SourceCodeIcon,
   SparklesIcon,
   Tick02Icon,
 } from "@hugeicons/core-free-icons";

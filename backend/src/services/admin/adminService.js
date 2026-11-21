@@ -18,10 +18,7 @@ const { matchingSoftwareTerms } = require("@/services/tor/api/dataGo/adapter");
 const classification = require("@/services/admin/classification");
 const { record, requireReason } = require("@/services/admin/audit");
 const { escapeRegex, requireObjectId } = require("@/utils/validate");
-const {
-  assertSafeOutboundUrl,
-  assertSafeOutboundUrlResolved,
-} = require("@/utils/outboundUrl");
+const { resolveTorDestination, curlDestinationArgs, fetchTorUrl } = require("@/utils/torFetch");
 
 const execFileAsync = promisify(execFile);
 const {
@@ -260,7 +257,7 @@ async function reviewQueue({
     extras.push({ $or: bandClauses });
   }
   if (q) {
-    const safe = escapeRegex(q).slice(0, 200);
+    const safe = escapeRegex(String(q || "").slice(0, 200));
     extras.push({
       $or: [{ title: new RegExp(safe, "i") }, { titleTh: new RegExp(safe, "i") }, { refId: q }],
     });
@@ -488,6 +485,14 @@ async function reviewTor(id, user, body) {
 }
 
 async function searchTors(query) {
+  // These values enter equality filters directly; accept text, never operators.
+  for (const field of ["q", "status"]) {
+    if (query[field] !== undefined && typeof query[field] !== "string") {
+      const error = new Error(`${field} must be a string.`);
+      error.statusCode = 400;
+      throw error;
+    }
+  }
   const filter = {};
   const extras = [];
   const sources = csv(query.source);
@@ -540,7 +545,7 @@ async function searchTors(query) {
   }
 
   if (query.q) {
-    const safe = escapeRegex(query.q).slice(0, 200);
+    const safe = escapeRegex(String(query.q || "").slice(0, 200));
     extras.push({
       $or: [
         { title: new RegExp(safe, "i") },
@@ -643,21 +648,22 @@ function messageFromNonPdfBody(raw) {
 }
 
 async function downloadPdfBytes(pdfUrl) {
+  const destination = await resolveTorDestination(pdfUrl);
+  pdfUrl = destination.url.href;
   // Prefer curl: e-GP often rejects Node's fetch fingerprint, and Alpine
   // containers resolve DNS more reliably through curl's resolver path.
-  const safeUrl = await assertSafeOutboundUrlResolved(pdfUrl, { label: "PDF URL" });
   const id = randomBytes(8).toString("hex");
   const bodyPath = join(tmpdir(), `torrent-review-pdf-${id}.pdf`);
   try {
     await execFileAsync(
       "curl",
       [
+        "-q",
         "-sS",
-        "-L",
-        "--max-redirs",
-        "3",
-        "--proto-redir",
-        "=https,http",
+        "--globoff",
+        "--proto", "=https",
+        "--no-location",
+        ...curlDestinationArgs(destination),
         "--max-time",
         "40",
         "-A",
@@ -666,7 +672,7 @@ async function downloadPdfBytes(pdfUrl) {
         "Accept: application/pdf,*/*",
         "-o",
         bodyPath,
-        safeUrl,
+        "--", pdfUrl,
       ],
       { timeout: 45000 },
     );
@@ -682,12 +688,11 @@ async function downloadPdfBytes(pdfUrl) {
     if (error.statusCode) throw error;
     if (error.code === "ENOENT") {
       // curl missing — fall back to fetch.
-      const response = await fetch(safeUrl, {
+      const response = await fetchTorUrl(pdfUrl, {
         headers: {
           Accept: "application/pdf,*/*",
           "User-Agent": PDF_USER_AGENT,
         },
-        redirect: "follow",
         signal: AbortSignal.timeout(40_000),
       });
       if (!response.ok) {
@@ -695,8 +700,6 @@ async function downloadPdfBytes(pdfUrl) {
         failed.statusCode = 502;
         throw failed;
       }
-      // Re-check final URL after redirects when the runtime exposes it.
-      if (response.url) assertSafeOutboundUrl(response.url, { label: "PDF URL" });
       return Buffer.from(await response.arrayBuffer());
     }
     const failed = new Error(
@@ -794,7 +797,7 @@ async function auditLog(query) {
   if (query.action) filter.action = query.action;
   if (query.targetType) filter.targetType = query.targetType;
   if (query.q) {
-    const safe = escapeRegex(query.q).slice(0, 200);
+    const safe = escapeRegex(String(query.q || "").slice(0, 200));
     filter.$or = [
       { actorEmail: new RegExp(safe, "i") },
       { targetId: query.q },

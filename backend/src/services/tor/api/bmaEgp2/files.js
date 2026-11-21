@@ -7,6 +7,7 @@ const {
 } = require("@/constants/bmaConstants");
 const { projectStatus } = require("@/services/tor/api/bmaEgp2/adapter");
 const { parseDate } = require("@/utils/torUtils");
+const { fetchTorUrl } = require("@/utils/torFetch");
 
 function projectIdFromUrl(egpUrl) {
   const value = String(egpUrl || "");
@@ -98,13 +99,13 @@ function statusFromAnnouncements(announcements = [], fallback = "published") {
 }
 
 async function downloadAnnouncementPdf(fileUrl, projectId) {
-  const response = await fetch(fileUrl, {
+  const response = await fetchTorUrl(fileUrl, {
     headers: {
       Accept: "application/pdf,*/*",
       Referer: `${PROJECT_URL}/${projectId}`,
       "User-Agent": USER_AGENT,
     },
-  });
+  }, "bma");
   if (!response.ok) throw new Error(`BMA TOR PDF failed (${response.status})`);
   const bytes = Buffer.from(await response.arrayBuffer());
   if (bytes.length < 5 || bytes.subarray(0, 4).toString() !== "%PDF") {

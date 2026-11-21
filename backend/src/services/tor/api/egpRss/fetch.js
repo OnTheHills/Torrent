@@ -10,6 +10,7 @@ const {
 } = require("@/constants/egpRssConstants");
 const { wait } = require("@/utils/torUtils");
 const { decodeRss, parseRssItems } = require("./parse");
+const { readBoundedBytes } = require("@/utils/boundedText");
 
 function feedUrl(base, deptId, announceType) {
   const url = new URL(base);
@@ -55,8 +56,9 @@ async function fetchXml(url) {
         },
       });
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      return decodeRss(new Uint8Array(await response.arrayBuffer()));
+      return decodeRss(await readBoundedBytes(response));
     } catch (error) {
+      if (error.code === "UPSTREAM_BODY_TOO_LARGE") throw error;
       if (attempt === RETRY_COUNT) throw new Error(fetchErrorMessage(error));
       await wait(attempt * 1000);
     } finally {

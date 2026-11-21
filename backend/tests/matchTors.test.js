@@ -17,6 +17,7 @@ test("quota exhaustion pauses one TOR at the unfinished vendor", async () => {
   const vendors = [{ _id: "vendor-1" }, { _id: "vendor-2" }];
   const calls = [];
   const matches = [];
+  const notifications = [];
   let claimed = false;
 
   const queryResult = (value) => ({
@@ -25,6 +26,9 @@ test("quota exhaustion pauses one TOR at the unfinished vendor", async () => {
     lean: async () => value,
   });
   const dependencies = {
+    "@/services/notificationService": {
+      createMatchNotification: async (userId, tor) => notifications.push(`${tor._id}:${userId}`),
+    },
     "node:crypto": { randomUUID: () => "worker-1" },
     "@/models/user/User": {
       findOne: (query) => queryResult(
@@ -112,7 +116,10 @@ test("quota exhaustion pauses one TOR at the unfinished vendor", async () => {
       setImmediate: (fn) => fn(),
       setTimeout: () => 0,
       clearTimeout() {},
-      require: (name) => dependencies[name],
+      require: (name) => {
+        if (!Object.hasOwn(dependencies, name)) throw new Error(`Unmocked matching dependency: ${name}`);
+        return dependencies[name];
+      },
     },
   );
 
@@ -122,12 +129,14 @@ test("quota exhaustion pauses one TOR at the unfinished vendor", async () => {
   assert.equal(job.lastError, "QUOTA_EXHAUSTED");
   assert.deepEqual(calls, ["tor-1:vendor-1", "tor-1:vendor-2"]);
   assert.equal(matches.length, 1);
+  assert.deepEqual(notifications, ["tor-1:vendor-1"]);
 
   claimed = false;
   await module.exports.drain();
   assert.equal(job.status, "complete");
   assert.deepEqual(calls, ["tor-1:vendor-1", "tor-1:vendor-2", "tor-1:vendor-2"]);
   assert.equal(matches.length, 2);
+  assert.deepEqual(notifications, ["tor-1:vendor-1", "tor-1:vendor-2"]);
 });
 
 test("open notices from any source are eligible; SME-GP, closed, and past deadline are not", () => {
