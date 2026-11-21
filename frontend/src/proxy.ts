@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import { routes } from "@/config/routes";
+import { buildContentSecurityPolicy } from "@/lib/csp";
+import { readSessionCookie } from "@/lib/session-cookie";
 
 type SessionRole = "public" | "vendor" | "admin";
 
@@ -21,32 +23,67 @@ function roleFromSessionCookie(token: string): SessionRole | null {
   }
 }
 
-export function proxy(request: NextRequest) {
-  const token = request.cookies.get("torrent_session")?.value;
-  if (!token) {
-    return NextResponse.redirect(new URL(routes.login, request.url));
-  }
+function applySecurityHeaders(response: NextResponse, nonce: string) {
+  response.headers.set("Content-Security-Policy", buildContentSecurityPolicy(nonce));
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.headers.set("X-Frame-Options", "DENY");
+  response.headers.set(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=()",
+  );
+  return response;
+}
 
-  const role = roleFromSessionCookie(token);
-  if (!role) {
-    return NextResponse.redirect(new URL(routes.login, request.url));
-  }
+export function proxy(request: NextRequest) {
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
 
   const path = request.nextUrl.pathname;
   const isAdminRoute = path === "/admin" || path.startsWith("/admin/");
   const isAppRoute = path === "/app" || path.startsWith("/app/");
 
-  // KAN-123: public → no /app or /admin; vendor → all except admin; admin → all.
-  if (isAdminRoute && role !== "admin") {
-    return NextResponse.redirect(new URL(routes.home, request.url));
-  }
-  if (isAppRoute && role !== "vendor" && role !== "admin") {
-    return NextResponse.redirect(new URL(routes.home, request.url));
+  if (isAdminRoute || isAppRoute) {
+    const session = readSessionCookie(request.cookies);
+    if (!session) {
+      return applySecurityHeaders(
+        NextResponse.redirect(new URL(routes.login, request.url)),
+        nonce,
+      );
+    }
+
+    const role = roleFromSessionCookie(session.value);
+    if (!role) {
+      return applySecurityHeaders(
+        NextResponse.redirect(new URL(routes.login, request.url)),
+        nonce,
+      );
+    }
+
+    // KAN-123: public → no /app or /admin; vendor → all except admin; admin → all.
+    if (isAdminRoute && role !== "admin") {
+      return applySecurityHeaders(
+        NextResponse.redirect(new URL(routes.home, request.url)),
+        nonce,
+      );
+    }
+    if (isAppRoute && role !== "vendor" && role !== "admin") {
+      return applySecurityHeaders(
+        NextResponse.redirect(new URL(routes.home, request.url)),
+        nonce,
+      );
+    }
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
+  return applySecurityHeaders(response, nonce);
 }
 
 export const config = {
-  matcher: ["/app", "/app/:path*", "/admin", "/admin/:path*"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
 };
