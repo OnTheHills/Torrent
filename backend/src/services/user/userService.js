@@ -1,9 +1,5 @@
 const userRepository = require("@/repositories/user/userRepository");
 
-async function createUser(data) {
-  return userRepository.create(data);
-}
-
 async function getAllUsers() {
   return userRepository.findAll();
 }
@@ -24,4 +20,4 @@ async function deleteUser(id) {
   return userRepository.remove(id);
 }
 
-module.exports = { createUser, deleteUser, getAllUsers, getUserById, updateUser };
+module.exports = { deleteUser, getAllUsers, getUserById, updateUser };

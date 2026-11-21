@@ -10,7 +10,6 @@ const { errorHandler } = require("@/middleware/errorHandler");
 const authRouter = require("@/routes/authRoute");
 const userRouter = require("@/routes/userRoute");
 const vendorProfileRouter = require("@/routes/vendorProfileRoute");
-const userBioRouter = require("@/routes/userBioRoute");
 const torRouter = require("@/routes/torRoute");
 const torMatchRouter = require("@/routes/torMatchRoute");
 const syncRouter = require("@/routes/syncRoute");
@@ -94,7 +93,6 @@ app.use((request, response, next) => {
 app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/vendor-profiles", vendorProfileRouter);
-app.use("/api/user-bios", userBioRouter);
 app.use("/api/tors", torRouter);
 app.use("/api/tor-matches", torMatchRouter);
 app.use("/api/sync", syncRouter);

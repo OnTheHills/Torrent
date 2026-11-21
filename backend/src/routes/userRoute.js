@@ -1,6 +1,5 @@
 const express = require("express");
 const {
-  createUser,
   getAllUsers,
   getUserById,
   updateUser,
@@ -13,7 +12,6 @@ const { requireSafeUserUpdate } = require("@/middleware/requireRecordOwner");
 const userRouter = express.Router();
 userRouter.use(requireAuth, requireRole("vendor", "admin"));
 
-userRouter.post("/", requireAuth, requireRole("admin"), createUser);
 userRouter.get("/", requireAuth, requireRole("admin"), getAllUsers);
 userRouter.get("/:id", requireAuth, requireSelfOrAdmin, getUserById);
 userRouter.patch("/:id", requireAuth, requireSelfOrAdmin, requireSafeUserUpdate, updateUser);

@@ -55,7 +55,7 @@ test("security hardening: Host session cookies, revoke, rate limits, headers", {
   }
 
   const controllerGroups = {
-    user: "user", userBio: "user", vendorProfile: "vendor",
+    user: "user", vendorProfile: "vendor",
     tor: "tor", torMatch: "tor", sync: "sync", admin: "admin",
   };
   for (const [name, group] of Object.entries(controllerGroups)) {

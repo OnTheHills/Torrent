@@ -6,7 +6,7 @@ const PUBLIC_READ_PATHS = [
   /^\/api\/tors\/(?:budget-peers|top-departments-by-budget|category-distribution|[a-f0-9]{24})\/?$/i,
 ];
 const DIAGNOSTIC_READ_PATHS = [/^\/api\/hello\/?$/i];
-const VENDOR_API_PATH = /^\/api\/(?:tors|tor-matches|line|email-alerts|auth|vendor-profiles|users|user-bios|notifications)(?:\/|$)/i;
+const VENDOR_API_PATH = /^\/api\/(?:tors|tor-matches|line|email-alerts|auth|vendor-profiles|users|notifications)(?:\/|$)/i;
 const PUBLIC_POST_PATHS = [
   /^\/api\/auth\/google\/?$/i,
   /^\/api\/line\/webhook\/?$/i,

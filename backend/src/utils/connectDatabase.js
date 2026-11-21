@@ -2,7 +2,6 @@ const mongoose = require("mongoose");
 const { readSecret } = require("@/config/secrets");
 const User = require("@/models/user/User");
 const VendorProfile = require("@/models/vendor/VendorProfile");
-const UserBio = require("@/models/user/UserBio");
 const TOR = require("@/models/tor/TOR");
 const TORMatch = require("@/models/tor/TORMatch");
 const TorMatchJob = require("@/models/tor/TorMatchJob");
@@ -17,7 +16,6 @@ async function connectDatabase() {
   await Promise.all([
     User.init(),
     VendorProfile.init(),
-    UserBio.init(),
     TOR.init(),
     TORMatch.init(),
     TorMatchJob.init(),

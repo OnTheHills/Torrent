@@ -2,10 +2,6 @@ const TOR = require("@/models/tor/TOR");
 const { enqueueTors, fitScoreApplies, kick } = require("@/jobs/matchTors");
 const torMatchRepository = require("@/repositories/tor/torMatchRepository");
 
-async function createTorMatch(data) {
-  return torMatchRepository.create(data);
-}
-
 async function getAllTorMatches() {
   return torMatchRepository.findAll();
 }
@@ -65,7 +61,6 @@ async function deleteTorMatch(id) {
 }
 
 module.exports = {
-  createTorMatch,
   deleteTorMatch,
   ensureTorScores,
   getAllTorMatches,

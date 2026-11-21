@@ -14,12 +14,6 @@ const {
   translateIntegrityNoteToEn,
 } = require("@/services/tor/translateIntegrityNote");
 
-async function createTor(data) {
-  const tor = await torRepository.create(data);
-  await torMatching.enqueueTor(tor._id);
-  return tor;
-}
-
 async function getAllTors() {
   return torRepository.findAll();
 }
@@ -182,7 +176,6 @@ async function deleteTor(id) {
 }
 
 module.exports = {
-  createTor,
   deleteTor,
   ensureIntegrityNoteEn,
   ensureRequirementGroups,

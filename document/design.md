@@ -327,17 +327,23 @@ Roles: `public` | `vendor` | `admin`. Middleware: `requireAuth`, `requireRole(..
 | GET | /budget-peers | public | Peers for budget compare |
 | GET | /top-departments-by-budget | public | Dashboard |
 | GET | /category-distribution | public | Dashboard |
-| POST / PATCH / DELETE | /, /:id | admin | Maintain TOR rows |
+| PATCH / DELETE | /:id | admin | Edit / delete existing TOR rows |
+
+TOR creation is handled by source ingestion, with no manual creation API.
 
 #### Matches — /api/tor-matches
 
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
-| GET | /mine | vendor | Signed-in vendor matches |
-| PATCH | /mine/:id | vendor | Dismiss / feedback |
-| POST | /ensure | yes | Ensure scores exist for current user |
-| CRUD | /, /:id | mixed | Persist / admin tooling |
-| GET | /pending | — | Pending job ids (ops) |
+| GET | /mine | vendor/admin | Signed-in user's matches |
+| PATCH | /mine/:id | vendor/admin | Own dismiss / feedback |
+| POST | /ensure | vendor/admin | Queue shared TOR score computation |
+| GET | /, /:id | admin | All-user match list / match by ID |
+| PATCH / DELETE | /:id | admin | Maintain existing match records |
+| GET | /pending | vendor/admin | Pending TOR job IDs, without match results |
+
+Match creation is job-only. Vendors use `/mine` for reads and `/mine/:id` for
+dismissal/feedback; they cannot submit or edit AI scores.
 
 #### Vendor profiles — /api/vendor-profiles
 
@@ -375,9 +381,10 @@ Overview, sources, review queue + rescore, TOR search/bulk/PDF stream, audit, us
 | POST | /link/start, /unlink | vendor/admin | Account linking |
 | PATCH | /digest | vendor/admin | Weekly digest toggle |
 
-#### Users / bios — /api/users, /api/user-bios
+#### Users — /api/users
 
-Standard CRUD helpers for accounts and public bios.
+Read, update, and delete helpers for accounts. Account creation requires verified
+Google registration; admins cannot create accounts directly.
 
 #### Health
 
@@ -441,7 +448,6 @@ MongoDB is document-oriented; the ER view treats **collections as tables** and M
     audit_logs
     sync_runs
     admin_settings
-    userbios (if still used)
 </diagram:er-diagram>
 ```
 
