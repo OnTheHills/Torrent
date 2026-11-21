@@ -25,7 +25,7 @@ test("budget controller returns the response contract and handles database failu
   const failure = response();
   await controller.getTopDepartmentsByBudget({}, failure);
   assert.equal(failure.statusCode, 500);
-  assert.deepEqual(failure.body, { message: "Database unavailable" });
+  assert.deepEqual(failure.body, { message: "Something went wrong." });
 });
 
 test("new static GET route takes precedence over the TOR ID route", () => {

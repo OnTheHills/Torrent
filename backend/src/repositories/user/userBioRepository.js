@@ -8,6 +8,10 @@ async function findAll() {
   return UserBio.find();
 }
 
+async function findByUserId(userId) {
+  return UserBio.find({ userId });
+}
+
 async function findById(id) {
   return UserBio.findById(id);
 }
@@ -23,4 +27,4 @@ async function remove(id) {
   return UserBio.findByIdAndDelete(id);
 }
 
-module.exports = { create, findAll, findById, remove, update };
+module.exports = { create, findAll, findByUserId, findById, remove, update };

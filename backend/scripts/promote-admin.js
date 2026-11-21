@@ -36,6 +36,7 @@ async function main() {
 
   user.role = "admin";
   user.disabled = false;
+  user.sessionVersion = (Number(user.sessionVersion) || 0) + 1;
   await userRepository.save(user);
 
   const changes = [];

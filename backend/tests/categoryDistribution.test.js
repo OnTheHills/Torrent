@@ -30,7 +30,7 @@ test("category endpoint returns categories, handles empty results and database e
   const failure = response();
   await getCategoryDistribution({}, failure);
   assert.equal(failure.statusCode, 500);
-  assert.deepEqual(failure.body, { message: "Database unavailable" });
+  assert.deepEqual(failure.body, { message: "Something went wrong." });
 });
 
 test("category GET route precedes the dynamic TOR ID route", () => {

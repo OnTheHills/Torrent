@@ -17,6 +17,7 @@ const { classifyCategory } = require("@/utils/torUtils");
 const { matchingSoftwareTerms } = require("@/services/tor/api/dataGo/adapter");
 const classification = require("@/services/admin/classification");
 const { record, requireReason } = require("@/services/admin/audit");
+const { escapeRegex, requireObjectId } = require("@/utils/validate");
 
 const execFileAsync = promisify(execFile);
 const {
@@ -255,8 +256,9 @@ async function reviewQueue({
     extras.push({ $or: bandClauses });
   }
   if (q) {
+    const safe = escapeRegex(q).slice(0, 200);
     extras.push({
-      $or: [{ title: new RegExp(q, "i") }, { titleTh: new RegExp(q, "i") }, { refId: q }],
+      $or: [{ title: new RegExp(safe, "i") }, { titleTh: new RegExp(safe, "i") }, { refId: q }],
     });
   }
   if (extras.length) filter.$and = [...(filter.$and || []), ...extras];
@@ -534,13 +536,14 @@ async function searchTors(query) {
   }
 
   if (query.q) {
+    const safe = escapeRegex(query.q).slice(0, 200);
     extras.push({
       $or: [
-        { title: new RegExp(query.q, "i") },
-        { titleTh: new RegExp(query.q, "i") },
+        { title: new RegExp(safe, "i") },
+        { titleTh: new RegExp(safe, "i") },
         { refId: query.q },
-        { department: new RegExp(query.q, "i") },
-        { departmentTh: new RegExp(query.q, "i") },
+        { department: new RegExp(safe, "i") },
+        { departmentTh: new RegExp(safe, "i") },
       ],
     });
   }
@@ -564,6 +567,7 @@ async function searchTors(query) {
 }
 
 async function getTor(id) {
+  requireObjectId(id, "TOR");
   let tor = await TOR.findById(id).lean();
   if (!tor) {
     const error = new Error("TOR not found.");
@@ -777,10 +781,11 @@ async function auditLog(query) {
   if (query.action) filter.action = query.action;
   if (query.targetType) filter.targetType = query.targetType;
   if (query.q) {
+    const safe = escapeRegex(query.q).slice(0, 200);
     filter.$or = [
-      { actorEmail: new RegExp(query.q, "i") },
+      { actorEmail: new RegExp(safe, "i") },
       { targetId: query.q },
-      { reason: new RegExp(query.q, "i") },
+      { reason: new RegExp(safe, "i") },
     ];
   }
   const skip = Number(query.skip) || 0;
@@ -879,6 +884,7 @@ async function getUser(id) {
 }
 
 async function updateUser(id, actor, body) {
+  requireObjectId(id, "User");
   const reason = requireReason(body.reason);
   const current = await User.findById(id);
   if (!current) {
@@ -886,11 +892,18 @@ async function updateUser(id, actor, body) {
     error.statusCode = 404;
     throw error;
   }
-  const patch = {};
-  if (body.role && ["public", "vendor", "admin"].includes(body.role)) patch.role = body.role;
-  if (typeof body.disabled === "boolean") patch.disabled = body.disabled;
+  const set = {};
+  if (body.role && ["public", "vendor", "admin"].includes(body.role)) set.role = body.role;
+  if (typeof body.disabled === "boolean") set.disabled = body.disabled;
   const before = { role: current.role, disabled: Boolean(current.disabled) };
-  const updated = await User.findByIdAndUpdate(id, patch, { returnDocument: "after" });
+  const privilegeChanged =
+    (set.role !== undefined && set.role !== current.role) ||
+    (set.disabled !== undefined && set.disabled !== Boolean(current.disabled));
+  const update = {};
+  if (Object.keys(set).length) update.$set = set;
+  // Invalidate every existing session JWT when privilege state changes (ASVS V8.3.2).
+  if (privilegeChanged) update.$inc = { sessionVersion: 1 };
+  const updated = await User.findByIdAndUpdate(id, update, { returnDocument: "after" });
   await record(actor, {
     action: "user.update",
     targetType: "user",

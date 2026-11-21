@@ -5,6 +5,8 @@ const { requireMutationAuth } = require("@/middleware/requireMutationAuth");
 const { createCsrfProtection, isLineWebhook } = require("@/middleware/csrfProtection");
 const { createRateLimiter } = require("@/middleware/rateLimit");
 const { securityHeaders } = require("@/middleware/securityHeaders");
+const { httpGuards } = require("@/middleware/httpGuards");
+const { errorHandler } = require("@/middleware/errorHandler");
 const authRouter = require("@/routes/authRoute");
 const userRouter = require("@/routes/userRoute");
 const vendorProfileRouter = require("@/routes/vendorProfileRoute");
@@ -23,7 +25,8 @@ const corsOrigins = process.env.CORS_ORIGIN.split(",").map((origin) =>
   origin.trim(),
 );
 
-app.set("trust proxy", 1);
+app.set("trust proxy", Number(process.env.TRUST_PROXY) || 1);
+app.use(httpGuards);
 app.use(securityHeaders);
 
 // Credentials allow the browser's HTTP-only session cookie to accompany API calls.
@@ -69,8 +72,10 @@ app.use((request, response, next) => {
   return next();
 });
 // Preserve raw bytes for LINE webhook HMAC (x-line-signature).
+const jsonLimit = process.env.JSON_BODY_LIMIT || "256kb";
 app.use(
   express.json({
+    limit: jsonLimit,
     verify: (req, _res, buf) => {
       if (isLineWebhook(req)) {
         req.rawBody = buf;
@@ -98,12 +103,22 @@ app.use("/api/line", lineRouter);
 app.use("/api/email-alerts", emailAlertRouter);
 app.use("/api/notifications", notificationRouter);
 
-app.get("/", (req, res) => {
-  res.json({ message: "Backend is running" });
-});
+function diagnosticsEnabled() {
+  if (process.env.ENABLE_DIAGNOSTICS === "true") return true;
+  if (process.env.ENABLE_DIAGNOSTICS === "false") return false;
+  return process.env.NODE_ENV !== "production";
+}
 
-app.get("/api/hello", (req, res) => {
-  res.json({ message: "Hello from Express!" });
-});
+if (diagnosticsEnabled()) {
+  app.get("/", (_req, res) => {
+    res.json({ message: "Backend is running" });
+  });
+
+  app.get("/api/hello", (_req, res) => {
+    res.json({ message: "Hello from Express!" });
+  });
+}
+
+app.use(errorHandler);
 
 module.exports = app;

@@ -41,6 +41,8 @@ function signUserToken(user) {
       sub: user._id.toString(),
       role: user.role,
       email: user.email,
+      // Session version invalidates all cookies when privilege state changes.
+      sv: Number(user.sessionVersion) || 0,
       jti: randomUUID(),
     },
     readSecret("JWT_SECRET", { required: true }),

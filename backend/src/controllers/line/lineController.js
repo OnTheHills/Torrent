@@ -1,18 +1,22 @@
 const lineService = require("@/services/line/lineService");
+const { securityLog } = require("@/utils/securityLog");
+const { clientMessage, statusOf } = require("@/middleware/errorHandler");
 
 function send(work) {
-  return async (req, res) => {
+  return async (req, res, next) => {
     try {
       return res.json(await work(req));
     } catch (error) {
-      if (!error.status) throw error;
-      return res.status(error.status).json({ message: error.message });
+      const status = statusOf(error);
+      if (status >= 500) return next(error);
+      return res.status(status).json({ message: clientMessage(error, status) });
     }
   };
 }
 
 function processWebhook(req, res) {
   if (!lineService.verifySignature(req.rawBody, req.get("x-line-signature"))) {
+    securityLog("line_webhook", { outcome: "denied", reason: "invalid_signature" }, req);
     return res.status(401).json({ message: "Invalid signature" });
   }
   res.status(200).end();
