@@ -56,7 +56,7 @@ async function fetchXml(url) {
         },
       });
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      return decodeRss(await readBoundedBytes(response));
+      return decodeRss(await readBoundedBytes(response), response.headers?.get("content-type") || "");
     } catch (error) {
       if (error.code === "UPSTREAM_BODY_TOO_LARGE") throw error;
       if (attempt === RETRY_COUNT) throw new Error(fetchErrorMessage(error));

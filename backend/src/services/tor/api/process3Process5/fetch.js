@@ -3,6 +3,7 @@ const { matchingKeyword } = require("@/services/tor/api/egpRss/adapter");
 const torRepository = require("@/repositories/tor/torRepository");
 const { readBoundedBytes } = require("@/utils/boundedText");
 const { parseXml, elementsNamed, xmlText } = require("@/utils/xmlText");
+const { decodeXmlBytes } = require("@/utils/xmlDecode");
 
 const RSS_URL = "https://process3.gprocurement.go.th/EPROCRssFeedWeb/egpannouncerss.xml";
 const DETAIL_URL = "https://process5.gprocurement.go.th/egp-oann10-service/pb/a-egp-allt-project/announcement";
@@ -19,7 +20,7 @@ async function feed(deptId, type) {
   if (deptId) url.searchParams.set("deptId", deptId);
   const response = await fetch(url, { signal: AbortSignal.timeout(30000) });
   if (!response.ok) throw new Error(`process3 RSS HTTP ${response.status}`);
-  return parseRssItems(decodeRss(await readBoundedBytes(response)), {
+  return parseRssItems(decodeRss(await readBoundedBytes(response), response.headers?.get("content-type") || ""), {
     announceType: type,
     deptId,
   }).flatMap((item) => {
@@ -41,16 +42,16 @@ async function projectDetail(projectId) {
     });
     if (!response.ok) throw new Error(`process5 ${name} HTTP ${response.status}`);
     const contentType = response.headers?.get("content-type") || "";
-    const body = (await readBoundedBytes(response)).toString("utf8");
+    const bytes = await readBoundedBytes(response);
     let result;
-    if (contentType.includes("xml")) {
-      const xml = parseXml(body);
+    if (contentType.toLowerCase().includes("xml")) {
+      const xml = parseXml(decodeXmlBytes(bytes, { contentType }));
       result = {
         response: xmlFields(elementsNamed(xml, "response").next().value),
         data: xmlFields(elementsNamed(xml, "data").next().value),
       };
     } else {
-      result = JSON.parse(body);
+      result = JSON.parse(bytes.toString("utf8"));
     }
     if (result.validateCfTurnTile === false) throw new Error(`process5 ${name} requires Cloudflare validation`);
     if (Number(result.response?.responseCode) !== 0 || !result.data || result.data.projectId !== projectId) {
