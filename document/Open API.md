@@ -354,6 +354,46 @@ Example JSON profile:
 A project requires `name`. Its `budget` is a non-negative number or null;
 `description`, `isGovernment`, `completedAt`, and `urls` are optional.
 
+### Profile input validation rules
+
+The following rules describe the current vendor-profile form. Browser-native
+constraints run on normal form submission; explicit JavaScript checks run before
+the profile request is sent. Frontend constraints can be bypassed by direct API
+requests, so the enforcement column distinguishes them from server validation.
+The API accepts some optional project fields that the frontend requires for a
+populated row, as described above.
+
+| Data item | Expected structure and validation | Current enforcement |
+| --- | --- | --- |
+| `vendorType` | `company` or `individual` | Frontend selection and backend schema enum |
+| `vendorEmail` | Optional email address; a non-empty value must satisfy the browser's `type="email"` syntax check | Browser form validation; backend stores a trimmed string without an email-format validator |
+| `website` | Optional absolute URL; a non-empty value must satisfy the browser's `type="url"` syntax check | Browser form validation; backend stores a trimmed string without a URL-format or scheme allowlist validator |
+| `vendorPhone` | Optional telephone string; no country-specific pattern, digit count, or phone-number format is currently enforced | Frontend uses `type="tel"`, which provides an input hint rather than a format check; backend stores a trimmed string |
+| `teamSize` | String; numeric entry is suggested, but no numeric range or integer check is currently enforced | Frontend uses `inputMode="numeric"`; backend stores a trimmed string |
+| `vendorName`, `location`, `bio` | Optional free-text strings, with no explicit field-length limit | Backend schema trims strings; request-size limits still apply |
+| `vendorCapDescription`, `techSkills` | Capability text is comma-separated; submitted skills are an array of non-empty trimmed strings | Frontend trims entries and removes empty entries; custom labels have commas removed and are deduplicated case-insensitively within their respective list |
+| `pastProjects` | Array of project objects; completely empty editor rows are omitted | Frontend checks whether any row field or saved URL has content before submission |
+| Project `name`, `description` | Non-empty after trimming for every populated editor row | Explicit frontend save check; backend schema requires `name`, while `description` is optional |
+| Project `budget` | Required in each populated editor row; must convert to a finite number >= 0 | Explicit frontend save check; backend numeric schema has minimum 0 and permits null |
+| Project `isGovernment` | Each populated editor row must select Government or Private; submitted as boolean `true` or `false` | Explicit frontend save check; backend boolean field permits null |
+| Project `completedAt` | Optional real calendar date entered as `d/m/yyyy` or `dd/mm/yyyy`; normalized to `dd/mm/yyyy` on blur and submitted as `yyyy-mm-dd`, or null when empty | Explicit frontend parser checks day/month/year and rejects impossible dates, including invalid leap days; backend uses a Date field |
+| Project `urls` | Array of strings; added values are trimmed, empty values ignored, and duplicates compared case-insensitively | Frontend normalization; neither the URL editor nor backend string-array schema currently validates URL syntax |
+| Certificate image | Case-insensitive `.png` extension; MIME must be `image/png` when supplied; valid PNG signature and decodable image; <= 5 MiB, <= 10,000 pixels per side, and <= 16,000,000 pixels total | Frontend checks file metadata, signature and browser decoding/dimensions; backend additionally validates PNG chunks, checksums and scanlines as described below |
+
+Blank email and website values are allowed; these fields are not marked
+`required`. Browser syntax checks do not verify mailbox existence, telephone
+ownership, or whether a website is reachable. No application-specific maximum
+length or additional format pattern is currently configured for those fields.
+This section records existing behavior and does not establish complete ASVS
+coverage or server enforcement of every frontend rule.
+
+Implementation references:
+
+- [Profile form and save checks](../frontend/src/app/(vendor)/app/profile/page.tsx)
+- [Frontend certificate checks](../frontend/src/components/profile/certificate-uploads.tsx)
+- [Backend profile schema](../backend/src/models/vendor/VendorProfile.js)
+- [Backend PNG validation](../backend/src/utils/certificatePng.js)
+
 ### Multipart upload format
 
 POST and PATCH accept either JSON for profile-only changes or `multipart/form-data`:

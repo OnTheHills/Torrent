@@ -186,6 +186,57 @@ test("certificate uploads persist with their profile and enforce ownership and P
     assert.deepEqual(await listFiles(), before);
   });
 
+  await t.test("each category accepts five images and rejects a sixth without changing saved data", async (t) => {
+    for (const field of ["securityCertificates", "aiCertificates", "otherCertificates"]) {
+      await t.test(field, async () => {
+        // Replace this category with four images, then reach the boundary by
+        // retaining those four and adding one more in a separate request.
+        let response = await send("PATCH", `/${PROFILE}`, upload(
+          { [field]: [] }, { [field]: Array.from({ length: 4 }, () => ({})) },
+        ));
+        assert.equal(response.status, 200);
+        const retained = [...stored[field]];
+        response = await send("PATCH", `/${PROFILE}`, upload(
+          { [field]: retained }, { [field]: [{}] },
+        ));
+        assert.equal(response.status, 200);
+        const saved = await response.json();
+        assert.equal(saved[field].length, 5);
+        assert.deepEqual(saved[field].slice(0, 4), retained);
+        for (const storedPath of saved[field]) {
+          assert.deepEqual(await fs.readFile(path.join(directory, path.basename(storedPath))), PNG);
+        }
+
+        const beforeProfile = structuredClone(stored);
+        const beforeFiles = (await listFiles()).sort();
+        // Omitted path arrays retain the existing five images.
+        response = await send("PATCH", `/${PROFILE}`, upload({}, { [field]: [{}] }));
+        assert.equal(response.status, 400);
+        assert.match((await response.json()).message, /at most 5 certificates per category/i);
+        assert.deepEqual(stored, beforeProfile);
+        assert.deepEqual((await listFiles()).sort(), beforeFiles);
+
+        // Replacing the category with six new files is also rejected.
+        response = await send("PATCH", `/${PROFILE}`, upload(
+          { [field]: [] }, { [field]: Array.from({ length: 6 }, () => ({})) },
+        ));
+        assert.equal(response.status, 400);
+        assert.match((await response.json()).message, /at most 5 certificates per category/i);
+        assert.deepEqual(stored, beforeProfile);
+        assert.deepEqual((await listFiles()).sort(), beforeFiles);
+      });
+    }
+    // Five is a per-category limit: all three categories can be full together.
+    assert.equal((await listFiles()).length, 15);
+    const response = await send("GET", `/get/${USER}`);
+    assert.equal(response.status, 200);
+    const reloaded = await response.json();
+    for (const field of ["securityCertificates", "aiCertificates", "otherCertificates"]) {
+      assert.deepEqual(reloaded[field], stored[field]);
+      assert.equal(reloaded[field].length, 5);
+    }
+  });
+
   await t.test("profile updates save without queuing matching", async () => {
     const response = await send("PATCH", `/${PROFILE}`, upload({ vendorName: "Saved without matching" }));
     assert.equal(response.status, 200);
