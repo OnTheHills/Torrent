@@ -1,5 +1,6 @@
 const { budgetYearFromValue, parseBudget, parseDate } = require("@/utils/torUtils");
-const { boundedText, trimLineEndSpaces, MAX_FEED_BYTES, limitError } = require("@/utils/boundedText");
+const { boundedText, trimLineEndSpaces } = require("@/utils/boundedText");
+const { decodeXmlBytes } = require("@/utils/xmlDecode");
 const { parseXml, elementsNamed, childText, unwrapCdata } = require("@/utils/xmlText");
 
 function decodeEntities(value) {
@@ -25,19 +26,8 @@ function stripTags(value) {
     .trim();
 }
 
-function decodeRss(buffer) {
-  if (buffer.byteLength > MAX_FEED_BYTES) throw limitError("RSS response");
-  const head = Buffer.from(buffer.subarray(0, 240)).toString("latin1");
-  const encoding = (head.match(/encoding=["']([^"']+)/i) || [])[1] || "utf-8";
-  const lower = encoding.toLowerCase();
-  if (
-    lower.includes("tis-620") ||
-    lower.includes("windows-874") ||
-    lower.includes("iso-8859-11")
-  ) {
-    return boundedText(new TextDecoder("windows-874").decode(buffer), "RSS text");
-  }
-  return boundedText(new TextDecoder("utf-8").decode(buffer), "RSS text");
+function decodeRss(buffer, contentType = "") {
+  return decodeXmlBytes(buffer, { contentType });
 }
 
 function isBudgetYearToken(raw) {
