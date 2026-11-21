@@ -108,14 +108,18 @@ test("security hardening: Host session cookies, revoke, rate limits, headers", {
     assert.equal(response.headers.get("referrer-policy"), "strict-origin-when-cross-origin");
     assert.equal(response.headers.get("x-frame-options"), "DENY");
     assert.match(response.headers.get("content-security-policy") || "", /frame-ancestors 'none'/);
+    assert.equal(response.headers.get("cross-origin-resource-policy"), "same-site");
+    assert.equal(response.headers.get("cross-origin-opener-policy"), "same-origin");
     await response.arrayBuffer();
   });
 
-  await t.test("session tokens carry jti and Host cookie name is selected when secure", () => {
+  await t.test("session tokens carry jti, typ, aud and Host cookie name is selected when secure", () => {
     const token = signUserToken(user);
     const claims = verifyUserToken(token);
     assert.equal(typeof claims.jti, "string");
     assert.ok(claims.jti.length > 10);
+    assert.equal(claims.typ, "torrent_session");
+    assert.equal(claims.aud, "torrent");
     assert.equal(
       readSessionToken({ [HOST_SESSION_COOKIE]: token }),
       token,
@@ -145,6 +149,8 @@ test("security hardening: Host session cookies, revoke, rate limits, headers", {
       },
     });
     assert.equal(logout.status, 200);
+    assert.match(logout.headers.get("clear-site-data") || "", /cookies/);
+    assert.equal(logout.headers.get("cache-control"), "no-store");
     assert.equal(await isRevoked(claims.jti), true);
 
     const me = await fetch(`${base}/api/auth/me`, {

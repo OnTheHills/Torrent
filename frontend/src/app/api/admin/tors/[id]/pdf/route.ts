@@ -16,15 +16,26 @@ function backendApiBase() {
   return base.replace(/\/+$/, "");
 }
 
+const PDF_HOST_SUFFIXES = [
+  "gprocurement.go.th",
+  "bangkok.go.th",
+  "egp.go.th",
+  "cgd.go.th",
+  "mdes.go.th",
+  "depa.or.th",
+];
+
 function isAllowedPdfHost(url: string) {
   try {
-    const host = new URL(url).hostname.toLowerCase();
-    return (
-      host.endsWith("gprocurement.go.th") ||
-      host.endsWith("bangkok.go.th") ||
-      host.endsWith("egp.go.th") ||
-      host === "localhost" ||
-      host === "127.0.0.1"
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return false;
+    if (parsed.username || parsed.password) return false;
+    const host = parsed.hostname.toLowerCase();
+    if (host === "localhost" || host === "127.0.0.1") {
+      return process.env.NODE_ENV !== "production";
+    }
+    return PDF_HOST_SUFFIXES.some(
+      (suffix) => host === suffix || host.endsWith(`.${suffix}`),
     );
   } catch {
     return false;

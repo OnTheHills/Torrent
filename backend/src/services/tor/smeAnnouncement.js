@@ -152,6 +152,8 @@ async function egpStage(projectId) {
 async function downloadAnnouncement(pdfUrl) {
   // e-GP rejects Node's fetch fingerprint and returns an HTML block page.
   // curl is accepted and returns the announcement PDF.
+  const { assertSafeOutboundUrlResolved } = require("@/utils/outboundUrl");
+  const safeUrl = await assertSafeOutboundUrlResolved(pdfUrl, { label: "Announcement PDF" });
   const id = crypto.randomBytes(8).toString("hex");
   const bodyPath = join(tmpdir(), `torrent-announcement-${id}.pdf`);
   const headerPath = join(tmpdir(), `torrent-announcement-${id}.hdr`);
@@ -161,6 +163,10 @@ async function downloadAnnouncement(pdfUrl) {
       [
         "-sS",
         "-L",
+        "--max-redirs",
+        "3",
+        "--proto-redir",
+        "=https,http",
         "--max-time",
         "40",
         "-A",
@@ -171,7 +177,7 @@ async function downloadAnnouncement(pdfUrl) {
         headerPath,
         "-o",
         bodyPath,
-        pdfUrl,
+        safeUrl,
       ],
       { timeout: 45000 },
     );

@@ -5,24 +5,6 @@ import { routes } from "@/config/routes";
 import { buildContentSecurityPolicy } from "@/lib/csp";
 import { readSessionCookie } from "@/lib/session-cookie";
 
-type SessionRole = "public" | "vendor" | "admin";
-
-/** Routing hint only — layouts still verify the session via /auth/me. */
-function roleFromSessionCookie(token: string): SessionRole | null {
-  try {
-    const segment = token.split(".")[1];
-    if (!segment) return null;
-    const json = Buffer.from(segment, "base64url").toString("utf8");
-    const payload = JSON.parse(json) as { role?: unknown };
-    if (payload.role === "public" || payload.role === "vendor" || payload.role === "admin") {
-      return payload.role;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
 function applySecurityHeaders(response: NextResponse, nonce: string) {
   response.headers.set("Content-Security-Policy", buildContentSecurityPolicy(nonce));
   response.headers.set("X-Content-Type-Options", "nosniff");
@@ -32,6 +14,9 @@ function applySecurityHeaders(response: NextResponse, nonce: string) {
     "Permissions-Policy",
     "camera=(), microphone=(), geolocation=()",
   );
+  // Allow GIS popups/iframes while isolating the browsing context (ASVS V3.7).
+  response.headers.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+  response.headers.set("Cross-Origin-Resource-Policy", "same-origin");
   return response;
 }
 
@@ -52,28 +37,8 @@ export function proxy(request: NextRequest) {
         nonce,
       );
     }
-
-    const role = roleFromSessionCookie(session.value);
-    if (!role) {
-      return applySecurityHeaders(
-        NextResponse.redirect(new URL(routes.login, request.url)),
-        nonce,
-      );
-    }
-
-    // KAN-123: public → no /app or /admin; vendor → all except admin; admin → all.
-    if (isAdminRoute && role !== "admin") {
-      return applySecurityHeaders(
-        NextResponse.redirect(new URL(routes.home, request.url)),
-        nonce,
-      );
-    }
-    if (isAppRoute && role !== "vendor" && role !== "admin") {
-      return applySecurityHeaders(
-        NextResponse.redirect(new URL(routes.home, request.url)),
-        nonce,
-      );
-    }
+    // Presence-only gate. Role checks use verified /auth/me in layouts —
+    // never trust an unsigned JWT payload here (ASVS V9.2).
   }
 
   const response = NextResponse.next({

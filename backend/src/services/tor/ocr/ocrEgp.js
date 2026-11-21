@@ -5,11 +5,13 @@ const torRepository = require("@/repositories/tor/torRepository");
 const SOURCE = "EGP-PROCESS5";
 
 async function downloadTor(url) {
-  const target = new URL(url);
-  if (!target.hostname.endsWith(".gprocurement.go.th") || target.protocol !== "https:") {
+  const { assertSafeOutboundUrl } = require("@/utils/outboundUrl");
+  const safe = assertSafeOutboundUrl(url, { label: "e-GP document" });
+  const target = new URL(safe);
+  if (!target.hostname.endsWith(".gprocurement.go.th") && !target.hostname.endsWith("gprocurement.go.th")) {
     throw new Error("Unexpected e-GP document URL");
   }
-  const response = await fetch(target, { signal: AbortSignal.timeout(60000) });
+  const response = await fetch(target, { signal: AbortSignal.timeout(60000), redirect: "follow" });
   if (!response.ok) throw new Error(`e-GP document HTTP ${response.status}`);
   const bytes = Buffer.from(await response.arrayBuffer());
   if (bytes.length > 25_000_000) throw new Error("e-GP document exceeds 25 MB");

@@ -49,6 +49,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     try {
       await logoutRequest();
     } finally {
+      // Drop in-memory auth state. Server also sends Clear-Site-Data on logout.
       setUser(null);
     }
   }, []);
