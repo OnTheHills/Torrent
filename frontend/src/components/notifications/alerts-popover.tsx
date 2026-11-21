@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
@@ -14,16 +14,14 @@ import {
 } from "@hugeicons/core-free-icons";
 
 import { useLocale } from "@/components/providers/locale-provider";
+import { useSession } from "@/components/providers/session-provider";
 import { chromeFrostBar, liquidGlassDim } from "@/components/ui/appbar";
 import { Button } from "@/components/ui/button";
 import { routes } from "@/config/routes";
 import {
   formatDate,
-  getTorById,
-  MOCK_NOTIFICATIONS,
-  torDepartment,
-  torTitle,
 } from "@/data/mock";
+import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { AppNotification, NotificationKind } from "@/types/tor";
 
@@ -68,23 +66,31 @@ function notificationHref(item: AppNotification) {
   return routes.app.tor(item.torId);
 }
 
+type StoredNotification = Pick<
+  AppNotification,
+  "kind" | "body" | "bodyTh" | "createdAt" | "read"
+> & {
+  _id: string;
+  torId: string | { _id?: string };
+};
+
 export function AlertsPopover({
   tone = "default",
 }: {
   tone?: "default" | "chrome";
 }) {
   const { locale, t } = useLocale();
+  const { user } = useSession();
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [items, setItems] = useState(MOCK_NOTIFICATIONS);
+  const [items, setItems] = useState<AppNotification[]>([]);
+  const [itemsForUser, setItemsForUser] = useState<string | null>(null);
   const [coords, setCoords] = useState({ top: 0, right: 0 });
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const unread = useMemo(
-    () => items.filter((item) => !item.read).length,
-    [items]
-  );
+  const currentItems = user?._id === itemsForUser ? items : [];
+  const unread = currentItems.filter((item) => !item.read).length;
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -93,6 +99,36 @@ export function AlertsPopover({
 
     return () => window.clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (!user?._id) return;
+    const userId = user._id;
+    let active = true;
+    const refresh = () =>
+      api<StoredNotification[]>("/notifications/mine", { cache: "no-store" })
+        .then((next) => {
+          if (!active) return;
+          setItems(
+            next.map((item) => ({
+              id: item._id,
+              kind: item.kind,
+              torId: typeof item.torId === "string" ? item.torId : item.torId?._id || "",
+              title: KIND_META[item.kind].title.en,
+              titleTh: KIND_META[item.kind].title.th,
+              body: item.body,
+              bodyTh: item.bodyTh,
+              createdAt: item.createdAt,
+              read: item.read,
+              skills: [],
+            })),
+          );
+          setItemsForUser(userId);
+        })
+        .catch(() => {});
+    void refresh();
+    const timer = window.setInterval(refresh, 60_000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [user?._id]);
 
   useLayoutEffect(() => {
     if (!open || !triggerRef.current) return;
@@ -143,16 +179,25 @@ export function AlertsPopover({
 
   function markAllRead() {
     setItems((prev) => prev.map((item) => ({ ...item, read: true })));
+    void api("/notifications/mine/read-all", { method: "PATCH" }).catch(() => {});
   }
 
   function markRead(id: string) {
     setItems((prev) =>
       prev.map((item) => (item.id === id ? { ...item, read: true } : item))
     );
+    void api(`/notifications/mine/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ read: true }),
+    }).catch(() => {});
   }
 
   function dismiss(id: string) {
     setItems((prev) => prev.filter((item) => item.id !== id));
+    void api(`/notifications/mine/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ dismissed: true }),
+    }).catch(() => {});
   }
 
   const panel =
@@ -189,7 +234,7 @@ export function AlertsPopover({
             </div>
 
             <div className="grid min-h-0 flex-1 auto-rows-max grid-cols-1 gap-2 overflow-y-auto p-3">
-              {items.map((item) => (
+              {currentItems.map((item) => (
                 <AlertCard
                   key={item.id}
                   item={item}
@@ -269,14 +314,9 @@ function AlertCard({
   const { t } = useLocale();
   const meta = KIND_META[item.kind];
   const title = meta.title[locale];
-  const tor = getTorById(item.torId);
-  const projectName = tor
-    ? torTitle(tor, locale)
-    : (locale === "th" ? item.bodyTh : item.body).split(" · ")[0]?.trim() ||
-      item.body;
-  const department = tor
-    ? torDepartment(tor, locale).trim()
-    : (locale === "th" ? item.bodyTh : item.body).split(" · ")[1]?.trim() || "";
+  const [projectName = "", department = ""] = (
+    locale === "th" ? item.bodyTh : item.body
+  ).split(" · ");
   const href = notificationHref(item);
 
   return (

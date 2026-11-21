@@ -31,6 +31,15 @@ async function findActiveEmailMatch(userId, torId) {
   return TORMatch.findOne({ userId, torId, dismissedAt: null, badResultAt: null }).lean();
 }
 
+async function findActiveNotificationMatches(torIds) {
+  return TORMatch.find({
+    torId: { $in: torIds },
+    dismissedAt: null,
+    badResultAt: null,
+    matchPercent: { $gte: 60 },
+  }).select("userId torId matchPercent").lean();
+}
+
 async function findById(id) {
   return TORMatch.findById(id);
 }
@@ -70,6 +79,7 @@ module.exports = {
   findByUserId,
   findActiveEmailMatchesByUserId,
   findActiveEmailMatch,
+  findActiveNotificationMatches,
   findPendingTorIds,
   setDismissedForUser,
   setBadResultForUser,

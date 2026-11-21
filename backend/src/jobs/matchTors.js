@@ -2,6 +2,7 @@ const { randomUUID } = require("node:crypto");
 const VendorProfile = require("@/models/vendor/VendorProfile");
 const TOR = require("@/models/tor/TOR");
 const TORMatch = require("@/models/tor/TORMatch");
+const notificationService = require("@/services/notificationService");
 const TorMatchJob = require("@/models/tor/TorMatchJob");
 const { matchWithVertex } = require("@/services/tor/matchWithVertex");
 
@@ -364,6 +365,7 @@ async function processJob(job) {
       { $set: { matchPercent: result.matchPercent, matchReason: result.matchReason } },
       { upsert: true },
     );
+    if (Number(result.matchPercent) >= 60) await notificationService.createMatchNotification(profile.userId, tor);
 
     cursor = profile.userId;
     if (!await advanceCursor(job, cursor)) return "lost-lease";

@@ -7,6 +7,7 @@ const TOR = require("@/models/tor/TOR");
 const TORMatch = require("@/models/tor/TORMatch");
 const TorMatchJob = require("@/models/tor/TorMatchJob");
 const EmailAlert = require("@/models/email/EmailAlert");
+const Notification = require("@/models/Notification");
 const { migrateVendorProfileFields } = require("./migrateVendorProfileFields");
 
 async function connectDatabase() {
@@ -21,6 +22,7 @@ async function connectDatabase() {
     TORMatch.init(),
     TorMatchJob.init(),
     EmailAlert.init(),
+    Notification.init(),
   ]);
   await migrateVendorProfileFields();
   console.log("Connected to MongoDB");
