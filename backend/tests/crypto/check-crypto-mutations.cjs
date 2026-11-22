@@ -10,15 +10,15 @@ function runMutations() {
   // A bounded regression sample covering the changed features and independent
   // encryption, Google authentication and secret-loading behavior. Not the full suite.
   const tests = [
-    "tests/lineNotifications.test.js",
-    "tests/emailAlerts.test.js",
-    "tests/dockerSecrets.test.js",
-    "tests/cryptoAgility.test.js",
-    "tests/cryptoParameters.test.js",
-    "tests/announcementBudget.test.js",
-    "tests/googleAuthSecurity.test.js",
+    "tests/notifications/lineNotifications.test.js",
+    "tests/notifications/emailAlerts.test.js",
+    "tests/security/dockerSecrets.test.js",
+    "tests/crypto/cryptoAgility.test.js",
+    "tests/crypto/cryptoParameters.test.js",
+    "tests/tor/announcementBudget.test.js",
+    "tests/auth/googleAuthSecurity.test.js",
   ];
-  const backendRoot = path.resolve(__dirname, "..");
+  const backendRoot = path.resolve(__dirname, "../..");
   for (const mutation of [null, "line", "line-coordinated", "email", "session"]) {
     console.log(`\n=== ${mutation ? `${mutation}: SHA-256 family → SHA-512 family` : "Unmodified baseline"} ===`);
     const env = { ...process.env };
@@ -26,7 +26,7 @@ function runMutations() {
     const args = ["--require", "module-alias/register"];
     if (mutation) {
       env.TORRENT_CRYPTO_MUTATION = mutation;
-      args.push("--require", "./tests/fixtures/cryptoMutation.cjs");
+      args.push("--require", "./tests/crypto/fixtures/cryptoMutation.cjs");
     }
     args.push("--test", "--test-reporter=spec", ...tests);
     const result = spawnSync(process.execPath, args, {

@@ -6,7 +6,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const announcement = require("@/services/tor/smeAnnouncement");
-const filename = path.join(__dirname, "../src/services/tor/smeAnnouncement.js");
+const filename = path.join(__dirname, "../../src/services/tor/smeAnnouncement.js");
 const source = readFileSync(filename, "utf8");
 const PROJECT_ID = "69019529847";
 const SALT = Buffer.from("0001020304050607", "hex");

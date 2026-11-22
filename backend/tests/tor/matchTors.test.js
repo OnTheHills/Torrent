@@ -30,6 +30,7 @@ test("quota exhaustion pauses one TOR at the unfinished vendor", async () => {
       createMatchNotification: async (userId, tor) => notifications.push(`${tor._id}:${userId}`),
     },
     "node:crypto": { randomUUID: () => "worker-1" },
+    "@/utils/logger": { errorFields: () => ({}), logger: { info() {}, warn() {}, error() {} } },
     "@/models/user/User": {
       findOne: (query) => queryResult(
         vendors.find((user) => !query._id || user._id > query._id.$gt) || null,
@@ -108,7 +109,7 @@ test("quota exhaustion pauses one TOR at the unfinished vendor", async () => {
 
   const module = { exports: {} };
   vm.runInNewContext(
-    readFileSync(path.join(__dirname, "../src/jobs/matchTors.js"), "utf8"),
+    readFileSync(path.join(__dirname, "../../src/jobs/matchTors.js"), "utf8"),
     {
       module,
       process: { env: {} },
@@ -155,7 +156,7 @@ test("open notices from any source are eligible; SME-GP, closed, and past deadli
   for (const mode of [undefined, "default", "published"]) {
     const module = { exports: {} };
     vm.runInNewContext(
-      readFileSync(path.join(__dirname, "../src/jobs/matchTors.js"), "utf8"),
+      readFileSync(path.join(__dirname, "../../src/jobs/matchTors.js"), "utf8"),
       {
         module,
         process: { env: mode ? { VERTEX_MATCH_TOR_STATUS: mode } : {} },

@@ -864,7 +864,7 @@ middleware can return an error immediately instead of calling the next handler.
 - [Mongoose field definitions](../backend/src/models)
 - [Admin filters and action bodies](../backend/src/services/admin/adminService.js)
 - [Browser API client](../frontend/src/lib/api.ts)
-- [Mutation authentication regression tests](../backend/tests/mutationAuth.test.js)
+- [Mutation authentication regression tests](../backend/tests/auth/mutationAuth.test.js)
 
 ## 18. Verification and maintenance
 
@@ -882,7 +882,7 @@ Documentation reconciliation on 21 November 2026:
 Useful existing regression checks, run from `backend/` with dependencies installed:
 
 ```bash
-node --require module-alias/register --test tests/mutationAuth.test.js tests/securityHardening.test.js tests/torMatchAuthorization.test.js tests/sync.test.js tests/certificateUploads.test.js tests/lineNotifications.test.js tests/vendorType.test.js tests/categoryDistribution.test.js tests/departmentBudget.test.js
+node --require module-alias/register --test tests/auth/mutationAuth.test.js tests/auth/securityHardening.test.js tests/auth/torMatchAuthorization.test.js tests/sync/sync.test.js tests/vendor/certificateUploads.test.js tests/notifications/lineNotifications.test.js tests/vendor/vendorType.test.js tests/admin/categoryDistribution.test.js tests/admin/departmentBudget.test.js
 ```
 
 HTTP tests bind temporary localhost ports. MongoDB aggregate integration cases

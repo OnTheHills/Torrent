@@ -5,6 +5,7 @@ const TORMatch = require("@/models/tor/TORMatch");
 const notificationService = require("@/services/notificationService");
 const TorMatchJob = require("@/models/tor/TorMatchJob");
 const { matchWithVertex } = require("@/services/tor/matchWithVertex");
+const { errorFields, logger } = require("@/utils/logger");
 
 const LEASE_MS = Math.max(5 * 60_000, (Number(process.env.VERTEX_MATCH_TIMEOUT_MS) || 60_000) + 60_000);
 let draining = false;
@@ -152,7 +153,7 @@ async function retireIneligibleJobs() {
       },
     },
   );
-  console.info("TOR matching skipped closed, awarded, and cancelled listings", {
+  logger.info("tor_matching.jobs.retired_ineligible", {
     jobs: dropIds.length,
   });
   return dropIds.length;
@@ -348,7 +349,7 @@ async function processJob(job) {
     const result = await matchWithVertex(profile, tor);
     if (!result.ok) {
       await waitForVertex(job, result.code || "UNAVAILABLE");
-      console.warn("TOR matching paused", { code: result.code, torId: String(tor._id) });
+      logger.warn("tor_matching.paused", { code: result.code, torId: String(tor._id) });
       return "waiting";
     }
 
@@ -385,21 +386,21 @@ async function drain() {
         if (outcome === "waiting") break;
       } catch (error) {
         await waitForVertex(job, "WORKER_ERROR");
-        console.error("TOR matching worker failed", {
+        logger.error("tor_matching.worker_failed", {
           torId: String(job.torId),
-          message: error.message,
+          ...errorFields(error),
         });
         break;
       }
     }
   } finally {
     draining = false;
-    scheduleNextWake().catch((error) => console.error("TOR matching retry schedule failed", error));
+    scheduleNextWake().catch((error) => logger.error("tor_matching.retry_schedule_failed", errorFields(error)));
   }
 }
 
 function kick() {
-  setImmediate(() => drain().catch((error) => console.error("TOR matching drain failed", error)));
+  setImmediate(() => drain().catch((error) => logger.error("tor_matching.drain_failed", errorFields(error))));
 }
 
 module.exports = {

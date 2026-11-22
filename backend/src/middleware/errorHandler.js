@@ -1,4 +1,5 @@
 const { securityLog } = require("@/utils/securityLog");
+const { errorFields } = require("@/utils/logger");
 
 function clientMessage(error, status) {
   if (status >= 500) return "Something went wrong.";
@@ -28,12 +29,10 @@ function errorHandler(error, request, response, _next) {
       {
         outcome: "failure",
         status,
-        name: error?.name,
-        message: error?.message,
+        ...errorFields(error),
       },
       request,
     );
-    console.error(error);
   }
 
   return response.status(status).json({

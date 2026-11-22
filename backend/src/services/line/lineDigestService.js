@@ -2,6 +2,7 @@ const lineRepository = require("@/repositories/line/lineRepository");
 const torRepository = require("@/repositories/tor/torRepository");
 const lineClient = require("@/services/line/lineClient");
 const { MAX_DIGEST_RECIPIENTS } = require("@/constants/lineConstants");
+const { errorFields, logger } = require("@/utils/logger");
 
 function weekAgo() {
   return new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -37,7 +38,7 @@ function formatDigest(tors) {
 
 async function runLineWeeklyDigest() {
   if (process.env.LINE_WEEKLY_DIGEST_ENABLED !== "true") {
-    console.log("LINE weekly digest skipped (disabled)");
+    logger.info("line_digest.skipped", { reason: "disabled" });
     return { sent: 0, skipped: true };
   }
 
@@ -45,7 +46,7 @@ async function runLineWeeklyDigest() {
   if (quota.type === "limited" && quota.value != null) {
     const remaining = quota.value - quota.totalUsage;
     if (remaining <= 0) {
-      console.warn("LINE quota exhausted; abort digest");
+      logger.warn("line_digest.quota_exhausted");
       return { sent: 0, quotaExhausted: true };
     }
   }
@@ -62,7 +63,7 @@ async function runLineWeeklyDigest() {
       await lineClient.pushText(user.lineUserId, text);
       sent += 1;
     } catch (err) {
-      console.error("LINE push failed for", user.email, err.message);
+      logger.error("line_digest.push_failed", errorFields(err));
     }
   }
 

@@ -339,7 +339,7 @@ Command-line writes must also send an allowed Origin, the cookie jar, and the
 [Open API.md](<x-docs/project_details/Open API.md>) for examples and error codes.
 
 Run backend protection tests with
-`cd backend && node --require module-alias/register --test tests/mutationAuth.test.js`.
+`cd backend && node --require module-alias/register --test tests/auth/mutationAuth.test.js`.
 Run frontend request tests with `cd frontend && node --test tests/csrf-api.test.mjs`.
 The backend protection tests stub controllers and do not access development data
 or external providers.
@@ -371,7 +371,7 @@ save. Images are served through the owner/admin-protected endpoint
 `GET /api/vendor-profiles/certificates/:filename`.
 
 Run certificate integration checks with
-`cd backend && node --require module-alias/register --test tests/certificateUploads.test.js`.
+`cd backend && node --require module-alias/register --test tests/vendor/certificateUploads.test.js`.
 The tests use a temporary upload folder and a mocked database. They do not change
 development profiles. `CERTIFICATE_UPLOAD_DIR` can override the storage directory
 for tests or deployments; database paths retain the `upload/` prefix.

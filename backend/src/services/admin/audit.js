@@ -9,9 +9,12 @@ function actorFrom(user) {
   };
 }
 
-async function record(user, entry) {
+async function record(user, entry, requestId) {
   return AuditLog.create({
     ...actorFrom(user),
+    requestId: typeof requestId === "string" && /^[0-9a-f-]{36}$/i.test(requestId)
+      ? requestId
+      : undefined,
     action: entry.action,
     targetType: entry.targetType,
     targetId: entry.targetId ? String(entry.targetId) : undefined,

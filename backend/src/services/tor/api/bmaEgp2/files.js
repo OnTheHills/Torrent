@@ -8,6 +8,7 @@ const {
 const { projectStatus } = require("@/services/tor/api/bmaEgp2/adapter");
 const { parseDate } = require("@/utils/torUtils");
 const { fetchTorUrl } = require("@/utils/torFetch");
+const { errorFields, logger } = require("@/utils/logger");
 
 function projectIdFromUrl(egpUrl) {
   const value = String(egpUrl || "");
@@ -137,7 +138,7 @@ async function hydrateProjects(tors = []) {
             : statusFromAnnouncements(announcements, tor.status),
       });
     } catch (error) {
-      console.error(`BMA project hydrate ${projectId}: ${error.message}`);
+      logger.error("bma_egp2.project_hydrate.failed", { projectId, ...errorFields(error) });
       hydrated.push(tor);
     }
   }

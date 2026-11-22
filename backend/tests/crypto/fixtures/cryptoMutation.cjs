@@ -27,10 +27,10 @@ if (!mutation && !coordinatedLine) throw new Error("Unknown crypto mutation.");
 const changes = coordinatedLine ? [
   { ...mutations.line, file: `src/${mutations.line.file}` },
   // These are synthetic senders in tests, not a change to the real LINE service.
-  { file: "tests/lineNotifications.test.js", before: 'createHmac("sha256", "test-secret")', after: 'createHmac("sha512", "test-secret")' },
-  { file: "tests/dockerSecrets.test.js", before: 'createHmac("sha256", values.LINE_CHANNEL_SECRET)', after: 'createHmac("sha512", values.LINE_CHANNEL_SECRET)' },
+  { file: "tests/notifications/lineNotifications.test.js", before: 'createHmac("sha256", "test-secret")', after: 'createHmac("sha512", "test-secret")' },
+  { file: "tests/security/dockerSecrets.test.js", before: 'createHmac("sha256", values.LINE_CHANNEL_SECRET)', after: 'createHmac("sha512", values.LINE_CHANNEL_SECRET)' },
 ] : [{ ...mutation, file: `src/${mutation.file}` }];
-const targets = new Map(changes.map((change) => [path.resolve(__dirname, "../..", change.file), change]));
+const targets = new Map(changes.map((change) => [path.resolve(__dirname, "../../..", change.file), change]));
 const originalLoader = Module._extensions[".js"];
 Module._extensions[".js"] = function loadMutation(module, filename) {
   const change = targets.get(filename);

@@ -11,6 +11,7 @@ const {
 const { wait } = require("@/utils/torUtils");
 const { decodeRss, parseRssItems } = require("./parse");
 const { readBoundedBytes } = require("@/utils/boundedText");
+const { errorFields, logger } = require("@/utils/logger");
 
 function feedUrl(base, deptId, announceType) {
   const url = new URL(base);
@@ -110,9 +111,11 @@ async function fetchEgpRss() {
           rows.push(...result.rows);
         } catch (error) {
           errors.push(error.message);
-          console.error(
-            `Failed to fetch e-GP RSS ${dept.id} ${announceType.code}: ${error.message}`,
-          );
+          logger.error("egp_rss.feed_fetch.failed", {
+            departmentId: dept.id,
+            announceType: announceType.code,
+            ...errorFields(error),
+          });
         }
       }),
     ),

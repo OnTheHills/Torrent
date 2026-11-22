@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/lib/api";
 import { getMe } from "@/lib/auth";
+import { logClientError } from "@/lib/log";
 import { cn } from "@/lib/utils";
 
 const heroFade =
@@ -537,14 +538,10 @@ export default function ProfilePage() {
       await queryClient.cancelQueries({ queryKey: ["vendor-profile", currentUser._id] });
       queryClient.setQueryData(["vendor-profile", currentUser._id], saved);
 
-      console.log(
-        "Vendor profile submitted to backend:\n",
-        JSON.stringify(submittedProfile, null, 2),
-      );
       setSaveMessage("Profile saved successfully");
       window.setTimeout(() => setSaveMessage(""), 3000);
     } catch (error) {
-      console.error("Vendor profile submission failed:", error);
+      logClientError("vendor_profile_submit_failed");
       setSaveFailed(true);
       setSaveMessage(
         error instanceof Error ? error.message : "Unable to save profile",

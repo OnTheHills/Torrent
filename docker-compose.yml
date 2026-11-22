@@ -23,7 +23,6 @@ services:
       - ./backend/scripts:/app/scripts
       - ./backend/upload:/app/upload
       - ./backend/.secret:/app/.secret:ro
-      - /app/node_modules
 
     env_file:
       - path: ./backend/.env
@@ -63,13 +62,16 @@ services:
     depends_on:
       mongo:
         condition: service_healthy
+    networks:
+      - application
+      - database
 
   mongo:
     image: mongo:8.0.0
 
-    # Host publish is for local scripts (promote-admin). Do not expose in production.
+    # Host access is only for local scripts (promote-admin); keep it off LAN interfaces.
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"
 
     environment:
       # CAUTIOUS
@@ -86,6 +88,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - database
 
   frontend:
     build: ./frontend
@@ -94,11 +98,22 @@ services:
       - "3000:3000"
     environment:
       BACKEND_API_URL: http://backend:5175/api
+    env_file:
+      - path: ./frontend/.env
+        required: false
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      # Keep dependencies from the rebuilt image; bind only files edited during development.
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
     depends_on:
       - backend
+    networks:
+      - application
+
+networks:
+  application:
+  database:
+    internal: true
 
 volumes:
   mongo_data:

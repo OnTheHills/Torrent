@@ -12,6 +12,7 @@ const torRepository = require("@/repositories/tor/torRepository");
 const { readPdfText } = require("@/services/tor/ocr/readPdfText");
 const { parseAnnouncementBudget } = require("@/utils/torUtils");
 const { resolveTorDestination, curlDestinationArgs, fetchTorUrl } = require("@/utils/torFetch");
+const { errorFields, logger } = require("@/utils/logger");
 
 const SOURCE = "SME-GP";
 const LISTING_ORIGIN = "https://process5.gprocurement.go.th/egp-agpc01-web/announcement/procurement";
@@ -270,7 +271,7 @@ async function refreshStages() {
       status = await egpStage(projectId);
     } catch (error) {
       summary.stageFailed++;
-      console.error(`SME stage ${row.refId}: ${error.message}`);
+      logger.error("sme.stage_lookup.failed", { refId: row.refId, ...errorFields(error) });
       if (error.code === "waf") return false;
       return;
     }
@@ -280,7 +281,7 @@ async function refreshStages() {
     if (row.status === status) summary.stageUnchanged++;
     else await torRepository.update(row._id, { status });
     if (summary.stageChecked % 50 === 0) {
-      console.log(`SME stages checked ${summary.stageChecked}/${rows.length}`);
+      logger.info("sme.stages.progress", { checked: summary.stageChecked, total: rows.length });
     }
   });
 
@@ -316,7 +317,7 @@ async function enrichStored() {
       if (read.listingUrl) update.egpUrl = read.listingUrl;
       if (!read.budgetThb && !read.listingUrl) {
         summary.announcementFailed++;
-        console.error(`SME announcement ${row.refId}: PDF had no budget`);
+        logger.warn("sme.announcement.budget_missing", { refId: row.refId });
         return;
       }
       const changed = Object.entries(update).some(([field, value]) => row[field] !== value);
@@ -327,7 +328,7 @@ async function enrichStored() {
       await torRepository.update(row._id, update);
       summary.announcementUpdated++;
       if (summary.announcementUpdated % 25 === 0) {
-        console.log(`SME announcement updated ${summary.announcementUpdated}`);
+        logger.info("sme.announcements.progress", { updated: summary.announcementUpdated });
       }
     } catch (error) {
       if (error.code === "waf") {
@@ -343,17 +344,17 @@ async function enrichStored() {
             return;
           }
           summary.announcementFailed++;
-          console.error(`SME announcement ${row.refId}: PDF had no budget`);
+          logger.warn("sme.announcement.budget_missing", { refId: row.refId });
           return;
         } catch (retryError) {
           summary.announcementFailed++;
-          console.error(`SME announcement ${row.refId}: ${retryError.message}`);
+          logger.error("sme.announcement.retry_failed", { refId: row.refId, ...errorFields(retryError) });
           if (retryError.code === "waf") return false;
           return;
         }
       }
       summary.announcementFailed++;
-      console.error(`SME announcement ${row.refId}: ${error.message}`);
+      logger.error("sme.announcement.read_failed", { refId: row.refId, ...errorFields(error) });
     }
   });
 

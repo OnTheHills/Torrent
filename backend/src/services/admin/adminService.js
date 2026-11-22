@@ -316,7 +316,7 @@ async function reviewQueue({
   };
 }
 
-async function rescore(user, reasonInput) {
+async function rescore(user, reasonInput, requestId) {
   const reason = requireReason(reasonInput);
   const settings = await classification.readSettings();
   const medians = await categoryMedians();
@@ -422,7 +422,7 @@ async function rescore(user, reasonInput) {
       { field: "vertexScored", before: null, after: vertexScored },
       { field: "skippedExpired", before: null, after: skippedExpired },
     ],
-  });
+  }, requestId);
   return { scored, vertexScored, skippedExpired };
 }
 
@@ -432,7 +432,7 @@ function changesFor(before, after, fields) {
     .map((field) => ({ field, before: before?.[field] ?? null, after: after?.[field] ?? null }));
 }
 
-async function reviewTor(id, user, body) {
+async function reviewTor(id, user, body, requestId) {
   const reason = requireReason(body.reason);
   const decision = body.decision;
   if (!["approve", "fix", "reject"].includes(decision)) {
@@ -480,7 +480,7 @@ async function reviewTor(id, user, body) {
     reason,
     checked: REVIEW_FIELDS,
     changes,
-  });
+  }, requestId);
   return present(updated.toObject());
 }
 
@@ -731,7 +731,7 @@ async function streamTorPdf(id) {
   return { bytes, contentType: "application/pdf", filename };
 }
 
-async function updateTor(id, user, body) {
+async function updateTor(id, user, body, requestId) {
   const reason = requireReason(body.reason);
   const current = await TOR.findById(id);
   if (!current) {
@@ -756,11 +756,11 @@ async function updateTor(id, user, body) {
     targetId: id,
     reason,
     changes: changesFor(before, updated.toObject(), EDITABLE),
-  });
+  }, requestId);
   return present(updated.toObject());
 }
 
-async function bulkTors(user, body) {
+async function bulkTors(user, body, requestId) {
   const reason = requireReason(body.reason);
   const ids = Array.isArray(body.ids) ? body.ids : [];
   if (!ids.length) {
@@ -788,7 +788,7 @@ async function bulkTors(user, body) {
     targetType: "tor",
     reason,
     changes: [{ field: "ids", before: null, after: ids }],
-  });
+  }, requestId);
   return { matched: result.matchedCount, modified: result.modifiedCount };
 }
 
@@ -899,7 +899,7 @@ async function getUser(id) {
   };
 }
 
-async function updateUser(id, actor, body) {
+async function updateUser(id, actor, body, requestId) {
   requireObjectId(id, "User");
   const reason = requireReason(body.reason);
   const current = await User.findById(id);
@@ -926,11 +926,11 @@ async function updateUser(id, actor, body) {
     targetId: id,
     reason,
     changes: changesFor(before, { role: updated.role, disabled: Boolean(updated.disabled) }, ["role", "disabled"]),
-  });
+  }, requestId);
   return { id: updated._id, role: updated.role, disabled: Boolean(updated.disabled) };
 }
 
-async function reviewCertificate(actor, body) {
+async function reviewCertificate(actor, body, requestId) {
   const reason = requireReason(body.reason);
   const profile = body.profileId
     ? await VendorProfile.findById(body.profileId)
@@ -976,7 +976,7 @@ async function reviewCertificate(actor, body) {
       targetId: profile.userId,
       reason,
       changes: changesFor(before, after, ["name", "issuer", "status"]),
-    });
+    }, requestId);
   }
   await profile.save();
   if (body.name && body.index === undefined) {
@@ -986,7 +986,7 @@ async function reviewCertificate(actor, body) {
       targetId: profile.userId,
       reason,
       changes: [{ field: body.name, before: null, after: body.status || "pending" }],
-    });
+    }, requestId);
   }
   return { certificates: profile.certificates, completeness: completeness(profile) };
 }
@@ -1011,7 +1011,7 @@ async function matchJobs() {
   };
 }
 
-async function retryMatches(actor, body) {
+async function retryMatches(actor, body, requestId) {
   const reason = requireReason(body.reason);
   const filter = body.id ? { _id: body.id } : { lastError: { $nin: [null, ""] } };
   const result = await TorMatchJob.updateMany(filter, {
@@ -1023,7 +1023,7 @@ async function retryMatches(actor, body) {
     targetId: body.id,
     reason,
     changes: [{ field: "retried", before: null, after: result.modifiedCount }],
-  });
+  }, requestId);
   return { modified: result.modifiedCount };
 }
 
@@ -1041,7 +1041,7 @@ async function previewRules(body) {
   return classification.compareTitles(titles.map((row) => row.title), current, next);
 }
 
-async function applyRules(actor, body) {
+async function applyRules(actor, body, requestId) {
   const reason = requireReason(body.reason);
   const current = await classification.readSettings();
   const includeKeywords = classification.cleanList(body.includeKeywords, current.includeKeywords);
@@ -1096,7 +1096,7 @@ async function applyRules(actor, body) {
       { field: "autoThreshold", before: current.autoThreshold, after: autoThreshold },
       { field: "reviewThreshold", before: current.reviewThreshold, after: reviewThreshold },
     ],
-  });
+  }, requestId);
   return { hidden, restored, autoThreshold, reviewThreshold };
 }
 

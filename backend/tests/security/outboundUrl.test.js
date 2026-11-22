@@ -5,14 +5,14 @@ const {
   assertSafeOutboundUrl,
   hostAllowed,
   isPrivateIp,
-} = require("../src/utils/outboundUrl");
-const { safeAppPath } = require("../src/utils/safePath");
+} = require("../../src/utils/outboundUrl");
+const { safeAppPath } = require("../../src/utils/safePath");
 const {
   signUserToken,
   verifyUserToken,
   SESSION_TOKEN_TYP,
   sessionAudience,
-} = require("../src/utils/session");
+} = require("../../src/utils/session");
 
 test("outbound URL allowlist rejects private and foreign hosts", () => {
   process.env.JWT_SECRET = process.env.JWT_SECRET || "outbound-url-test-secret";

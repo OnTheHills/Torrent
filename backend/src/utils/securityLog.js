@@ -1,28 +1,28 @@
-/**
- * Structured security-event logging (stdout JSON). Never log secrets, tokens,
- * or raw credentials — only outcomes and coarse request metadata.
- */
+const { logger } = require("@/utils/logger");
+const { routeTemplate } = require("@/middleware/requestLogger");
+
 function clientIp(request) {
   if (!request) return undefined;
   return request.ip || request.socket?.remoteAddress || undefined;
 }
 
 function securityLog(event, fields = {}, request) {
-  const entry = {
-    type: "security",
-    event,
-    at: new Date().toISOString(),
-    ...fields,
-  };
+  const status = Number(fields.status);
+  const level = event === "unexpected_error" || status >= 500
+    ? "error"
+    : fields.outcome === "denied" || fields.outcome === "failure"
+      ? "warn"
+      : "info";
+  const metadata = { logType: "security" };
   if (request) {
-    entry.method = request.method;
-    entry.path = request.path || request.url;
-    entry.ip = clientIp(request);
-    if (request.user?.sub) entry.actorId = request.user.sub;
-    if (request.user?.email) entry.actorEmail = request.user.email;
-    if (request.user?.role) entry.actorRole = request.user.role;
+    metadata.requestId = request.requestId;
+    metadata.method = request.method;
+    metadata.route = routeTemplate(request);
+    metadata.clientIp = clientIp(request);
+    metadata.actorId = request.user?.sub || fields.actorId;
+    metadata.actorRole = request.user?.role || fields.actorRole;
   }
-  console.info(JSON.stringify(entry));
+  logger[level](event, { ...fields, ...metadata });
 }
 
-module.exports = { securityLog, clientIp };
+module.exports = { securityLog, clientIp, routeTemplate };

@@ -6,7 +6,7 @@ const jwt = require("jsonwebtoken");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { SECRET_NAMES } = require("../src/config/secrets");
+const { SECRET_NAMES } = require("../../src/config/secrets");
 
 test("the application requires a session for mutations and preserves public exceptions", { timeout: 15000 }, async (t) => {
   const environment = {
@@ -242,6 +242,34 @@ test("the application requires a session for mutations and preserves public exce
       assert.equal(allowed.status, 200);
       await allowed.arrayBuffer();
     }
+    authById[user._id].role = "vendor";
+  });
+
+  await t.test("audit logs are admin-readable and have no HTTP mutation route", async () => {
+    const anonymous = await fetch(base + "/api/admin/audit");
+    assert.equal(anonymous.status, 401);
+    await anonymous.arrayBuffer();
+
+    authById[user._id].role = "vendor";
+    const vendorSession = signUserToken({ ...user, role: "vendor" });
+    const forbidden = await fetch(base + "/api/admin/audit", { headers: cookie(vendorSession) });
+    assert.equal(forbidden.status, 403);
+    await forbidden.arrayBuffer();
+
+    authById[user._id].role = "admin";
+    const adminSession = signUserToken({ ...user, role: "admin" });
+    const allowed = await fetch(base + "/api/admin/audit", { headers: cookie(adminSession) });
+    assert.equal(allowed.status, 200);
+    assert.equal((await allowed.json()).action, "auditLog");
+
+    const beforeMutations = calls.filter((call) => call === "admin.auditLog").length;
+    const headers = await csrfHeaders(adminSession);
+    for (const method of ["PATCH", "DELETE"]) {
+      const response = await mutationRequest(method, "/api/admin/audit", "{}", headers);
+      assert.equal(response.status, 404, `${method} /api/admin/audit`);
+      await response.arrayBuffer();
+    }
+    assert.equal(calls.filter((call) => call === "admin.auditLog").length, beforeMutations);
     authById[user._id].role = "vendor";
   });
 

@@ -4,6 +4,7 @@ const { readSecret } = require("@/config/secrets");
 const lineRepository = require("@/repositories/line/lineRepository");
 const lineClient = require("@/services/line/lineClient");
 const { LINK_CODE_TTL_MS, CODE_ALPHABET } = require("@/constants/lineConstants");
+const { errorFields, logger } = require("@/utils/logger");
 
 // The default is dictated by LINE. Alternate algorithms require the sender to
 // change too; never select this parameter from the incoming request.
@@ -102,7 +103,7 @@ async function handleUnfollow(event) {
   if (!lineUserId) return;
 
   await lineRepository.clearLineUserId(lineUserId);
-  console.log("LINE unfollow cleared link for", lineUserId);
+  logger.info("line.user.unlinked");
 }
 
 async function handleMessage(event) {
@@ -135,7 +136,7 @@ async function handleMessage(event) {
       event.replyToken,
       "เชื่อมบัญชีสำเร็จ\nคุณจะได้รับสรุป TOR ใหม่ทุกวันจันทร์ 09:00 น.\nปิดได้ทุกเมื่อที่ Smart Alert ใน Torrent",
     );
-    console.log("LINE linked", user.email, lineUserId);
+    logger.info("line.user.linked", { actorId: String(user._id) });
     return;
   }
 
@@ -158,16 +159,17 @@ async function handleMessage(event) {
 
 async function processWebhookEvents(events) {
   for (const event of events) {
+    const eventType = ["follow", "unfollow", "message"].includes(event.type) ? event.type : "unknown";
     try {
       if (event.type === "follow") await handleFollow(event);
       else if (event.type === "unfollow") await handleUnfollow(event);
       else if (event.type === "message" && event.message?.type === "text") {
         await handleMessage(event);
       } else {
-        console.log("LINE event", event.type, event.source?.userId);
+        logger.info("line.webhook.event_ignored", { eventType });
       }
     } catch (err) {
-      console.error("LINE event handler failed", event.type, err.message);
+      logger.error("line.webhook.event_failed", { eventType, ...errorFields(err) });
     }
   }
 }
