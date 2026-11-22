@@ -1,17 +1,15 @@
 const crypto = require("crypto");
+const { verifyHmac } = require("@/utils/cryptoAlgorithms");
 const { readSecret } = require("@/config/secrets");
 const lineRepository = require("@/repositories/line/lineRepository");
 const lineClient = require("@/services/line/lineClient");
 const { LINK_CODE_TTL_MS, CODE_ALPHABET } = require("@/constants/lineConstants");
 
-function verifySignature(rawBody, signature) {
+// The default is dictated by LINE. Alternate algorithms require the sender to
+// change too; never select this parameter from the incoming request.
+function verifySignature(rawBody, signature, { algorithm = "sha256" } = {}) {
   const secret = readSecret("LINE_CHANNEL_SECRET");
-  if (!secret || !signature || !rawBody) return false;
-  const hash = crypto.createHmac("SHA256", secret).update(rawBody).digest("base64");
-  const expected = Buffer.from(hash);
-  const received = Buffer.from(signature);
-  if (expected.length !== received.length) return false;
-  return crypto.timingSafeEqual(expected, received);
+  return verifyHmac(rawBody, signature, secret, { algorithm });
 }
 
 function httpError(status, message) {

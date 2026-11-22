@@ -1,5 +1,6 @@
 const { execFile } = require("node:child_process");
 const crypto = require("node:crypto");
+const deriveLegacyKey = require("evp_bytestokey");
 const { readFile, rm } = require("node:fs/promises");
 const { tmpdir } = require("node:os");
 const { join } = require("node:path");
@@ -31,18 +32,9 @@ function projectIdFromFilename(name) {
 }
 
 function evpBytesToKey(password, salt) {
-  const passwordBuf = Buffer.from(password, "utf8");
-  let previous = Buffer.alloc(0);
-  const blocks = [];
-  while (Buffer.concat(blocks).length < 48) {
-    previous = crypto
-      .createHash("md5")
-      .update(Buffer.concat([previous, passwordBuf, salt]))
-      .digest();
-    blocks.push(previous);
-  }
-  const derived = Buffer.concat(blocks);
-  return { key: derived.subarray(0, 32), iv: derived.subarray(32, 48) };
+  // Provider compatibility only: 256-bit AES key and 16-byte IV. The library
+  // owns the legacy MD5 derivation; never reuse it for application secrets.
+  return deriveLegacyKey(Buffer.from(password, "utf8"), salt, 256, 16);
 }
 
 // Same OpenSSL salted AES that e-GP's CryptoJS passphrase mode expects.

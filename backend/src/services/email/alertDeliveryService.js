@@ -1,4 +1,4 @@
-const { createHash } = require("node:crypto");
+const { hashHex, DEFAULT_HASH_ALGORITHM } = require("@/utils/cryptoAlgorithms");
 const { readSecret } = require("@/config/secrets");
 const userRepository = require("@/repositories/user/userRepository");
 const torRepository = require("@/repositories/tor/torRepository");
@@ -27,12 +27,12 @@ function matchesPreferences(tor, prefs) {
   return Number.isFinite(budget) && budget >= prefs.budgetMinThb && budget <= prefs.budgetMaxThb;
 }
 
-async function queueAlert(user, match, tor, kind, detail) {
+async function queueAlert(user, match, tor, kind, detail, recipientHashAlgorithm) {
   const key = `${kind}:${user._id}:${tor._id}:${detail}`;
-  return emailAlertRepository.queue({ key, userId: user._id, torId: tor._id, kind });
+  return emailAlertRepository.queue({ key, userId: user._id, torId: tor._id, kind, recipientHashAlgorithm });
 }
 
-async function queueEligibleAlerts(now = new Date()) {
+async function queueEligibleAlerts(now = new Date(), recipientHashAlgorithm) {
   const users = await userRepository.findUsersEligibleForEmailAlerts();
   let queued = 0;
   for (const user of users) {
@@ -47,17 +47,17 @@ async function queueEligibleAlerts(now = new Date()) {
       const tor = byId.get(String(match.torId));
       if (!matchesPreferences(tor, prefs)) continue;
       if (prefs.emailMatches && match.createdAt >= (prefs.matchSince || prefs.savedAt)) {
-        queued += await queueAlert(user, match, tor, "match", String(match._id));
+        queued += await queueAlert(user, match, tor, "match", String(match._id), recipientHashAlgorithm);
       }
       const deadline = tor.deadline || tor.ocr?.deadline;
       if (prefs.emailDeadlines && deadline) {
         const closesAt = new Date(deadline).getTime();
         if (closesAt > now.getTime() && closesAt <= now.getTime() + EMAIL_DEADLINE_WINDOW_MS) {
-          queued += await queueAlert(user, match, tor, "deadline", new Date(deadline).toISOString().slice(0, 10));
+          queued += await queueAlert(user, match, tor, "deadline", new Date(deadline).toISOString().slice(0, 10), recipientHashAlgorithm);
         }
       }
       if (prefs.emailIntegrity && ["flagged", "confirmed"].includes(tor.integrityStatus) && tor.updatedAt >= (prefs.integritySince || prefs.savedAt)) {
-        queued += await queueAlert(user, match, tor, "integrity", tor.integrityStatus);
+        queued += await queueAlert(user, match, tor, "integrity", tor.integrityStatus, recipientHashAlgorithm);
       }
     }
   }
@@ -67,7 +67,9 @@ async function queueEligibleAlerts(now = new Date()) {
 async function sendEmail(alert, user, tor, match) {
   const body = alertMessage(alert.kind, tor, match);
   // Keep retries idempotent per recipient when a user's email changes.
-  const recipientKey = createHash("sha256").update(user.email).digest("hex").slice(0, 16);
+  // Existing ledger entries retain their algorithm across retries and upgrades.
+  // Rows created before this field existed always used SHA-256.
+  const recipientKey = hashHex(user.email, { algorithm: alert.recipientHashAlgorithm ?? "sha256" }).slice(0, 16);
   const response = await fetch(RESEND_EMAILS_URL, {
     method: "POST",
     headers: {
@@ -133,12 +135,15 @@ async function deliverPendingAlerts(now = new Date()) {
   return sent;
 }
 
-async function runEmailAlerts() {
+async function runEmailAlerts({ recipientHashAlgorithm = DEFAULT_HASH_ALGORITHM } = {}) {
+  // Validate before any queue writes or deliveries. Only newly inserted alerts
+  // use this choice; the repository's $setOnInsert preserves existing entries.
+  hashHex("", { algorithm: recipientHashAlgorithm });
   const notificationsCreated = await notificationService.syncCurrentAlerts();
   if (!readSecret("RESEND_API_KEY") || !process.env.EMAIL_FROM) {
     return { notificationsCreated, skipped: "email provider not configured" };
   }
-  const queued = await queueEligibleAlerts();
+  const queued = await queueEligibleAlerts(new Date(), recipientHashAlgorithm);
   const sent = await deliverPendingAlerts();
   return { notificationsCreated, queued, sent };
 }
