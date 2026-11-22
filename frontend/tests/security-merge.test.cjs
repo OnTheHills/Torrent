@@ -26,6 +26,26 @@ const cookieHelpers = loadTs("src/lib/session-cookie.ts");
 const torId = "507f1f77bcf86cd799439011";
 const sessionJar = { get: (name) => name === "torrent_session" ? { value: "test-session" } : undefined };
 
+test("proxy prevents caching protected pages and API responses", () => {
+  const { proxy } = loadTs("src/proxy.ts", {
+    "next/server": { NextResponse: {
+      next: () => new Response(null),
+      redirect: (url) => new Response(null, { status: 302, headers: { Location: String(url) } }),
+    } },
+    "@/config/routes": { routes: { login: "/login" } },
+    "@/lib/csp": { buildContentSecurityPolicy: () => "default-src 'self'" },
+    "@/lib/session-cookie": { readSessionCookie: (jar) => jar.get("torrent_session") },
+  });
+  for (const path of ["/app/profile", "/admin/users", "/api/sources/health"]) {
+    const response = proxy({ url: `https://torrent.test${path}`, nextUrl: { pathname: path }, headers: new Headers(), cookies: sessionJar });
+    assert.equal(response.headers.get("cache-control"), "no-store");
+    assert.equal(response.headers.get("referrer-policy"), "no-referrer");
+  }
+  const redirect = proxy({ url: "https://torrent.test/app/profile", nextUrl: { pathname: "/app/profile" }, headers: new Headers(), cookies: { get: () => undefined } });
+  assert.equal(redirect.status, 302);
+  assert.equal(redirect.headers.get("cache-control"), "no-store");
+});
+
 function pdfRoute(jar = sessionJar) {
   return loadTs("src/app/api/admin/tors/[id]/pdf/route.ts", {
     "next/headers": { cookies: async () => jar },
@@ -95,6 +115,46 @@ test("missing, expired and unavailable sessions redirect to login", async (t) =>
   await assert.rejects(sessionGate()(["admin"]), (error) => error.destination === "/login");
   t.mock.method(globalThis, "fetch", async () => { throw new Error("Backend unavailable"); });
   await assert.rejects(sessionGate()(["admin"]), (error) => error.destination === "/login");
+});
+
+test("private client query data is cancelled and cleared when a session ends", async () => {
+  const { QueryClient } = require("@tanstack/react-query");
+  const { clearSessionCache } = loadTs("src/lib/session-cache.ts", {
+    "@tanstack/react-query": require("@tanstack/react-query"),
+  });
+  const client = new QueryClient();
+  client.setQueryData(["private", "profile"], { vendorPhone: "555-0100" });
+  await clearSessionCache(client);
+  assert.equal(client.getQueryData(["private", "profile"]), undefined);
+});
+
+test("an API 401 notifies the session provider to clear private state", async (t) => {
+  const previousWindow = global.window;
+  global.window = new EventTarget();
+  t.after(() => {
+    if (previousWindow === undefined) delete global.window;
+    else global.window = previousWindow;
+  });
+  const { SESSION_EXPIRED_EVENT } = loadTs("src/lib/session-cache.ts", {
+    "@tanstack/react-query": require("@tanstack/react-query"),
+  });
+  const { api } = loadTs("src/lib/api.ts", {
+    "@/lib/log": { logClientError() {} },
+    "@/lib/session-cache": { SESSION_EXPIRED_EVENT },
+  });
+  let expired = false;
+  global.window.addEventListener(SESSION_EXPIRED_EVENT, () => { expired = true; });
+  t.mock.method(globalThis, "fetch", async () => Response.json({ message: "Not signed in." }, { status: 401 }));
+
+  await assert.rejects(api("/private"), /Not signed in\./);
+  assert.equal(expired, true);
+});
+
+test("private contact values stay masked until explicitly revealed", () => {
+  const { maskPrivateValue } = loadTs("src/lib/mask-private-value.ts");
+  assert.equal(maskPrivateValue("owner@example.test"), "••••••••");
+  assert.equal(maskPrivateValue("  "), "—");
+  assert.equal(maskPrivateValue(null), "—");
 });
 
 test("frontend redirects accept local destinations and reject foreign origins", () => {

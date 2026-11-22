@@ -122,7 +122,7 @@ builds and starts the complete stack in the background. Compose will:
 4. wait for MongoDB's health check before starting the backend; and
 5. expose the frontend on port 3000 and the backend on port 5175.
 
-Open http://localhost:3000. Verify the backend and follow startup logs with:
+Open http://localhost:3000. Set `FRONTEND_PORT` in your shell if you want to use a different host port. Verify the backend and follow startup logs with:
 
 ```bash
 curl http://localhost:5175/api/hello

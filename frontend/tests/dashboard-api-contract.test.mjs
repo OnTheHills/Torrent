@@ -20,12 +20,15 @@ function loadSource(relativePath, replacements = {}) {
   });
   const loaded = new Module(filename);
   loaded.filename = filename;
-  loaded.require = (name) => name in replacements ? replacements[name] : require(name);
+  loaded.require = (name) => name === "@/lib/log" ? { logClientError() {} } : name in replacements ? replacements[name] : require(name);
   loaded._compile(outputText, filename);
   return loaded.exports;
 }
 
-const api = loadSource("../src/lib/api.ts");
+const api = loadSource("../src/lib/api.ts", {
+  "@/lib/log": { logClientError() {} },
+  "@/lib/session-cache": { SESSION_EXPIRED_EVENT: "torrent:session-expired" },
+});
 const { dictionary } = loadSource("../src/lib/i18n/dictionary.ts");
 
 // Exercise the actual registered controller and frontend fetch utility together.
@@ -59,8 +62,12 @@ function renderChart(file, componentName, data, clientFunction) {
       return { data, isPending: false, isError: false };
     } },
     "@/components/providers/locale-provider": { useLocale: () => ({ locale: "en", t: (key) => dictionary.en[key] }) },
+    "@/components/dashboard/budget-chart": { BudgetTip: ({ children }) => React.createElement("div", null, children) },
+    "@/lib/utils": { cn: (...values) => values.filter(Boolean).join(" ") },
     "@/components/ui/button": { Button: ({ children }) => React.createElement("button", null, children) },
+    "@/components/dashboard/budget-chart": { BudgetTip: ({ children }) => React.createElement("div", null, children) },
     "@/lib/api": api,
+    "@/lib/utils": { cn: (...classes) => classes.filter(Boolean).join(" ") },
     "@/components/tor/listing-badges": { categoryGlass: () => ({ fill: "var(--palette-gray-150)", ink: "var(--palette-gray-700)" }) },
     "@/components/dashboard/dashboard-loading": { ChartSkeleton: ({ label }) => React.createElement("div", { role: "status", "aria-label": label }) },
   });
@@ -103,7 +110,7 @@ for (const endpoint of [
     aggregate.mock.mockImplementation(async () => { throw new Error("Database unavailable"); });
     await assert.rejects(endpoint.client({ signal }), (error) => {
       assert.equal(error.status, 500);
-      assert.equal(error.message, "Database unavailable");
+      assert.equal(error.message, "Something went wrong.");
       return true;
     });
   });

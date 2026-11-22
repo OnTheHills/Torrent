@@ -24,6 +24,7 @@ function deny(request, response, status, message, reason) {
 }
 
 async function requireAuth(request, response, next) {
+  response.set({ "Cache-Control": "private, no-store", Pragma: "no-cache" });
   const token = readSessionToken(request.cookies);
 
   if (!token) {

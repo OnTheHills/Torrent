@@ -1,6 +1,6 @@
 const vendorProfileRepository = require("@/repositories/vendor/vendorProfileRepository");
 const TORMatch = require("@/models/tor/TORMatch");
-const { saveCertificates } = require("./certificateStorage");
+const { CERTIFICATE_FIELDS, removeCertificateFiles, saveCertificates } = require("./certificateStorage");
 
 async function createVendorProfile(data, files) {
   return saveCertificates({ data, files, userId: data.userId, persist: vendorProfileRepository.create });
@@ -30,6 +30,7 @@ async function updateVendorProfile(id, data, files, existing) {
 async function deleteVendorProfile(id) {
   const profile = await vendorProfileRepository.remove(id);
   if (profile) {
+    await removeCertificateFiles(Object.keys(CERTIFICATE_FIELDS).flatMap((field) => profile[field] || []));
     await TORMatch.deleteMany({ userId: profile.userId });
   }
   return profile;

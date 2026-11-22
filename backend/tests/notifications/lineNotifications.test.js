@@ -80,6 +80,24 @@ test("LINE status, link request, and unlink preserve their response fields", asy
   assert.equal(unlinked.pendingCode, null);
 });
 
+test("LINE status purges an expired link code before returning user data", async (t) => {
+  let cleared = false;
+  t.mock.method(lineRepository, "findStatusByUserId", async () => ({
+    lineLinkCode: "ABC234",
+    lineLinkCodeExpiresAt: new Date(Date.now() - 1000),
+  }));
+  t.mock.method(lineRepository, "clearExpiredLinkCode", async (_userId, now) => {
+    assert.ok(now instanceof Date);
+    cleared = true;
+    return { lineUserId: null, lineLinkCode: undefined };
+  });
+
+  const status = await lineService.getStatus("user");
+  assert.equal(cleared, true);
+  assert.equal(status.pendingCode, null);
+  assert.equal(status.pendingExpiresAt, null);
+});
+
 test("LINE webhook links a valid code and clears a prior account link", async (t) => {
   const user = { _id: "user", email: "user@example.test", lineLinkCode: "ABC234" };
   const calls = [];

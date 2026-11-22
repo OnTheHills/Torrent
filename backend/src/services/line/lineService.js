@@ -38,8 +38,14 @@ function statusPayload(user) {
 }
 
 async function getStatus(userId) {
-  const user = await lineRepository.findStatusByUserId(userId);
+  let user = await lineRepository.findStatusByUserId(userId);
   if (!user) throw httpError(404, "User not found.");
+  const now = new Date();
+  if (user.lineLinkCode && user.lineLinkCodeExpiresAt <= now) {
+    user = await lineRepository.clearExpiredLinkCode(userId, now) ||
+      await lineRepository.findStatusByUserId(userId);
+    if (!user) throw httpError(404, "User not found.");
+  }
   return statusPayload(user);
 }
 

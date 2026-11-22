@@ -223,9 +223,11 @@ test("the application requires a session for mutations and preserves public exce
   await t.test("existing authenticated GET and role restrictions still apply", async () => {
     const anonymous = await fetch(base + "/api/auth/me");
     assert.equal(anonymous.status, 401);
+    assert.match(anonymous.headers.get("cache-control") || "", /no-store/);
     await anonymous.arrayBuffer();
     const signedIn = await fetch(base + "/api/auth/me", { headers: cookie() });
     assert.equal(signedIn.status, 200);
+    assert.match(signedIn.headers.get("cache-control") || "", /no-store/);
     await signedIn.arrayBuffer();
     for (const [method, path] of [
       ["GET", "/api/admin/overview"],
@@ -235,6 +237,7 @@ test("the application requires a session for mutations and preserves public exce
       authById[user._id].role = "vendor";
       const forbidden = await fetch(base + path, { method, headers: await csrfHeaders() });
       assert.equal(forbidden.status, 403);
+      assert.match(forbidden.headers.get("cache-control") || "", /no-store/);
       assert.equal((await forbidden.json()).message, "Forbidden.");
       authById[user._id].role = "admin";
       const adminToken = signUserToken({ ...user, role: "admin" });

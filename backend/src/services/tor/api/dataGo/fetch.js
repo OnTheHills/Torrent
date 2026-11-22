@@ -13,7 +13,6 @@ const { readSecret } = require("@/config/secrets");
 async function fetchPage({ apiKey, year, keyword, offset }) {
   const url = new URL(API_URL);
   url.search = new URLSearchParams({
-    "api-key": apiKey,
     year,
     keyword,
     offset: String(offset),
@@ -24,7 +23,7 @@ async function fetchPage({ apiKey, year, keyword, offset }) {
     try {
       const response = await fetch(url, {
         method: METHOD,
-        headers: { Accept: "application/json" },
+        headers: { Accept: "application/json", "api-key": apiKey },
         signal: AbortSignal.timeout(60000),
       });
       if (!response.ok) throw new Error(`data.go API HTTP ${response.status}`);
