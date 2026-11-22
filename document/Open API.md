@@ -303,7 +303,7 @@ account field being part of a stable response contract.
 | GET | `/vendor-profiles/get/{userId}` | Self/admin | `200` profile for that user |
 | GET | `/vendor-profiles/{id}` | Owner/admin | `200` profile by profile ID |
 | PATCH | `/vendor-profiles/{id}` | Owner/admin | `200` updated profile |
-| DELETE | `/vendor-profiles/{id}` | Owner/admin | `200` deleted profile |
+| DELETE | `/vendor-profiles/{id}` | Owner/admin | `200` `{ok:true}`; removes profile certificates and match records |
 | GET | `/vendor-profiles/certificates/{filename}` | Owner/admin | `200 image/png` |
 
 All profile routes require vendor/admin. Creation binds `userId` to the signed-in

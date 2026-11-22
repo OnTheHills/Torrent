@@ -85,13 +85,18 @@ test("audit logs are admin-readable and have no mutation route", { timeout: 1500
         app,
         locals: {},
         req: request,
+        headers: {},
         statusCode: 200,
+        set(values) {
+          Object.assign(this.headers, values);
+          return this;
+        },
         status(code) {
           this.statusCode = code;
           return this;
         },
         json(body) {
-          resolve({ status: this.statusCode, body });
+          resolve({ status: this.statusCode, body, headers: this.headers });
           return this;
         },
       };
@@ -105,13 +110,16 @@ test("audit logs are admin-readable and have no mutation route", { timeout: 1500
 
   const anonymous = await dispatch("GET");
   assert.equal(anonymous.status, 401);
+  assert.match(anonymous.headers["Cache-Control"], /no-store/);
 
   const forbidden = await dispatch("GET", sessions.vendor);
   assert.equal(forbidden.status, 403);
+  assert.match(forbidden.headers["Cache-Control"], /no-store/);
 
   const allowed = await dispatch("GET", sessions.admin);
   assert.equal(allowed.status, 200);
   assert.deepEqual(allowed.body, { action: "auditLog" });
+  assert.match(allowed.headers["Cache-Control"], /no-store/);
 
   for (const method of ["PATCH", "DELETE"]) {
     const vendorMutation = await dispatch(method, sessions.vendor);

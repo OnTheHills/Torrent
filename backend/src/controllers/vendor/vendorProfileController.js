@@ -98,7 +98,7 @@ async function deleteVendorProfile(request, response) {
       return response.status(404).json({ message: "Vendor profile not found." });
     }
 
-    return response.status(200).json(vendorProfile);
+    return response.status(200).json({ ok: true });
   } catch (error) {
     return response.status(500).json({ message: error.message });
   }

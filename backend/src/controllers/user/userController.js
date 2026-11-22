@@ -1,9 +1,10 @@
 const userService = require("@/services/user/userService");
+const { toPublicUser } = require("@/utils/publicUser");
 
 async function getAllUsers(request, response) {
   try {
     const users = await userService.getAllUsers();
-    return response.status(200).json(users);
+    return response.status(200).json(users.map(toPublicUser));
   } catch (error) {
     return response.status(500).json({ message: error.message });
   }
@@ -17,7 +18,7 @@ async function getUserById(request, response) {
       return response.status(404).json({ message: "User not found." });
     }
 
-    return response.status(200).json(user);
+    return response.status(200).json(toPublicUser(user));
   } catch (error) {
     return response.status(500).json({ message: error.message });
   }
@@ -35,7 +36,7 @@ async function updateUser(request, response) {
       return response.status(404).json({ message: "User not found." });
     }
 
-    return response.status(200).json(user);
+    return response.status(200).json(toPublicUser(user));
   } catch (error) {
     return response.status(error.statusCode || 500).json({ message: error.message });
   }
@@ -49,7 +50,7 @@ async function deleteUser(request, response) {
       return response.status(404).json({ message: "User not found." });
     }
 
-    return response.status(200).json(user);
+    return response.status(200).json({ ok: true });
   } catch (error) {
     return response.status(500).json({ message: error.message });
   }

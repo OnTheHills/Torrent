@@ -14,6 +14,14 @@ function setLinkCode(userId, code, expiresAt) {
   ).select(STATUS_FIELDS);
 }
 
+function clearExpiredLinkCode(userId, now) {
+  return User.findOneAndUpdate(
+    { _id: userId, lineLinkCodeExpiresAt: { $lte: now } },
+    { $unset: { lineLinkCode: 1, lineLinkCodeExpiresAt: 1 } },
+    { returnDocument: "after" },
+  ).select(STATUS_FIELDS);
+}
+
 function unlinkUser(userId) {
   return User.findByIdAndUpdate(
     userId,
@@ -84,6 +92,7 @@ function findDigestRecipients(limit) {
 module.exports = {
   findStatusByUserId,
   setLinkCode,
+  clearExpiredLinkCode,
   unlinkUser,
   findLineIdByUserId,
   setDigestEnabled,

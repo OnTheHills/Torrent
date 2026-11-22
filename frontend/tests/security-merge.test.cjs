@@ -97,6 +97,46 @@ test("missing, expired and unavailable sessions redirect to login", async (t) =>
   await assert.rejects(sessionGate()(["admin"]), (error) => error.destination === "/login");
 });
 
+test("private client query data is cancelled and cleared when a session ends", async () => {
+  const { QueryClient } = require("@tanstack/react-query");
+  const { clearSessionCache } = loadTs("src/lib/session-cache.ts", {
+    "@tanstack/react-query": require("@tanstack/react-query"),
+  });
+  const client = new QueryClient();
+  client.setQueryData(["private", "profile"], { vendorPhone: "555-0100" });
+  await clearSessionCache(client);
+  assert.equal(client.getQueryData(["private", "profile"]), undefined);
+});
+
+test("an API 401 notifies the session provider to clear private state", async (t) => {
+  const previousWindow = global.window;
+  global.window = new EventTarget();
+  t.after(() => {
+    if (previousWindow === undefined) delete global.window;
+    else global.window = previousWindow;
+  });
+  const { SESSION_EXPIRED_EVENT } = loadTs("src/lib/session-cache.ts", {
+    "@tanstack/react-query": require("@tanstack/react-query"),
+  });
+  const { api } = loadTs("src/lib/api.ts", {
+    "@/lib/log": { logClientError() {} },
+    "@/lib/session-cache": { SESSION_EXPIRED_EVENT },
+  });
+  let expired = false;
+  global.window.addEventListener(SESSION_EXPIRED_EVENT, () => { expired = true; });
+  t.mock.method(globalThis, "fetch", async () => Response.json({ message: "Not signed in." }, { status: 401 }));
+
+  await assert.rejects(api("/private"), /Not signed in\./);
+  assert.equal(expired, true);
+});
+
+test("private contact values stay masked until explicitly revealed", () => {
+  const { maskPrivateValue } = loadTs("src/lib/mask-private-value.ts");
+  assert.equal(maskPrivateValue("owner@example.test"), "••••••••");
+  assert.equal(maskPrivateValue("  "), "—");
+  assert.equal(maskPrivateValue(null), "—");
+});
+
 test("frontend redirects accept local destinations and reject foreign origins", () => {
   const { safeAppPath } = loadTs("src/lib/safe-path.ts");
   assert.equal(safeAppPath("/app/tors?sort=newest"), "/app/tors?sort=newest");

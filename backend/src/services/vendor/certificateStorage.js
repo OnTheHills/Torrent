@@ -141,4 +141,4 @@ async function readCertificates(profile) {
   return certificates;
 }
 
-module.exports = { CERTIFICATE_FIELDS, FILE_PATTERN, MAX_CERTIFICATES, MAX_FILE_SIZE, UPLOAD_DIRECTORY, badRequest, saveCertificates, readCertificates };
+module.exports = { CERTIFICATE_FIELDS, FILE_PATTERN, MAX_CERTIFICATES, MAX_FILE_SIZE, UPLOAD_DIRECTORY, badRequest, removeCertificateFiles, saveCertificates, readCertificates };

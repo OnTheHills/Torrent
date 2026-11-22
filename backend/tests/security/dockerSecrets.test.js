@@ -163,7 +163,9 @@ test("file-backed secrets drive JWT, LINE, and data.go without raw env values", 
       lineCalls++;
       return { ok: true };
     }
-    assert.equal(new URL(url).searchParams.get("api-key"), values.DATA_GO_API_KEY);
+    const requestUrl = new URL(url);
+    assert.equal(requestUrl.searchParams.has("api-key"), false);
+    assert.equal(options.headers["api-key"], values.DATA_GO_API_KEY);
     dataGoCalls++;
     return { ok: true, json: async () => ({ success: true, total: 0, data: [] }) };
   });

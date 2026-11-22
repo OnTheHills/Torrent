@@ -21,7 +21,10 @@ function loadSource(relativePath, replacements = {}) {
   return loaded.exports;
 }
 
-const api = loadSource("../src/lib/api.ts");
+const api = loadSource("../src/lib/api.ts", {
+  "@/lib/log": { logClientError() {} },
+  "@/lib/session-cache": { SESSION_EXPIRED_EVENT: "torrent:session-expired" },
+});
 const { dictionary } = loadSource("../src/lib/i18n/dictionary.ts");
 let query;
 let options;

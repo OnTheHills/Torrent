@@ -13,7 +13,11 @@ function loadApi() {
   });
   const loaded = new Module(filename);
   loaded.filename = filename;
-  loaded.require = require;
+  loaded.require = (name) => {
+    if (name === "@/lib/log") return { logClientError() {} };
+    if (name === "@/lib/session-cache") return { SESSION_EXPIRED_EVENT: "torrent:session-expired" };
+    return require(name);
+  };
   loaded._compile(outputText, filename);
   return loaded.exports;
 }

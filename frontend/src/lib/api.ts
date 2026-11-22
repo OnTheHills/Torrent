@@ -1,5 +1,6 @@
 import type { Tor } from "@/types/tor";
 import { logClientError } from "@/lib/log";
+import { SESSION_EXPIRED_EVENT } from "@/lib/session-cache";
 
 export interface CategoryFrequency {
   category: string;
@@ -97,6 +98,9 @@ export async function api<T>(
     }
     if (mutation) headers.set("x-csrf-token", await getCsrfToken());
     const response = await fetch(apiUrl(path), { ...options, credentials: "include", headers });
+    if (response.status === 401 && typeof window !== "undefined") {
+      window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    }
     const data = await response.json().catch(() => ({}));
     return { response, data };
   };

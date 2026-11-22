@@ -1,4 +1,5 @@
 const userRepository = require("@/repositories/user/userRepository");
+const vendorProfileService = require("@/services/vendor/vendorProfileService");
 
 async function getAllUsers() {
   return userRepository.findAll();
@@ -20,6 +21,8 @@ async function updateUser(id, data, actorRole) {
 }
 
 async function deleteUser(id) {
+  const profile = await vendorProfileService.getVendorProfileByUserId(id);
+  if (profile) await vendorProfileService.deleteVendorProfile(profile._id);
   return userRepository.remove(id);
 }
 

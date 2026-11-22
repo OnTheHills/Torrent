@@ -1,14 +1,9 @@
 const userRepository = require("@/repositories/user/userRepository");
 const { verifyGoogleIdToken } = require("@/utils/googleAuth");
+const { toPublicUser } = require("@/utils/publicUser");
 
 function signupRole(role) {
   return role === "vendor" || role === "public" ? role : "public";
-}
-
-function toPublicUser(user) {
-  const json = user.toObject ? user.toObject() : { ...user };
-  delete json.passwordHash;
-  return json;
 }
 
 function authError(message, statusCode, code) {
@@ -97,7 +92,7 @@ async function loginWithGoogle(credential, requestedRole, { nonce } = {}) {
 }
 
 async function getCurrentUser(id) {
-  return userRepository.findPublicById(id);
+  return toPublicUser(await userRepository.findPublicById(id));
 }
 
 module.exports = { getCurrentUser, loginWithGoogle };

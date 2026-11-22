@@ -21,6 +21,7 @@ test("certificate uploads persist with their profile and enforce ownership and P
   process.env.CERTIFICATE_UPLOAD_DIR = directory;
   process.env.JWT_SECRET = "certificate-upload-test-secret";
   const VendorProfile = require("../../src/models/vendor/VendorProfile");
+  const TORMatch = require("../../src/models/tor/TORMatch");
   const repository = require("../../src/repositories/vendor/vendorProfileRepository");
   const userRepository = require("../../src/repositories/user/userRepository");
   const matching = require("../../src/jobs/matchTors");
@@ -40,6 +41,13 @@ test("certificate uploads persist with their profile and enforce ownership and P
   t.mock.method(repository, "update", (_id, data) => persist({ ...stored, ...data }));
   t.mock.method(repository, "findById", async (id) => id === PROFILE ? stored : null);
   t.mock.method(repository, "findByUserId", async (id) => stored?.userId === id ? stored : null);
+  t.mock.method(repository, "remove", async (id) => {
+    if (id !== PROFILE) return null;
+    const removed = stored;
+    stored = null;
+    return removed;
+  });
+  t.mock.method(TORMatch, "deleteMany", async () => ({ deletedCount: 0 }));
   t.mock.method(userRepository, "findAuthById", async (id) => ({
     _id: id,
     role: "vendor",
@@ -133,6 +141,7 @@ test("certificate uploads persist with their profile and enforce ownership and P
   await t.test("saved certificates reload and can be viewed only by their owner or an admin", async () => {
     const filename = path.basename(stored.securityCertificates[0]);
     const reloaded = await send("GET", `/get/${USER}`);
+    assert.match(reloaded.headers.get("cache-control") || "", /no-store/);
     assert.deepEqual((await reloaded.json()).securityCertificates, stored.securityCertificates);
     const response = await send("GET", `/certificates/${filename}`);
     assert.equal(response.status, 200);
@@ -243,5 +252,15 @@ test("certificate uploads persist with their profile and enforce ownership and P
     assert.equal(stored.vendorName, "Saved without matching");
     assert.equal(enqueueTor.mock.callCount(), 0);
     assert.equal(enqueueTors.mock.callCount(), 0);
+  });
+
+  await t.test("deleting a profile removes its uploaded certificate files", async () => {
+    const savedPaths = ["securityCertificates", "aiCertificates", "otherCertificates"]
+      .flatMap((field) => stored[field]);
+    assert.ok(savedPaths.length > 0);
+    const response = await send("DELETE", `/${PROFILE}`);
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { ok: true });
+    assert.deepEqual(await listFiles(), []);
   });
 });

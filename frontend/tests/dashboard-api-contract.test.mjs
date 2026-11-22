@@ -25,7 +25,10 @@ function loadSource(relativePath, replacements = {}) {
   return loaded.exports;
 }
 
-const api = loadSource("../src/lib/api.ts");
+const api = loadSource("../src/lib/api.ts", {
+  "@/lib/log": { logClientError() {} },
+  "@/lib/session-cache": { SESSION_EXPIRED_EVENT: "torrent:session-expired" },
+});
 const { dictionary } = loadSource("../src/lib/i18n/dictionary.ts");
 
 // Exercise the actual registered controller and frontend fetch utility together.
@@ -60,7 +63,9 @@ function renderChart(file, componentName, data, clientFunction) {
     } },
     "@/components/providers/locale-provider": { useLocale: () => ({ locale: "en", t: (key) => dictionary.en[key] }) },
     "@/components/ui/button": { Button: ({ children }) => React.createElement("button", null, children) },
+    "@/components/dashboard/budget-chart": { BudgetTip: ({ children }) => React.createElement("div", null, children) },
     "@/lib/api": api,
+    "@/lib/utils": { cn: (...classes) => classes.filter(Boolean).join(" ") },
     "@/components/tor/listing-badges": { categoryGlass: () => ({ fill: "var(--palette-gray-150)", ink: "var(--palette-gray-700)" }) },
     "@/components/dashboard/dashboard-loading": { ChartSkeleton: ({ label }) => React.createElement("div", { role: "status", "aria-label": label }) },
   });
@@ -103,7 +108,7 @@ for (const endpoint of [
     aggregate.mock.mockImplementation(async () => { throw new Error("Database unavailable"); });
     await assert.rejects(endpoint.client({ signal }), (error) => {
       assert.equal(error.status, 500);
-      assert.equal(error.message, "Database unavailable");
+      assert.equal(error.message, "Something went wrong.");
       return true;
     });
   });
