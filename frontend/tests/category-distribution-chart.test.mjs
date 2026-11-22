@@ -16,12 +16,15 @@ function loadSource(relativePath, replacements = {}) {
   });
   const loaded = new Module(filename);
   loaded.filename = filename;
-  loaded.require = (name) => name in replacements ? replacements[name] : require(name);
+  loaded.require = (name) => name === "@/lib/log" ? { logClientError() {} } : name in replacements ? replacements[name] : require(name);
   loaded._compile(outputText, filename);
   return loaded.exports;
 }
 
-const api = loadSource("../src/lib/api.ts");
+const api = loadSource("../src/lib/api.ts", {
+  "@/lib/log": { logClientError() {} },
+  "@/lib/session-cache": { SESSION_EXPIRED_EVENT: "torrent:session-expired" },
+});
 const { dictionary } = loadSource("../src/lib/i18n/dictionary.ts");
 let query;
 let options;

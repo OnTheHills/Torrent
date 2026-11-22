@@ -1,0 +1,564 @@
+const assert = require("node:assert/strict");
+const { createHmac } = require("node:crypto");
+const { once } = require("node:events");
+const { test } = require("node:test");
+const jwt = require("jsonwebtoken");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const { SECRET_NAMES } = require("../../src/config/secrets");
+
+test("the application requires a session for mutations and preserves public exceptions", { timeout: 15000 }, async (t) => {
+  const environment = {
+    CORS_ORIGIN: "https://torrent.example.test",
+    JWT_SECRET: "mutation-auth-test-secret",
+    LINE_CHANNEL_SECRET: "mutation-auth-line-test-secret",
+    CSRF_SECRET: "",
+    COOKIE_SECRET: "mutation-cookie-test-secret-used-only-by-tests",
+    COOKIE_SECURE: "false",
+    NODE_ENV: "test",
+    RATE_LIMIT_CSRF_MAX: "500",
+  };
+  // Exercise Docker's strict file transport throughout the HTTP protection suite.
+  const secretDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "torrent-auth-secrets-"));
+  t.after(() => fs.rmSync(secretDirectory, { recursive: true, force: true }));
+  const runtimeEnvironment = { ...environment, SECRETS_ONLY: "true" };
+  for (const name of SECRET_NAMES) {
+    const filename = path.join(secretDirectory, name.toLowerCase());
+    fs.writeFileSync(filename, environment[name] || "");
+    runtimeEnvironment[`${name}_FILE`] = filename;
+    runtimeEnvironment[name] = "unused-raw-environment-value";
+  }
+  for (const [key, value] of Object.entries(runtimeEnvironment)) {
+    const previous = process.env[key];
+    process.env[key] = value;
+    t.after(() => {
+      if (previous === undefined) delete process.env[key];
+      else process.env[key] = previous;
+    });
+  }
+
+  const calls = [];
+  function stubModule(name, exports) {
+    const filename = require.resolve(name);
+    const previous = require.cache[filename];
+    require.cache[filename] = { id: filename, filename, loaded: true, exports };
+    t.after(() => {
+      if (previous) require.cache[filename] = previous;
+      else delete require.cache[filename];
+    });
+  }
+
+  // Exercise the real application, routes, JWT, role checks, and LINE signature
+  // verification while keeping controllers away from databases/external APIs.
+  const controllerGroups = {
+    auth: "auth", user: "user", vendorProfile: "vendor",
+    tor: "tor", torMatch: "tor", sync: "sync", admin: "admin",
+  };
+  for (const [name, group] of Object.entries(controllerGroups)) {
+    stubModule(`@/controllers/${group}/${name}Controller`, new Proxy({}, {
+      get(_target, action) {
+        return (request, response) => {
+          calls.push(`${name}.${String(action)}`);
+          return response.json({ action, user: request.user || null });
+        };
+      },
+    }));
+  }
+  const user = { _id: "507f1f77bcf86cd799439011", email: "vendor@example.test", role: "vendor" };
+  const authById = {
+    [user._id]: {
+      _id: user._id,
+      email: user.email,
+      role: "vendor",
+      disabled: false,
+    },
+  };
+  const userRepository = require("@/repositories/user/userRepository");
+  t.mock.method(userRepository, "findAuthById", async (id) => {
+    const row = authById[String(id)];
+    return row ? { ...row } : null;
+  });
+  const lineService = require("@/services/line/lineService");
+  t.mock.method(lineService, "processWebhookEvents", async () => { calls.push("line.processWebhookEvents"); });
+  const matchId = "507f1f77bcf86cd799439012";
+
+  const app = require("@/app");
+  // Mount under a vendor-allowed prefix so the global gate still applies to a
+  // synthetic PUT without requiring an admin session.
+  app.put("/api/email-alerts/mutation-auth-test", (request, response) => (
+    response.json({ user: request.user })
+  ));
+  const server = app.listen(0, "127.0.0.1");
+  t.after(async () => {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+  });
+  await once(server, "listening");
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const { signUserToken } = require("@/utils/session");
+  const token = signUserToken(user);
+  const cookie = (value = token) => ({ Cookie: `torrent_session=${value}` });
+  async function csrfHeaders(session = token, previousCookies = "") {
+    const response = await fetch(base + "/api/auth/csrf", {
+      headers: {
+        Origin: environment.CORS_ORIGIN,
+        Cookie: [previousCookies, session ? `torrent_session=${session}` : ""].filter(Boolean).join("; "),
+      },
+    });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("cache-control"), "no-store");
+    const cookies = response.headers.getSetCookie().map((value) => value.split(";")[0]);
+    if (session) cookies.push(`torrent_session=${session}`);
+    const body = await response.json();
+    assert.equal(typeof body.csrfToken, "string");
+    return {
+      Origin: environment.CORS_ORIGIN,
+      Cookie: cookies.join("; "),
+      "x-csrf-token": body.csrfToken,
+    };
+  }
+  const mutations = [
+    ["POST", "/api/tor-matches/ensure", "{}"],
+    ["PUT", "/api/email-alerts/mutation-auth-test"],
+    ["PATCH", `/api/tor-matches/mine/${matchId}`, "{}"],
+    ["DELETE", `/api/users/${user._id}`],
+  ];
+  async function mutationRequest(method, path, body, headers) {
+    const init = { method, headers: { ...headers } };
+    if (body !== undefined) {
+      init.headers["Content-Type"] = "application/json";
+      init.body = body;
+    }
+    return fetch(base + path, init);
+  }
+
+  await t.test("all four mutation methods reject a missing session before calling controllers", async () => {
+    const before = calls.length;
+    for (const [method, path, body] of mutations) {
+      const response = await mutationRequest(method, path, body);
+      assert.equal(response.status, 401, `${method} ${path}`);
+      assert.deepEqual(await response.json(), { message: "Not signed in." });
+    }
+    assert.equal(calls.length, before);
+  });
+
+  await t.test("invalid, expired, unsigned, and wrongly signed tokens are rejected", async () => {
+    const invalidTokens = [
+      "not-a-jwt",
+      jwt.sign({ sub: user._id }, environment.JWT_SECRET, { expiresIn: -1 }),
+      jwt.sign({ sub: user._id }, "", { algorithm: "none" }),
+      jwt.sign({ sub: user._id }, "another-test-secret"),
+    ];
+    const before = calls.length;
+    for (const invalid of invalidTokens) {
+      for (const [method, path, body] of mutations) {
+        const response = await mutationRequest(method, path, body, cookie(invalid));
+        assert.equal(response.status, 401, `${method} rejects invalid session`);
+        await response.arrayBuffer();
+      }
+    }
+    assert.equal(calls.length, before);
+  });
+
+  await t.test("all four mutation methods accept a valid session and expose verified user claims", async () => {
+    for (const [method, path, body] of mutations) {
+      const response = await mutationRequest(method, path, body, await csrfHeaders());
+      assert.equal(response.status, 200, `${method} ${path}`);
+      const payload = await response.json();
+      assert.equal(payload.user.sub, user._id);
+      assert.equal(payload.user.role, "vendor");
+    }
+  });
+
+  await t.test("a bearer header does not replace the session cookie", async () => {
+    const response = await fetch(base + "/api/tor-matches/ensure", {
+      method: "POST", headers: { Authorization: `Bearer ${token}` },
+    });
+    assert.equal(response.status, 401);
+    await response.arrayBuffer();
+  });
+
+  await t.test("unauthenticated JSON and multipart writes are rejected before body parsing", async () => {
+    for (const type of ["application/json", "multipart/form-data; boundary=test"]) {
+      const response = await fetch(base + "/api/vendor-profiles", {
+        method: "POST", headers: { "Content-Type": type }, body: "malformed-body",
+      });
+      assert.equal(response.status, 401);
+      assert.deepEqual(await response.json(), { message: "Not signed in." });
+    }
+  });
+
+  await t.test("public GET and HEAD routes remain accessible even with a stale cookie", async () => {
+    for (const path of ["/", "/api/hello", "/api/tors"]) {
+      for (const method of ["GET", "HEAD"]) {
+        const response = await fetch(base + path, { method, headers: cookie("stale") });
+        assert.equal(response.status, 200, `${method} ${path}`);
+        await response.arrayBuffer();
+      }
+    }
+  });
+
+  await t.test("protected GET routes reject a stale cookie before controllers", async () => {
+    for (const path of ["/api/vendor-profiles", "/api/tor-matches"]) {
+      for (const method of ["GET", "HEAD"]) {
+        const response = await fetch(base + path, { method, headers: cookie("stale") });
+        assert.equal(response.status, 401, `${method} ${path}`);
+        await response.arrayBuffer();
+      }
+    }
+  });
+
+  await t.test("CORS preflight does not require a session", async () => {
+    const response = await fetch(base + "/api/tor-matches/ensure", {
+      method: "OPTIONS", headers: {
+        Origin: environment.CORS_ORIGIN,
+        "Access-Control-Request-Method": "POST",
+      },
+    });
+    assert.equal(response.status, 204);
+    assert.equal(response.headers.get("access-control-allow-origin"), environment.CORS_ORIGIN);
+  });
+
+  await t.test("existing authenticated GET and role restrictions still apply", async () => {
+    const anonymous = await fetch(base + "/api/auth/me");
+    assert.equal(anonymous.status, 401);
+    assert.match(anonymous.headers.get("cache-control") || "", /no-store/);
+    await anonymous.arrayBuffer();
+    const signedIn = await fetch(base + "/api/auth/me", { headers: cookie() });
+    assert.equal(signedIn.status, 200);
+    assert.match(signedIn.headers.get("cache-control") || "", /no-store/);
+    await signedIn.arrayBuffer();
+    for (const [method, path] of [
+      ["GET", "/api/admin/overview"],
+      ["PATCH", `/api/tors/${matchId}`],
+      ["DELETE", `/api/tors/${matchId}`],
+    ]) {
+      authById[user._id].role = "vendor";
+      const forbidden = await fetch(base + path, { method, headers: await csrfHeaders() });
+      assert.equal(forbidden.status, 403);
+      assert.match(forbidden.headers.get("cache-control") || "", /no-store/);
+      assert.equal((await forbidden.json()).message, "Forbidden.");
+      authById[user._id].role = "admin";
+      const adminToken = signUserToken({ ...user, role: "admin" });
+      const allowed = await fetch(base + path, { method, headers: await csrfHeaders(adminToken) });
+      assert.equal(allowed.status, 200);
+      await allowed.arrayBuffer();
+    }
+    authById[user._id].role = "vendor";
+  });
+
+  await t.test("audit logs are admin-readable and have no HTTP mutation route", async () => {
+    const anonymous = await fetch(base + "/api/admin/audit");
+    assert.equal(anonymous.status, 401);
+    await anonymous.arrayBuffer();
+
+    authById[user._id].role = "vendor";
+    const vendorSession = signUserToken({ ...user, role: "vendor" });
+    const forbidden = await fetch(base + "/api/admin/audit", { headers: cookie(vendorSession) });
+    assert.equal(forbidden.status, 403);
+    await forbidden.arrayBuffer();
+
+    authById[user._id].role = "admin";
+    const adminSession = signUserToken({ ...user, role: "admin" });
+    const allowed = await fetch(base + "/api/admin/audit", { headers: cookie(adminSession) });
+    assert.equal(allowed.status, 200);
+    assert.equal((await allowed.json()).action, "auditLog");
+
+    const beforeMutations = calls.filter((call) => call === "admin.auditLog").length;
+    const headers = await csrfHeaders(adminSession);
+    for (const method of ["PATCH", "DELETE"]) {
+      const response = await mutationRequest(method, "/api/admin/audit", "{}", headers);
+      assert.equal(response.status, 404, `${method} /api/admin/audit`);
+      await response.arrayBuffer();
+    }
+    assert.equal(calls.filter((call) => call === "admin.auditLog").length, beforeMutations);
+    authById[user._id].role = "vendor";
+  });
+
+  await t.test("admins and vendors cannot manually create TORs", async () => {
+    const before = calls.length;
+    try {
+      for (const role of ["admin", "vendor"]) {
+        authById[user._id].role = role;
+        const session = signUserToken({ ...user, role });
+        for (const path of ["/api/tors", "/api/tors/", "/API/TORS?source=manual"]) {
+          const response = await mutationRequest("POST", path, JSON.stringify({
+            title: "Manually invented TOR", source: "EGP-PROCESS5",
+          }), await csrfHeaders(session));
+          assert.equal(response.status, 404, `${role} POST ${path}`);
+          await response.arrayBuffer();
+        }
+      }
+      assert.equal(calls.length, before);
+    } finally {
+      authById[user._id].role = "vendor";
+    }
+  });
+
+  await t.test("match reads allow vendors only through mine and retain admin access", async () => {
+    try {
+      for (const role of ["vendor", "admin"]) {
+        authById[user._id].role = role;
+        const headers = cookie(signUserToken({ ...user, role }));
+        for (const path of [
+          "/api/tor-matches", "/api/tor-matches/", "/API/TOR-MATCHES?userId=someone-else",
+          `/api/tor-matches/${matchId}`, `/api/tor-matches/${matchId}/`,
+        ]) {
+          for (const method of ["GET", "HEAD"]) {
+            const before = calls.length;
+            const response = await fetch(base + path, { method, headers });
+            assert.equal(response.status, role === "admin" ? 200 : 403, `${role} ${method} ${path}`);
+            if (role === "vendor") assert.equal(calls.length, before);
+            await response.arrayBuffer();
+          }
+        }
+        const mine = await fetch(base + "/api/tor-matches/mine?userId=someone-else", { headers });
+        assert.equal(mine.status, 200);
+        const payload = await mine.json();
+        assert.equal(payload.action, "getMyTorMatches");
+        assert.equal(payload.user.sub, user._id);
+      }
+    } finally {
+      authById[user._id].role = "vendor";
+    }
+  });
+
+  await t.test("match creation is job-only and generic match writes require admin", async () => {
+    try {
+      for (const role of ["vendor", "admin"]) {
+        authById[user._id].role = role;
+        const session = signUserToken({ ...user, role });
+        for (const path of ["/api/tor-matches", "/API/TOR-MATCHES/?userId=another-user"]) {
+          const before = calls.length;
+          const response = await mutationRequest("POST", path, JSON.stringify({
+            userId: "507f1f77bcf86cd799439099", torId: matchId, matchPercent: 100,
+          }), await csrfHeaders(session));
+          assert.equal(response.status, 404, `${role} POST ${path}`);
+          assert.equal(calls.length, before);
+          await response.arrayBuffer();
+        }
+        // Include the known own-match ID: vendors cannot edit even their own scores.
+        for (const id of [matchId, "507f1f77bcf86cd799439099"]) {
+          for (const method of ["PATCH", "DELETE"]) {
+            const before = calls.length;
+            const response = await mutationRequest(method, `/api/tor-matches/${id}`, JSON.stringify({
+              matchPercent: 100, matchReason: "Forged score", userId: user._id,
+            }), await csrfHeaders(session));
+            assert.equal(response.status, role === "admin" ? 200 : 403);
+            if (role === "vendor") assert.equal(calls.length, before);
+            else assert.equal((await response.json()).action, method === "PATCH" ? "updateTorMatch" : "deleteTorMatch");
+            if (role === "vendor") await response.arrayBuffer();
+          }
+        }
+        const feedback = await mutationRequest("PATCH", `/api/tor-matches/mine/${matchId}`,
+          JSON.stringify({ dismissed: true }), await csrfHeaders(session));
+        assert.equal(feedback.status, 200);
+        assert.equal((await feedback.json()).action, "setMyMatchDismissed");
+      }
+    } finally {
+      authById[user._id].role = "vendor";
+    }
+  });
+
+  await t.test("admins and vendors cannot create users through the removed CRUD endpoint", async () => {
+    const before = calls.length;
+    try {
+      for (const role of ["admin", "vendor"]) {
+        authById[user._id].role = role;
+        const session = signUserToken({ ...user, role });
+        for (const path of ["/api/users", "/api/users/", "/API/USERS"]) {
+          const response = await mutationRequest("POST", path, JSON.stringify({
+            email: "created@example.test", role: "admin",
+          }), await csrfHeaders(session));
+          assert.equal(response.status, 404, `${role} POST ${path}`);
+          await response.arrayBuffer();
+        }
+      }
+      assert.equal(calls.length, before);
+    } finally {
+      authById[user._id].role = "vendor";
+    }
+  });
+
+  await t.test("disabled accounts and demoted roles are enforced from the database", async () => {
+    authById[user._id].disabled = true;
+    const disabled = await fetch(base + "/api/tor-matches/ensure", {
+      method: "POST",
+      headers: await csrfHeaders(),
+    });
+    assert.equal(disabled.status, 401);
+    assert.deepEqual(await disabled.json(), { message: "Not signed in." });
+    authById[user._id].disabled = false;
+
+    authById[user._id].role = "public";
+    const demoted = await fetch(base + "/api/tor-matches/ensure", {
+      method: "POST",
+      headers: await csrfHeaders(),
+    });
+    assert.equal(demoted.status, 403);
+    assert.equal((await demoted.json()).message, "Forbidden.");
+    authById[user._id].role = "vendor";
+  });
+
+  await t.test("vendor profile listing is admin-only while vendors can still mutate their own", async () => {
+    const before = calls.length;
+    authById[user._id].role = "vendor";
+    const vendorList = await fetch(base + "/api/vendor-profiles", { headers: cookie() });
+    assert.equal(vendorList.status, 403);
+    assert.equal((await vendorList.json()).message, "Forbidden.");
+    assert.equal(calls.length, before);
+
+    authById[user._id].role = "admin";
+    const adminList = await fetch(base + "/api/vendor-profiles", {
+      headers: cookie(signUserToken({ ...user, role: "admin" })),
+    });
+    assert.equal(adminList.status, 200);
+    assert.equal((await adminList.json()).action, "getAllVendorProfiles");
+    authById[user._id].role = "vendor";
+  });
+
+  await t.test("Google login stays reachable without a session, including a trailing slash/query", async () => {
+    for (const path of ["/api/auth/google", "/api/auth/google/?source=test", "/API/AUTH/GOOGLE"]) {
+      const response = await fetch(base + path, { method: "POST", headers: await csrfHeaders(null) });
+      assert.equal(response.status, 200);
+      assert.equal((await response.json()).action, "googleLogin");
+    }
+  });
+
+  await t.test("exceptions do not bypass auth for other methods, sibling paths, logout, or dev-admin", async () => {
+    const paths = [
+      ["POST", "/api/auth/google/extra"], ["POST", "/api/auth/google-extra"],
+      ["POST", "/api/line/webhook/extra"], ["POST", "/api/line/webhook-extra"],
+      ["POST", "/api/auth/dev-admin"], ["POST", "/api/auth/logout"],
+      ["PUT", "/api/auth/google"], ["PATCH", "/api/line/webhook"],
+    ];
+    for (const [method, path] of paths) {
+      const response = await fetch(base + path, { method });
+      assert.equal(response.status, 401, `${method} ${path}`);
+      await response.arrayBuffer();
+    }
+  });
+
+  await t.test("LINE webhook requires its own valid signature without a browser session", async () => {
+    const body = JSON.stringify({ events: [] });
+    const signature = createHmac("sha256", environment.LINE_CHANNEL_SECRET).update(body).digest("base64");
+    const before = calls.filter((action) => action === "line.processWebhookEvents").length;
+    for (const suppliedSignature of [undefined, "invalid", signature]) {
+      const response = await fetch(base + "/api/line/webhook", {
+        method: "POST", body, headers: {
+          "Content-Type": "application/json",
+          ...(suppliedSignature ? { "x-line-signature": suppliedSignature } : {}),
+        },
+      });
+      assert.equal(response.status, suppliedSignature === signature ? 200 : 401);
+      await response.arrayBuffer();
+    }
+    assert.equal(calls.filter((action) => action === "line.processWebhookEvents").length, before + 1);
+  });
+
+  await t.test("every mutation method rejects missing, forged, or cookie-only CSRF tokens before the handler", async () => {
+    const valid = await csrfHeaders();
+    const before = calls.length;
+    for (const [method, path, body] of mutations) {
+      const missing = { ...valid };
+      delete missing["x-csrf-token"];
+      for (const headers of [missing, { ...valid, "x-csrf-token": "forged" }, {
+        Origin: valid.Origin, ...cookie(), "x-csrf-token": valid["x-csrf-token"],
+      }]) {
+        const response = await mutationRequest(method, path, body, headers);
+        assert.equal(response.status, 403);
+        assert.equal((await response.json()).code, "INVALID_CSRF_TOKEN");
+      }
+    }
+    assert.equal(calls.length, before);
+  });
+
+  await t.test("untrusted, null, and absent origins cannot mutate even with valid JWT and CSRF tokens", async () => {
+    const valid = await csrfHeaders();
+    const before = calls.length;
+    for (const origin of ["https://attacker.example.test", "null", undefined]) {
+      const headers = { ...valid };
+      if (origin === undefined) delete headers.Origin;
+      else headers.Origin = origin;
+      const response = await fetch(base + "/api/tor-matches/ensure", { method: "POST", headers });
+      assert.equal(response.status, 403);
+      assert.equal((await response.json()).code, "INVALID_ORIGIN");
+    }
+    assert.equal(calls.length, before);
+    const endpoint = await fetch(base + "/api/auth/csrf", { headers: { Origin: "https://attacker.example.test" } });
+    assert.equal(endpoint.status, 403);
+    assert.equal(endpoint.headers.getSetCookie().length, 0);
+    await endpoint.arrayBuffer();
+  });
+
+  await t.test("login is protected against CSRF before a JWT exists", async () => {
+    const before = calls.length;
+    const response = await fetch(base + "/api/auth/google", {
+      method: "POST", headers: { Origin: environment.CORS_ORIGIN },
+    });
+    assert.equal(response.status, 403);
+    assert.equal((await response.json()).code, "INVALID_CSRF_TOKEN");
+    assert.equal(calls.length, before);
+  });
+
+  await t.test("tokens are bound to the JWT and can be renewed after session changes", async () => {
+    const old = await csrfHeaders();
+    // New session must still be a valid torrent_session JWT (aud/typ); CSRF
+    // binding to the prior JWT is what must fail.
+    const changed = signUserToken({
+      _id: user._id,
+      role: "vendor",
+      email: user.email,
+      sessionVersion: 0,
+    });
+    const oldCookies = old.Cookie.split("; ").filter((value) => !value.startsWith("torrent_session=")).join("; ");
+    const response = await mutationRequest("POST", "/api/tor-matches/ensure", "{}", {
+      ...old, Cookie: `${oldCookies}; torrent_session=${changed}`,
+    });
+    assert.equal(response.status, 403);
+    assert.equal((await response.json()).code, "INVALID_CSRF_TOKEN");
+    const renewed = await csrfHeaders(changed, oldCookies);
+    const allowed = await mutationRequest("POST", "/api/tor-matches/ensure", "{}", renewed);
+    assert.equal(allowed.status, 200);
+    await allowed.arrayBuffer();
+  });
+
+  await t.test("authenticated multipart requests accept header tokens without parsing files first", async () => {
+    const form = new FormData();
+    form.append("example", "value");
+    // Multipart bodies skip requireOwnUserId's JSON object check on routes that
+    // only need the global session + CSRF gate; score-queue POST is enough.
+    const response = await fetch(base + "/api/tor-matches/ensure", {
+      method: "POST", headers: await csrfHeaders(), body: form,
+    });
+    assert.equal(response.status, 200);
+    await response.arrayBuffer();
+  });
+
+  await t.test("production CSRF cookies use the Host prefix and secure host-only attributes", () => {
+    const previous = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+    try {
+      const { createCsrfProtection } = require("@/middleware/csrfProtection");
+      const csrf = createCsrfProtection([environment.CORS_ORIGIN]);
+      const cookies = [];
+      const request = { cookies: {}, get: () => environment.CORS_ORIGIN };
+      const response = {
+        cookie(name, _value, options) { cookies.push({ name, options }); return this; },
+        set() {}, vary() {}, json() {},
+      };
+      csrf.issueToken(request, response);
+      assert.equal(cookies.length, 2);
+      for (const { name, options } of cookies) {
+        assert.ok(name.startsWith("__Host-"));
+        assert.equal(options.secure, true);
+        assert.equal(options.httpOnly, true);
+        assert.equal(options.path, "/");
+        assert.equal(options.domain, undefined);
+      }
+    } finally {
+      process.env.NODE_ENV = previous;
+    }
+  });
+});

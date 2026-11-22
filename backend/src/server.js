@@ -8,6 +8,7 @@ const { startSyncScheduler } = require("@/scheduler/syncScheduler");
 const { startMatchScheduler } = require("@/scheduler/matchScheduler");
 const { startLineDigestScheduler } = require("@/scheduler/lineDigestScheduler");
 const { startEmailAlertScheduler } = require("@/scheduler/emailAlertScheduler");
+const { errorFields, logger } = require("@/utils/logger");
 const PORT = process.env.PORT;
 
 async function startServer() {
@@ -17,7 +18,7 @@ async function startServer() {
     // Serve database reads while the optional startup sync runs. An external
     // source can be slow even after another source has already saved its TORs.
     app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+      logger.info("server.listening", { port: Number(PORT) || PORT });
     });
 
     // Resume saved matching work as soon as MongoDB is ready.
@@ -28,7 +29,7 @@ async function startServer() {
     await startLineDigestScheduler();
     startEmailAlertScheduler();
   } catch (error) {
-    console.error("Backend startup failed:", error);
+    logger.error("server.startup_failed", errorFields(error));
     process.exit(1);
   }
 }

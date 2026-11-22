@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { routes } from "@/config/routes";
 import type { SessionUser } from "@/lib/auth";
+import { readSessionCookie, sessionCookieHeader } from "@/lib/session-cookie";
 
 type SessionRole = SessionUser["role"];
 
@@ -17,13 +18,13 @@ function backendAuthBase() {
 /** Server-side gate for audience layouts. Redirects when unsigned or wrong role. */
 export async function requireSession(allowed: SessionRole[]) {
   const jar = await cookies();
-  const token = jar.get("torrent_session")?.value;
-  if (!token) redirect(routes.login);
+  const session = readSessionCookie(jar);
+  if (!session) redirect(routes.login);
 
   let response: Response;
   try {
     response = await fetch(`${backendAuthBase()}/auth/me`, {
-      headers: { cookie: `torrent_session=${token}` },
+      headers: { cookie: sessionCookieHeader(session.name, session.value) },
       cache: "no-store",
     });
   } catch {

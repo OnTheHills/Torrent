@@ -2,6 +2,7 @@ const path = require("node:path");
 const fs = require("node:fs/promises");
 const { constants } = require("node:fs");
 const { validateCertificatePng } = require("@/utils/certificatePng");
+const { errorFields, logger } = require("@/utils/logger");
 const { UPLOAD_DIRECTORY, CERTIFICATE_FIELDS, MAX_CERTIFICATES, MAX_FILE_SIZE, FILE_PATTERN } = require("@/constants/vendorCertificateConstants");
 
 function badRequest(message, status = 400) {
@@ -29,7 +30,7 @@ async function removeCertificateFiles(paths) {
     try {
       await fs.unlink(path.join(UPLOAD_DIRECTORY, filename));
     } catch (error) {
-      if (error.code !== "ENOENT") console.error("Unable to clean up certificate:", error.message);
+      if (error.code !== "ENOENT") logger.error("certificate.cleanup.failed", errorFields(error));
     }
   }));
 }
@@ -131,7 +132,7 @@ async function readCertificates(profile) {
         validateCertificatePng(buffer);
         certificates.push({ category, buffer });
       } catch (error) {
-        console.warn("Certificate unavailable for matching", { category, code: error.code || "INVALID_PNG" });
+        logger.warn("certificate.unavailable_for_matching", { category, code: error.code || "INVALID_PNG" });
       } finally {
         await file?.close();
       }
@@ -140,4 +141,4 @@ async function readCertificates(profile) {
   return certificates;
 }
 
-module.exports = { CERTIFICATE_FIELDS, FILE_PATTERN, MAX_CERTIFICATES, MAX_FILE_SIZE, UPLOAD_DIRECTORY, badRequest, saveCertificates, readCertificates };
+module.exports = { CERTIFICATE_FIELDS, FILE_PATTERN, MAX_CERTIFICATES, MAX_FILE_SIZE, UPLOAD_DIRECTORY, badRequest, removeCertificateFiles, saveCertificates, readCertificates };

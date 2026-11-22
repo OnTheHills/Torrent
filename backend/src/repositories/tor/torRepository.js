@@ -3,10 +3,6 @@ const TORMatch = require("@/models/tor/TORMatch");
 const TorMatchJob = require("@/models/tor/TorMatchJob");
 const { isDeepStrictEqual } = require("node:util");
 
-async function create(data) {
-  return TOR.create(data);
-}
-
 /** Fields the public catalog list does not need (keeps /tors payloads small). */
 const LIST_EXCLUDE = {
   description: 0,
@@ -191,7 +187,6 @@ async function deleteMissingFromSource(source, keepRefIds) {
 }
 
 module.exports = {
-  create,
   deleteMissingFromSource,
   findAll,
   findBudgetPeers,

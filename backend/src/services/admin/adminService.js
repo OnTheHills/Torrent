@@ -17,6 +17,8 @@ const { classifyCategory } = require("@/utils/torUtils");
 const { matchingSoftwareTerms } = require("@/services/tor/api/dataGo/adapter");
 const classification = require("@/services/admin/classification");
 const { record, requireReason } = require("@/services/admin/audit");
+const { escapeRegex, requireObjectId } = require("@/utils/validate");
+const { resolveTorDestination, curlDestinationArgs, fetchTorUrl } = require("@/utils/torFetch");
 
 const execFileAsync = promisify(execFile);
 const {
@@ -255,8 +257,9 @@ async function reviewQueue({
     extras.push({ $or: bandClauses });
   }
   if (q) {
+    const safe = escapeRegex(String(q || "").slice(0, 200));
     extras.push({
-      $or: [{ title: new RegExp(q, "i") }, { titleTh: new RegExp(q, "i") }, { refId: q }],
+      $or: [{ title: new RegExp(safe, "i") }, { titleTh: new RegExp(safe, "i") }, { refId: q }],
     });
   }
   if (extras.length) filter.$and = [...(filter.$and || []), ...extras];
@@ -313,7 +316,7 @@ async function reviewQueue({
   };
 }
 
-async function rescore(user, reasonInput) {
+async function rescore(user, reasonInput, requestId) {
   const reason = requireReason(reasonInput);
   const settings = await classification.readSettings();
   const medians = await categoryMedians();
@@ -419,7 +422,7 @@ async function rescore(user, reasonInput) {
       { field: "vertexScored", before: null, after: vertexScored },
       { field: "skippedExpired", before: null, after: skippedExpired },
     ],
-  });
+  }, requestId);
   return { scored, vertexScored, skippedExpired };
 }
 
@@ -429,7 +432,7 @@ function changesFor(before, after, fields) {
     .map((field) => ({ field, before: before?.[field] ?? null, after: after?.[field] ?? null }));
 }
 
-async function reviewTor(id, user, body) {
+async function reviewTor(id, user, body, requestId) {
   const reason = requireReason(body.reason);
   const decision = body.decision;
   if (!["approve", "fix", "reject"].includes(decision)) {
@@ -477,11 +480,19 @@ async function reviewTor(id, user, body) {
     reason,
     checked: REVIEW_FIELDS,
     changes,
-  });
+  }, requestId);
   return present(updated.toObject());
 }
 
 async function searchTors(query) {
+  // These values enter equality filters directly; accept text, never operators.
+  for (const field of ["q", "status"]) {
+    if (query[field] !== undefined && typeof query[field] !== "string") {
+      const error = new Error(`${field} must be a string.`);
+      error.statusCode = 400;
+      throw error;
+    }
+  }
   const filter = {};
   const extras = [];
   const sources = csv(query.source);
@@ -534,13 +545,14 @@ async function searchTors(query) {
   }
 
   if (query.q) {
+    const safe = escapeRegex(String(query.q || "").slice(0, 200));
     extras.push({
       $or: [
-        { title: new RegExp(query.q, "i") },
-        { titleTh: new RegExp(query.q, "i") },
+        { title: new RegExp(safe, "i") },
+        { titleTh: new RegExp(safe, "i") },
         { refId: query.q },
-        { department: new RegExp(query.q, "i") },
-        { departmentTh: new RegExp(query.q, "i") },
+        { department: new RegExp(safe, "i") },
+        { departmentTh: new RegExp(safe, "i") },
       ],
     });
   }
@@ -564,6 +576,7 @@ async function searchTors(query) {
 }
 
 async function getTor(id) {
+  requireObjectId(id, "TOR");
   let tor = await TOR.findById(id).lean();
   if (!tor) {
     const error = new Error("TOR not found.");
@@ -635,6 +648,8 @@ function messageFromNonPdfBody(raw) {
 }
 
 async function downloadPdfBytes(pdfUrl) {
+  const destination = await resolveTorDestination(pdfUrl);
+  pdfUrl = destination.url.href;
   // Prefer curl: e-GP often rejects Node's fetch fingerprint, and Alpine
   // containers resolve DNS more reliably through curl's resolver path.
   const id = randomBytes(8).toString("hex");
@@ -643,8 +658,12 @@ async function downloadPdfBytes(pdfUrl) {
     await execFileAsync(
       "curl",
       [
+        "-q",
         "-sS",
-        "-L",
+        "--globoff",
+        "--proto", "=https",
+        "--no-location",
+        ...curlDestinationArgs(destination),
         "--max-time",
         "40",
         "-A",
@@ -653,7 +672,7 @@ async function downloadPdfBytes(pdfUrl) {
         "Accept: application/pdf,*/*",
         "-o",
         bodyPath,
-        pdfUrl,
+        "--", pdfUrl,
       ],
       { timeout: 45000 },
     );
@@ -669,11 +688,12 @@ async function downloadPdfBytes(pdfUrl) {
     if (error.statusCode) throw error;
     if (error.code === "ENOENT") {
       // curl missing — fall back to fetch.
-      const response = await fetch(pdfUrl, {
+      const response = await fetchTorUrl(pdfUrl, {
         headers: {
           Accept: "application/pdf,*/*",
           "User-Agent": PDF_USER_AGENT,
         },
+        signal: AbortSignal.timeout(40_000),
       });
       if (!response.ok) {
         const failed = new Error(`Could not fetch PDF (${response.status}).`);
@@ -711,7 +731,7 @@ async function streamTorPdf(id) {
   return { bytes, contentType: "application/pdf", filename };
 }
 
-async function updateTor(id, user, body) {
+async function updateTor(id, user, body, requestId) {
   const reason = requireReason(body.reason);
   const current = await TOR.findById(id);
   if (!current) {
@@ -736,11 +756,11 @@ async function updateTor(id, user, body) {
     targetId: id,
     reason,
     changes: changesFor(before, updated.toObject(), EDITABLE),
-  });
+  }, requestId);
   return present(updated.toObject());
 }
 
-async function bulkTors(user, body) {
+async function bulkTors(user, body, requestId) {
   const reason = requireReason(body.reason);
   const ids = Array.isArray(body.ids) ? body.ids : [];
   if (!ids.length) {
@@ -768,7 +788,7 @@ async function bulkTors(user, body) {
     targetType: "tor",
     reason,
     changes: [{ field: "ids", before: null, after: ids }],
-  });
+  }, requestId);
   return { matched: result.matchedCount, modified: result.modifiedCount };
 }
 
@@ -777,10 +797,11 @@ async function auditLog(query) {
   if (query.action) filter.action = query.action;
   if (query.targetType) filter.targetType = query.targetType;
   if (query.q) {
+    const safe = escapeRegex(String(query.q || "").slice(0, 200));
     filter.$or = [
-      { actorEmail: new RegExp(query.q, "i") },
+      { actorEmail: new RegExp(safe, "i") },
       { targetId: query.q },
-      { reason: new RegExp(query.q, "i") },
+      { reason: new RegExp(safe, "i") },
     ];
   }
   const skip = Number(query.skip) || 0;
@@ -878,7 +899,8 @@ async function getUser(id) {
   };
 }
 
-async function updateUser(id, actor, body) {
+async function updateUser(id, actor, body, requestId) {
+  requireObjectId(id, "User");
   const reason = requireReason(body.reason);
   const current = await User.findById(id);
   if (!current) {
@@ -886,22 +908,29 @@ async function updateUser(id, actor, body) {
     error.statusCode = 404;
     throw error;
   }
-  const patch = {};
-  if (body.role && ["public", "vendor", "admin"].includes(body.role)) patch.role = body.role;
-  if (typeof body.disabled === "boolean") patch.disabled = body.disabled;
+  const set = {};
+  if (body.role && ["public", "vendor", "admin"].includes(body.role)) set.role = body.role;
+  if (typeof body.disabled === "boolean") set.disabled = body.disabled;
   const before = { role: current.role, disabled: Boolean(current.disabled) };
-  const updated = await User.findByIdAndUpdate(id, patch, { returnDocument: "after" });
+  const privilegeChanged =
+    (set.role !== undefined && set.role !== current.role) ||
+    (set.disabled !== undefined && set.disabled !== Boolean(current.disabled));
+  const update = {};
+  if (Object.keys(set).length) update.$set = set;
+  // Invalidate every existing session JWT when privilege state changes (ASVS V8.3.2).
+  if (privilegeChanged) update.$inc = { sessionVersion: 1 };
+  const updated = await User.findByIdAndUpdate(id, update, { returnDocument: "after" });
   await record(actor, {
     action: "user.update",
     targetType: "user",
     targetId: id,
     reason,
     changes: changesFor(before, { role: updated.role, disabled: Boolean(updated.disabled) }, ["role", "disabled"]),
-  });
+  }, requestId);
   return { id: updated._id, role: updated.role, disabled: Boolean(updated.disabled) };
 }
 
-async function reviewCertificate(actor, body) {
+async function reviewCertificate(actor, body, requestId) {
   const reason = requireReason(body.reason);
   const profile = body.profileId
     ? await VendorProfile.findById(body.profileId)
@@ -947,7 +976,7 @@ async function reviewCertificate(actor, body) {
       targetId: profile.userId,
       reason,
       changes: changesFor(before, after, ["name", "issuer", "status"]),
-    });
+    }, requestId);
   }
   await profile.save();
   if (body.name && body.index === undefined) {
@@ -957,7 +986,7 @@ async function reviewCertificate(actor, body) {
       targetId: profile.userId,
       reason,
       changes: [{ field: body.name, before: null, after: body.status || "pending" }],
-    });
+    }, requestId);
   }
   return { certificates: profile.certificates, completeness: completeness(profile) };
 }
@@ -982,7 +1011,7 @@ async function matchJobs() {
   };
 }
 
-async function retryMatches(actor, body) {
+async function retryMatches(actor, body, requestId) {
   const reason = requireReason(body.reason);
   const filter = body.id ? { _id: body.id } : { lastError: { $nin: [null, ""] } };
   const result = await TorMatchJob.updateMany(filter, {
@@ -994,7 +1023,7 @@ async function retryMatches(actor, body) {
     targetId: body.id,
     reason,
     changes: [{ field: "retried", before: null, after: result.modifiedCount }],
-  });
+  }, requestId);
   return { modified: result.modifiedCount };
 }
 
@@ -1012,7 +1041,7 @@ async function previewRules(body) {
   return classification.compareTitles(titles.map((row) => row.title), current, next);
 }
 
-async function applyRules(actor, body) {
+async function applyRules(actor, body, requestId) {
   const reason = requireReason(body.reason);
   const current = await classification.readSettings();
   const includeKeywords = classification.cleanList(body.includeKeywords, current.includeKeywords);
@@ -1067,7 +1096,7 @@ async function applyRules(actor, body) {
       { field: "autoThreshold", before: current.autoThreshold, after: autoThreshold },
       { field: "reviewThreshold", before: current.reviewThreshold, after: reviewThreshold },
     ],
-  });
+  }, requestId);
   return { hidden, restored, autoThreshold, reviewThreshold };
 }
 

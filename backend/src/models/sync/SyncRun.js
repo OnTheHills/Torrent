@@ -15,6 +15,7 @@ const syncRunSchema = new mongoose.Schema(
     durationMs: { type: Number },
     triggeredBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     triggeredByEmail: { type: String, trim: true },
+    requestId: { type: String, trim: true, index: true },
     fetched: { type: Number },
     matched: { type: Number },
     createdCount: { type: Number },

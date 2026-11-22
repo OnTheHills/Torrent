@@ -1,4 +1,5 @@
 const { PDFParse } = require("pdf-parse");
+const { boundedText, trimLineEndSpaces } = require("@/utils/boundedText");
 
 const MIN_TEXT_LETTERS = 80;
 
@@ -11,9 +12,7 @@ function hasUsableTextLayer(text) {
 }
 
 function cleanPdfText(text) {
-  return String(text || "")
-    .replace(/\r/g, "")
-    .replace(/[ \t]+\n/g, "\n")
+  return trimLineEndSpaces(boundedText(text, "PDF text").replace(/\r/g, ""))
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }

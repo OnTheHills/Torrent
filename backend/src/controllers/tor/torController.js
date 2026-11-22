@@ -8,7 +8,7 @@ function withMatchEligibility(tor) {
 const torCrudService = require("@/services/tor/torCrudService");
 const TOR = require("@/models/tor/TOR");
 
-async function getCategoryDistribution(request, response) {
+async function getCategoryDistribution(request, response, next) {
   try {
     const result = await TOR.aggregate([
       { $match: { hidden: { $ne: true } } },
@@ -40,11 +40,12 @@ async function getCategoryDistribution(request, response) {
     response.set("Cache-Control", "no-store");
     return response.status(200).json({ categories: result[0]?.categories ?? [] });
   } catch (error) {
-    return response.status(500).json({ message: error.message });
+    if (typeof next === "function") return next(error);
+    return response.status(500).json({ message: "Something went wrong." });
   }
 }
 
-async function getTopDepartmentsByBudget(request, response) {
+async function getTopDepartmentsByBudget(request, response, next) {
   try {
     const departments = await TOR.aggregate([
       // Use the same visible catalog as GET /tors, with no status filter.
@@ -83,29 +84,22 @@ async function getTopDepartmentsByBudget(request, response) {
     response.set("Cache-Control", "no-store");
     return response.status(200).json({ departments });
   } catch (error) {
-    return response.status(500).json({ message: error.message });
+    if (typeof next === "function") return next(error);
+    return response.status(500).json({ message: "Something went wrong." });
   }
 }
 
-async function createTor(request, response) {
-  try {
-    const tor = await torCrudService.createTor(request.body);
-    return response.status(201).json(withMatchEligibility(tor));
-  } catch (error) {
-    return response.status(500).json({ message: error.message });
-  }
-}
-
-async function getAllTors(request, response) {
+async function getAllTors(request, response, next) {
   try {
     const tors = await torCrudService.getAllTors();
     return response.status(200).json(tors.map(withMatchEligibility));
   } catch (error) {
-    return response.status(500).json({ message: error.message });
+    if (typeof next === "function") return next(error);
+    return response.status(500).json({ message: "Something went wrong." });
   }
 }
 
-async function getBudgetPeers(request, response) {
+async function getBudgetPeers(request, response, next) {
   try {
     const category = String(request.query.category || "").trim();
     if (!category) {
@@ -114,23 +108,28 @@ async function getBudgetPeers(request, response) {
     const peers = await torCrudService.getBudgetPeers(category);
     return response.status(200).json(peers);
   } catch (error) {
-    return response.status(500).json({ message: error.message });
+    if (typeof next === "function") return next(error);
+    return response.status(500).json({ message: "Something went wrong." });
   }
 }
 
-async function getTorById(request, response) {
+async function getTorById(request, response, next) {
   try {
+    if (!/^[a-f0-9]{24}$/i.test(String(request.params.id || ""))) {
+      return response.status(404).json({ message: "TOR not found." });
+    }
     const tor = await torCrudService.getTorById(request.params.id);
     if (!tor || tor.hidden) {
       return response.status(404).json({ message: "TOR not found." });
     }
     return response.status(200).json(withMatchEligibility(tor));
   } catch (error) {
-    return response.status(500).json({ message: error.message });
+    if (typeof next === "function") return next(error);
+    return response.status(500).json({ message: "Something went wrong." });
   }
 }
 
-async function updateTor(request, response) {
+async function updateTor(request, response, next) {
   try {
     const tor = await torCrudService.updateTor(request.params.id, request.body);
     if (!tor) {
@@ -138,11 +137,12 @@ async function updateTor(request, response) {
     }
     return response.status(200).json(withMatchEligibility(tor));
   } catch (error) {
-    return response.status(500).json({ message: error.message });
+    if (typeof next === "function") return next(error);
+    return response.status(500).json({ message: "Something went wrong." });
   }
 }
 
-async function deleteTor(request, response) {
+async function deleteTor(request, response, next) {
   try {
     const tor = await torCrudService.deleteTor(request.params.id);
     if (!tor) {
@@ -150,12 +150,12 @@ async function deleteTor(request, response) {
     }
     return response.status(200).json(withMatchEligibility(tor));
   } catch (error) {
-    return response.status(500).json({ message: error.message });
+    if (typeof next === "function") return next(error);
+    return response.status(500).json({ message: "Something went wrong." });
   }
 }
 
 module.exports = {
-  createTor,
   deleteTor,
   getAllTors,
   getBudgetPeers,

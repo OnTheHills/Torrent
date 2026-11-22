@@ -1,8 +1,5 @@
 const userRepository = require("@/repositories/user/userRepository");
-
-async function createUser(data) {
-  return userRepository.create(data);
-}
+const vendorProfileService = require("@/services/vendor/vendorProfileService");
 
 async function getAllUsers() {
   return userRepository.findAll();
@@ -13,6 +10,9 @@ async function getUserById(id) {
 }
 
 async function updateUser(id, data, actorRole) {
+  if (Object.keys(data).some((key) => key === "watchlist" || key.startsWith("watchlist.") || key.startsWith("$"))) {
+    throw Object.assign(new Error("Use your own watchlist endpoint."), { statusCode: 403 });
+  }
   const updates = { ...data };
   if (actorRole !== "admin") {
     delete updates.role;
@@ -21,7 +21,9 @@ async function updateUser(id, data, actorRole) {
 }
 
 async function deleteUser(id) {
+  const profile = await vendorProfileService.getVendorProfileByUserId(id);
+  if (profile) await vendorProfileService.deleteVendorProfile(profile._id);
   return userRepository.remove(id);
 }
 
-module.exports = { createUser, deleteUser, getAllUsers, getUserById, updateUser };
+module.exports = { deleteUser, getAllUsers, getUserById, updateUser };

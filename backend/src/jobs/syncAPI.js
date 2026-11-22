@@ -8,6 +8,7 @@ const torRepository = require("@/repositories/tor/torRepository");
 const torMatching = require("@/jobs/matchTors");
 const classification = require("@/services/admin/classification");
 const { scoreTorIds } = require("@/services/admin/scoreReviewTors");
+const { errorFields, logger, safeErrorSummary } = require("@/utils/logger");
 
 const apiDirectory = join(__dirname, "../services/tor/api");
 
@@ -135,12 +136,12 @@ async function syncAPI({ automatic = false } = {}) {
       try {
         results.push({ ...await syncSource(name, options), sourceKey: name, status: "success" });
       } catch (error) {
-        console.error(`Automatic ${name} sync failed:`, error);
+        logger.error("sync.source.failed", { source: name, ...errorFields(error) });
         results.push({
           source: source(name).fetcher.source,
           sourceKey: name,
           status: "failed",
-          error: error.message,
+          error: safeErrorSummary(error),
           fetched: 0,
         });
       }

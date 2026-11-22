@@ -14,7 +14,7 @@ function profileData(request) {
 
 function saveError(response, error) {
   const status = error.status || (error.name === "ValidationError" ? 400 : error.code === 11000 ? 409 : 500);
-  return response.status(status).json({ message: error.message });
+  return response.status(status).json({ message: status >= 500 ? "Could not save profile." : error.message });
 }
 
 async function createVendorProfile(request, response) {
@@ -33,7 +33,7 @@ async function getAllVendorProfiles(request, response) {
     const vendorProfiles = await vendorProfileService.getAllVendorProfiles();
     return response.status(200).json(vendorProfiles);
   } catch (error) {
-    return response.status(500).json({ message: error.message });
+    return response.status(500).json({ message: "Could not load profiles." });
   }
 }
 
@@ -49,7 +49,7 @@ async function getVendorProfileById(request, response) {
 
     return response.status(200).json(vendorProfile);
   } catch (error) {
-    return response.status(500).json({ message: error.message });
+    return response.status(500).json({ message: "Could not load profile." });
   }
 }
 
@@ -65,7 +65,7 @@ async function getVendorProfileByUserId(request, response) {
 
     return response.status(200).json(vendorProfile);
   } catch (error) {
-    return response.status(500).json({ message: error.message });
+    return response.status(500).json({ message: "Could not load profile." });
   }
 }
 
@@ -98,9 +98,9 @@ async function deleteVendorProfile(request, response) {
       return response.status(404).json({ message: "Vendor profile not found." });
     }
 
-    return response.status(200).json(vendorProfile);
+    return response.status(200).json({ ok: true });
   } catch (error) {
-    return response.status(500).json({ message: error.message });
+    return response.status(500).json({ message: "Could not delete profile." });
   }
 }
 
@@ -114,12 +114,19 @@ async function getCertificate(request, response) {
     if (!profile || !Object.keys(CERTIFICATE_FIELDS).some((field) => profile[field]?.includes(`upload/${filename}`))) {
       return response.status(404).json({ message: "Certificate not found." });
     }
-    response.set({ "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" });
+    response.set({
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
+      // Force download/attachment context so browsers do not navigate into raw bytes as HTML.
+      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Content-Security-Policy": "default-src 'none'; sandbox",
+      "Cross-Origin-Resource-Policy": "same-site",
+    });
     return response.sendFile(filename, { root: UPLOAD_DIRECTORY }, (error) => {
       if (error && !response.headersSent) response.status(error.statusCode === 404 ? 404 : 500).json({ message: "Unable to open certificate." });
     });
   } catch (error) {
-    return response.status(500).json({ message: error.message });
+    return response.status(500).json({ message: "Could not open certificate." });
   }
 }
 

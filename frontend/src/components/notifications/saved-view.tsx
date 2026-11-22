@@ -18,7 +18,7 @@ import { torsQueryOptions } from "@/lib/tors-query";
 
 export function SavedView() {
   const { t } = useLocale();
-  const { savedIds, ready } = useSaved();
+  const { savedIds, ready, error, retry } = useSaved();
   const { data: sourceTors = [], isPending } = useQuery(torsQueryOptions);
   const tors = useTorsWithMatches(sourceTors, true);
 
@@ -71,7 +71,12 @@ export function SavedView() {
             </p>
           ) : null}
 
-          {loading ? (
+          {error ? (
+            <div role="alert" className="flex items-center gap-4 text-sm text-destructive">
+              <p>{error.message}</p>
+              <Button type="button" variant="outline" onClick={retry}>{t("departmentBudgetRetry")}</Button>
+            </div>
+          ) : loading ? (
             <div className="flex flex-col gap-4">
               <TorFetchStatus />
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

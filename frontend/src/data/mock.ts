@@ -634,7 +634,7 @@ const CARD_TITLE_PHRASES = [
 ];
 
 export function torCardTitle(tor: Tor, locale: "en" | "th") {
-  const title = CARD_TITLE_PHRASES.reduce(
+  const title = CARD_TITLE_PHRASES.reduce<string>(
     (value, phrase) => value.replaceAll(phrase, " "),
     torTitle(tor, locale),
   )

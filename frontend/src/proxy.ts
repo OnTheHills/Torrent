@@ -2,51 +2,58 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import { routes } from "@/config/routes";
+import { buildContentSecurityPolicy } from "@/lib/csp";
+import { readSessionCookie } from "@/lib/session-cookie";
 
-type SessionRole = "public" | "vendor" | "admin";
-
-/** Routing hint only — layouts still verify the session via /auth/me. */
-function roleFromSessionCookie(token: string): SessionRole | null {
-  try {
-    const segment = token.split(".")[1];
-    if (!segment) return null;
-    const json = Buffer.from(segment, "base64url").toString("utf8");
-    const payload = JSON.parse(json) as { role?: unknown };
-    if (payload.role === "public" || payload.role === "vendor" || payload.role === "admin") {
-      return payload.role;
-    }
-    return null;
-  } catch {
-    return null;
-  }
+function applySecurityHeaders(response: NextResponse, nonce: string) {
+  response.headers.set("Content-Security-Policy", buildContentSecurityPolicy(nonce));
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("Referrer-Policy", "no-referrer");
+  response.headers.set("X-Frame-Options", "DENY");
+  response.headers.set(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=()",
+  );
+  // Allow GIS popups/iframes while isolating the browsing context (ASVS V3.7).
+  response.headers.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+  response.headers.set("Cross-Origin-Resource-Policy", "same-origin");
+  return response;
 }
 
 export function proxy(request: NextRequest) {
-  const token = request.cookies.get("torrent_session")?.value;
-  if (!token) {
-    return NextResponse.redirect(new URL(routes.login, request.url));
-  }
-
-  const role = roleFromSessionCookie(token);
-  if (!role) {
-    return NextResponse.redirect(new URL(routes.login, request.url));
-  }
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
 
   const path = request.nextUrl.pathname;
   const isAdminRoute = path === "/admin" || path.startsWith("/admin/");
   const isAppRoute = path === "/app" || path.startsWith("/app/");
 
-  // KAN-123: public → no /app or /admin; vendor → all except admin; admin → all.
-  if (isAdminRoute && role !== "admin") {
-    return NextResponse.redirect(new URL(routes.home, request.url));
-  }
-  if (isAppRoute && role !== "vendor" && role !== "admin") {
-    return NextResponse.redirect(new URL(routes.home, request.url));
+  if (isAdminRoute || isAppRoute) {
+    const session = readSessionCookie(request.cookies);
+    if (!session) {
+      const redirect = applySecurityHeaders(
+        NextResponse.redirect(new URL(routes.login, request.url)),
+        nonce,
+      );
+      redirect.headers.set("Cache-Control", "no-store");
+      return redirect;
+    }
+    // Presence-only gate. Role checks use verified /auth/me in layouts —
+    // never trust an unsigned JWT payload here (ASVS V9.2).
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
+  if (isAdminRoute || isAppRoute || path.startsWith("/api/")) {
+    response.headers.set("Cache-Control", "no-store");
+  }
+  return applySecurityHeaders(response, nonce);
 }
 
 export const config = {
-  matcher: ["/app", "/app/:path*", "/admin", "/admin/:path*"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
 };

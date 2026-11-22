@@ -29,7 +29,7 @@ function readProfile(form) {
     throw badRequest("Provide one profile JSON field.");
   }
   try {
-    return JSON.parse(profiles[0]);
+    return JSON.parse(profiles[0].replace(/^\uFEFF/, ""));
   } catch {
     throw badRequest("Invalid profile JSON.");
   }

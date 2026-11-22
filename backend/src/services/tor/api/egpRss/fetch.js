@@ -10,6 +10,8 @@ const {
 } = require("@/constants/egpRssConstants");
 const { wait } = require("@/utils/torUtils");
 const { decodeRss, parseRssItems } = require("./parse");
+const { readBoundedBytes } = require("@/utils/boundedText");
+const { errorFields, logger } = require("@/utils/logger");
 
 function feedUrl(base, deptId, announceType) {
   const url = new URL(base);
@@ -55,8 +57,9 @@ async function fetchXml(url) {
         },
       });
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      return decodeRss(new Uint8Array(await response.arrayBuffer()));
+      return decodeRss(await readBoundedBytes(response), response.headers?.get("content-type") || "");
     } catch (error) {
+      if (error.code === "UPSTREAM_BODY_TOO_LARGE") throw error;
       if (attempt === RETRY_COUNT) throw new Error(fetchErrorMessage(error));
       await wait(attempt * 1000);
     } finally {
@@ -108,9 +111,11 @@ async function fetchEgpRss() {
           rows.push(...result.rows);
         } catch (error) {
           errors.push(error.message);
-          console.error(
-            `Failed to fetch e-GP RSS ${dept.id} ${announceType.code}: ${error.message}`,
-          );
+          logger.error("egp_rss.feed_fetch.failed", {
+            departmentId: dept.id,
+            announceType: announceType.code,
+            ...errorFields(error),
+          });
         }
       }),
     ),

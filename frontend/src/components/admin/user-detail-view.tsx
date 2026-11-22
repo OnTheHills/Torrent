@@ -36,6 +36,7 @@ import {
 import { Surface } from "@/components/ui/surface";
 import { routes } from "@/config/routes";
 import { api } from "@/lib/api";
+import { maskPrivateValue } from "@/lib/mask-private-value";
 import { cn } from "@/lib/utils";
 
 type Certificate = {
@@ -506,6 +507,7 @@ export function UserDetailView({ id }: { id: string }) {
   const [accountReason, setAccountReason] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [showContacts, setShowContacts] = useState(false);
 
   async function changeAccess(disabled: boolean) {
     if (!data || disabled === data.disabled) return;
@@ -560,7 +562,7 @@ export function UserDetailView({ id }: { id: string }) {
   const capabilities = capabilityList(profile?.vendorCapDescription || "");
   const copyRef = useRef<HTMLDivElement>(null);
   const [photoSide, setPhotoSide] = useState(144);
-  const displayName = data?.name || data?.email || "User";
+  const displayName = data?.name || "User";
 
   useLayoutEffect(() => {
     const node = copyRef.current;
@@ -628,7 +630,7 @@ export function UserDetailView({ id }: { id: string }) {
                         strokeWidth={1.75}
                         className="size-5 shrink-0"
                       />
-                      <span className="truncate">{data.email}</span>
+                      <span className="truncate">{showContacts ? data.email : maskPrivateValue(data.email)}</span>
                     </span>
                   ) : null}
                   {vendorName ? (
@@ -642,6 +644,17 @@ export function UserDetailView({ id }: { id: string }) {
                     </span>
                   ) : null}
                 </p>
+              ) : null}
+              {data?.email ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  aria-pressed={showContacts}
+                  onClick={() => setShowContacts((visible) => !visible)}
+                >
+                  {showContacts ? "Hide contact details" : "Show contact details"}
+                </Button>
               ) : null}
             </div>
           </div>
@@ -673,11 +686,11 @@ export function UserDetailView({ id }: { id: string }) {
                         />
                         <DetailRow
                           label="Vendor email"
-                          value={show(profile.vendorEmail)}
+                          value={showContacts ? show(profile.vendorEmail) : maskPrivateValue(profile.vendorEmail)}
                         />
                         <DetailRow
                           label="Phone"
-                          value={show(profile.vendorPhone)}
+                          value={showContacts ? show(profile.vendorPhone) : maskPrivateValue(profile.vendorPhone)}
                         />
                         <DetailRow
                           label="Website"

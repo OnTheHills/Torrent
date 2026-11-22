@@ -122,7 +122,7 @@ builds and starts the complete stack in the background. Compose will:
 4. wait for MongoDB's health check before starting the backend; and
 5. expose the frontend on port 3000 and the backend on port 5175.
 
-Open http://localhost:3000. Verify the backend and follow startup logs with:
+Open http://localhost:3000. Set `FRONTEND_PORT` in your shell if you want to use a different host port. Verify the backend and follow startup logs with:
 
 ```bash
 curl http://localhost:5175/api/hello
@@ -300,7 +300,6 @@ The backend provides JSON CRUD routes for:
 
 - `/api/users`
 - `/api/vendor-profiles`
-- `/api/user-bios`
 - `/api/tors`
 - `/api/tor-matches`
 
@@ -340,7 +339,7 @@ Command-line writes must also send an allowed Origin, the cookie jar, and the
 [Open API.md](<x-docs/project_details/Open API.md>) for examples and error codes.
 
 Run backend protection tests with
-`cd backend && node --require module-alias/register --test tests/mutationAuth.test.js`.
+`cd backend && node --require module-alias/register --test tests/auth/mutationAuth.test.js`.
 Run frontend request tests with `cd frontend && node --test tests/csrf-api.test.mjs`.
 The backend protection tests stub controllers and do not access development data
 or external providers.
@@ -372,7 +371,7 @@ save. Images are served through the owner/admin-protected endpoint
 `GET /api/vendor-profiles/certificates/:filename`.
 
 Run certificate integration checks with
-`cd backend && node --require module-alias/register --test tests/certificateUploads.test.js`.
+`cd backend && node --require module-alias/register --test tests/vendor/certificateUploads.test.js`.
 The tests use a temporary upload folder and a mocked database. They do not change
 development profiles. `CERTIFICATE_UPLOAD_DIR` can override the storage directory
 for tests or deployments; database paths retain the `upload/` prefix.

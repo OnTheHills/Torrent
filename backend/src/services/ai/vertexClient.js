@@ -2,6 +2,7 @@ const { existsSync } = require("node:fs");
 const path = require("node:path");
 const { GoogleGenAI } = require("@google/genai");
 const { toVertexFailure } = require("@/services/ai/vertexErrors");
+const { logger } = require("@/utils/logger");
 
 function readConfig() {
   const project = process.env.GOOGLE_CLOUD_PROJECT?.trim();
@@ -99,7 +100,7 @@ async function generateContentRequest({ contents, timeoutMs, responseJsonSchema 
     };
   } catch (error) {
     const failure = toVertexFailure(error);
-    console.error("vertex.generateContent", {
+    logger.error("vertex.generate_content.failed", {
       code: failure.code,
       latencyMs: Date.now() - started,
     });

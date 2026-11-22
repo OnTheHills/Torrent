@@ -1,8 +1,10 @@
 const { budgetYearFromValue, parseBudget, parseDate } = require("@/utils/torUtils");
+const { boundedText, trimLineEndSpaces } = require("@/utils/boundedText");
+const { decodeXmlBytes } = require("@/utils/xmlDecode");
+const { parseXml, elementsNamed, childText, unwrapCdata } = require("@/utils/xmlText");
 
 function decodeEntities(value) {
-  return String(value || "")
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+  return unwrapCdata(boundedText(value))
     .replace(/&nbsp;/gi, " ")
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
@@ -13,37 +15,19 @@ function decodeEntities(value) {
 }
 
 function stripTags(value) {
-  return decodeEntities(value)
+  return trimLineEndSpaces(decodeEntities(value)
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/(p|tr|div|li)>/gi, "\n")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/[ \t]+\n/g, "\n")
+    // Do not let a failed tag match scan across subsequent '<' characters:
+    // repeated unclosed tags otherwise cause quadratic backtracking.
+    .replace(/<[^<>]+>/g, " "))
     .replace(/\n{2,}/g, "\n")
     .replace(/[ \t]{2,}/g, " ")
     .trim();
 }
 
-function tag(block, name) {
-  const cdata = block.match(
-    new RegExp(`<${name}[^>]*>\\s*<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>\\s*</${name}>`, "i"),
-  );
-  if (cdata) return cdata[1].trim();
-  const plain = block.match(new RegExp(`<${name}[^>]*>([\\s\\S]*?)</${name}>`, "i"));
-  return plain ? decodeEntities(plain[1]).trim() : "";
-}
-
-function decodeRss(buffer) {
-  const head = Buffer.from(buffer.subarray(0, 240)).toString("latin1");
-  const encoding = (head.match(/encoding=["']([^"']+)/i) || [])[1] || "utf-8";
-  const lower = encoding.toLowerCase();
-  if (
-    lower.includes("tis-620") ||
-    lower.includes("windows-874") ||
-    lower.includes("iso-8859-11")
-  ) {
-    return new TextDecoder("windows-874").decode(buffer);
-  }
-  return new TextDecoder("utf-8").decode(buffer);
+function decodeRss(buffer, contentType = "") {
+  return decodeXmlBytes(buffer, { contentType });
 }
 
 function isBudgetYearToken(raw) {
@@ -68,13 +52,12 @@ function parseDepartmentFromText(text, fallback) {
 }
 
 function parseRssItems(xml, extras = {}) {
-  return [...String(xml || "").matchAll(/<item\b[\s\S]*?<\/item>/gi)].flatMap((match) => {
-    const block = match[0];
-    const title = stripTags(tag(block, "title"));
-    const link = stripTags(tag(block, "link"));
-    const guid = stripTags(tag(block, "guid"));
-    const description = stripTags(tag(block, "description"));
-    const publishedAt = parseDate(tag(block, "pubDate"));
+  return [...elementsNamed(parseXml(xml), "item")].flatMap((item) => {
+    const title = stripTags(childText(item, "title"));
+    const link = stripTags(childText(item, "link"));
+    const guid = stripTags(childText(item, "guid"));
+    const description = stripTags(childText(item, "description"));
+    const publishedAt = parseDate(childText(item, "pubdate"));
     if (!title || !(guid || link)) return [];
     return [{
       title,
