@@ -18,6 +18,9 @@ test("email alert ledger needs only references and delivery state", async () => 
   });
   await alert.validate();
   assert.equal(alert.status, "pending");
+  assert.equal(alert.recipientHashAlgorithm, "sha256");
+  alert.recipientHashAlgorithm = "md5";
+  await assert.rejects(alert.validate(), /recipientHashAlgorithm/);
   assert.equal(alert.toObject().to, undefined);
 });
 
@@ -108,11 +111,106 @@ test("email alerts queue only IDs and send current user and TOR data", async (t)
   });
 
   assert.deepEqual(await runEmailAlerts(), { notificationsCreated: 0, queued: 1, sent: 1 });
-  assert.deepEqual(Object.keys(queuedAlert).sort(), ["key", "kind", "torId", "userId"]);
+  assert.deepEqual(Object.keys(queuedAlert).sort(), ["key", "kind", "recipientHashAlgorithm", "torId", "userId"]);
   assert.deepEqual(JSON.parse(request.body).to, ["current@example.test"]);
   assert.match(request.headers["Idempotency-Key"], /^match:user:tor:match:[a-f0-9]{16}$/);
   assert.match(JSON.parse(request.body).subject, /Current project title/);
   assert.equal(updates[0].status, "sent");
+
+  // Newly inserted alerts use the selected algorithm. Retry migration is
+  // covered separately with a persistent ledger stub below.
+  const keysByAlgorithm = {};
+  for (const recipientHashAlgorithm of ["sha256", "sha512"]) {
+    for (let retry = 0; retry < 2; retry++) {
+      claimed = false;
+      assert.equal((await runEmailAlerts({ recipientHashAlgorithm })).sent, 1);
+      assert.equal(queuedAlert.recipientHashAlgorithm, recipientHashAlgorithm);
+      const key = request.headers["Idempotency-Key"];
+      const expected = require("node:crypto").createHash(recipientHashAlgorithm)
+        .update(user.email).digest("hex").slice(0, 16);
+      assert.equal(key, `${queuedAlert.key}:${expected}`);
+      if (retry) assert.equal(key, keysByAlgorithm[recipientHashAlgorithm]);
+      keysByAlgorithm[recipientHashAlgorithm] = key;
+    }
+  }
+  assert.notEqual(keysByAlgorithm.sha256, keysByAlgorithm.sha512);
+});
+
+test("email retries preserve provider identity across algorithm changes, including legacy rows", async (t) => {
+  for (const legacy of [false, true]) {
+    await t.test(legacy ? "legacy row without algorithm" : "row with pinned algorithm", async (t) => {
+      for (const [key, value] of Object.entries({ RESEND_API_KEY: "test-key", EMAIL_FROM: "alerts@example.test" })) {
+        const previous = process.env[key];
+        process.env[key] = value;
+        t.after(() => {
+          if (previous === undefined) delete process.env[key];
+          else process.env[key] = previous;
+        });
+      }
+      const since = new Date("2026-01-01T00:00:00Z");
+      const user = {
+        _id: "user", email: "retry@example.test", emailVerified: true,
+        emailAlertPrefs: {
+          emailMatches: true, categories: [], budgetMinThb: 0,
+          budgetMaxThb: 2_000_000, matchSince: since, savedAt: since,
+        },
+      };
+      const match = { _id: "match", torId: "tor", matchPercent: 80, createdAt: new Date("2026-02-01T00:00:00Z") };
+      const tor = { _id: "tor", title: "Retry project", category: "Web Application", budgetThb: 1_000_000, status: "draft" };
+      t.mock.method(torRepository, "findNotificationTors", async () => []);
+      t.mock.method(userRepository, "findUsersEligibleForEmailAlerts", async () => [user]);
+      t.mock.method(userRepository, "findEmailDeliveryUserById", async () => user);
+      t.mock.method(torMatchRepository, "findActiveEmailMatchesByUserId", async () => [match]);
+      t.mock.method(torMatchRepository, "findActiveEmailMatch", async () => match);
+      t.mock.method(torRepository, "findEmailAlertTorsByIds", async () => [tor]);
+      t.mock.method(torRepository, "findById", async () => tor);
+      const ledger = new Map();
+      // Model the real repository's unique key and $setOnInsert semantics.
+      t.mock.method(emailAlertRepository, "queue", async (alert) => {
+        if (ledger.has(alert.key)) return 0;
+        const stored = { ...alert, _id: "alert", attempts: 1, status: "pending" };
+        if (legacy) delete stored.recipientHashAlgorithm;
+        ledger.set(alert.key, stored);
+        return 1;
+      });
+      let claimed = false;
+      t.mock.method(emailAlertRepository, "claimNext", async () => {
+        if (claimed) return null;
+        claimed = true;
+        const stored = [...ledger.values()].find((alert) => alert.status === "pending");
+        if (!stored) return null;
+        stored.status = "sending";
+        return { ...stored };
+      });
+      t.mock.method(emailAlertRepository, "updateSending", async (_id, fields) => {
+        Object.assign([...ledger.values()][0], fields);
+      });
+      t.mock.method(console, "error", () => {});
+      const requests = [];
+      const providerAccepted = new Set();
+      t.mock.method(global, "fetch", async (_url, options) => {
+        requests.push(options);
+        providerAccepted.add(options.headers["Idempotency-Key"]);
+        // Provider accepted the first message, but the client lost the response.
+        if (requests.length === 1) throw new Error("Response lost after provider acceptance");
+        return { ok: true };
+      });
+      assert.deepEqual(await runEmailAlerts({ recipientHashAlgorithm: "sha256" }), {
+        notificationsCreated: 0, queued: 1, sent: 0,
+      });
+      claimed = false;
+      assert.deepEqual(await runEmailAlerts({ recipientHashAlgorithm: "sha512" }), {
+        notificationsCreated: 0, queued: 0, sent: 1,
+      });
+      assert.equal(ledger.size, 1);
+      assert.equal(requests.length, 2);
+      assert.equal(providerAccepted.size, 1);
+      assert.equal(requests[0].headers["Idempotency-Key"], requests[1].headers["Idempotency-Key"]);
+      assert.equal(requests[0].body, requests[1].body);
+      const expected = require("node:crypto").createHash("sha256").update(user.email).digest("hex").slice(0, 16);
+      assert.equal(requests[1].headers["Idempotency-Key"], `match:user:tor:match:${expected}`);
+    });
+  }
 });
 
 test("closing-soon email sends for an opted-in match and is queued only once", async (t) => {

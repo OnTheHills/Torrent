@@ -1,6 +1,7 @@
 const { randomUUID } = require("node:crypto");
 const jwt = require("jsonwebtoken");
 const { readSecret } = require("@/config/secrets");
+const { DEFAULT_SESSION_ALGORITHM, sessionAlgorithms } = require("@/utils/cryptoAlgorithms");
 
 const SESSION_COOKIE_BASE = "torrent_session";
 const HOST_SESSION_COOKIE = `__Host-${SESSION_COOKIE_BASE}`;
@@ -40,7 +41,8 @@ function sessionMaxAgeMs() {
   return parseDurationMs(process.env.JWT_EXPIRES_IN, 7 * 24 * 60 * 60 * 1000);
 }
 
-function signUserToken(user) {
+function signUserToken(user, { algorithm = DEFAULT_SESSION_ALGORITHM } = {}) {
+  sessionAlgorithms([algorithm]);
   return jwt.sign(
     {
       sub: user._id.toString(),
@@ -54,14 +56,17 @@ function signUserToken(user) {
     },
     readSecret("JWT_SECRET", { required: true }),
     {
+      algorithm,
       expiresIn: process.env.JWT_EXPIRES_IN || "7d",
       audience: sessionAudience(),
     },
   );
 }
 
-function verifyUserToken(token) {
+function verifyUserToken(token, { algorithm = DEFAULT_SESSION_ALGORITHM } = {}) {
   const claims = jwt.verify(token, readSecret("JWT_SECRET", { required: true }), {
+    // Accept exactly the configured algorithm, never infer it from the token.
+    algorithms: sessionAlgorithms([algorithm]),
     audience: sessionAudience(),
     clockTolerance: 5,
   });
