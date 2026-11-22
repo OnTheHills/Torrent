@@ -4,6 +4,59 @@ Reviewed 2026-11-22 for ASVS V14.2. This describes repository behavior; the
 deployment operator remains responsible for infrastructure settings and the
 privacy terms governing external processors.
 
+## V14.1 — data classification and required protection
+
+Policy effective 2026-11-22. Owner: project maintainer. The following levels apply
+to data created, received, transformed, logged, cached, backed up, or sent to
+processors. Apply the highest level present to a mixed record or file. Encoding,
+hashing an identifier, or putting data inside a signed JWT does not automatically
+lower its classification. A JWT payload and Base64 document data are readily
+decoded; signing provides integrity, not confidentiality.
+
+| Level | Data inventory and examples | Permitted use and access |
+| --- | --- | --- |
+| Public | Official TOR/project IDs, published procurement titles, budgets, dates, agency information and public-source documents; deliberately public vendor showcase fields. | Public catalog/reporting, with source lineage and integrity checks. Personal information appearing in a public PDF remains subject to the confidential-data rules below; public availability is not a blanket privacy exemption. |
+| Internal | Nonpersonal sync counters, job states, classification configuration and technical operational metadata. | Backend processing and authorized admin/operations views. No unnecessary public exposure of internal configuration or infrastructure paths. |
+| Confidential | Google subject/account IDs, email/name/picture, vendor contacts/location/capabilities/past projects, private certificate images/metadata, watchlists, preferences, match reasons/scores, notifications, LINE user IDs and message destinations; identifiers, IP addresses and changes in audit/request/sync records. | Account owner, explicitly authorized admin, and the minimum backend/provider processing needed for the feature. Model inputs/outputs, files, caches, backups and logs inherit this level when they contain these values. |
+| Restricted | JWT/session cookies, Google ID credentials, CSRF tokens and linking codes, JWT/CSRF/cookie/LINE secrets, provider bearer tokens/API keys, Google private keys, database connection passwords and any legacy password-hash field. JWT claims include confidential identity data as well as a restricted bearer credential. | Only the required backend, browser cookie mechanism, or intended identity/provider protocol participant. Never public APIs, general logs, screenshots, committed source, analytics, or arbitrary model prompts. |
+
+The model/location inventory in **Data and access**, the provider flows below,
+and [Cryptographic.md](Cryptographic.md) together cover these data classes.
+Also include session-revocation IDs/expiry in `session_revocations`, queued email
+delivery references in `email_alerts`, match-worker cursors/leases in
+`tor_match_jobs_by_tor`, and admin/sync records. These collections can link back
+to people even when an email address is not stored directly.
+
+| Protection requirement | Public / Internal | Confidential | Restricted |
+| --- | --- | --- | --- |
+| Encryption and confidentiality | Verify trusted source/transport; do not treat Base64 or the e-GP public URL format as confidential encryption. Internal data is admin/backend-only. | Require encrypted transport when crossing a device/service trust boundary and encrypted database volumes, upload storage and backups before using real sensitive data. Minimize full-value display/export. | Apply confidential requirements plus backend-only secret files/provider-managed credentials, least-privilege provisioning and rotation; bearer tokens are never included in URLs or ordinary browser storage. |
+| Integrity | Validate inputs, retain source lineage and enforce authorized writes. | Bind ownership to verified sessions; validate file format, input/schema and model output; audit privileged changes. | Verify signatures/MACs with approved libraries; explicitly validate token type, audience and selected algorithm. Replace compromised credentials immediately. |
+| Retention and deletion | Retain public procurement data for the project's reporting purpose; review internal job/history data at project close. | Proposed local-project policy: keep account/profile data while the account is active; action deletion requests within 30 days, remove associated uploads/matches through supported deletion flows, and purge remaining project copies within 30 days of project closure unless justified retention is recorded. | Do not persist incoming Google credentials beyond their verification request. Session/revocation validity follows configured expiry; link codes follow their TTL. Remove expired/revoked credential copies under the key lifecycle policy. |
+| Logging and log access | Record operational events without unnecessary payloads. Internal logs are operator/admin-only. | Prefer IDs, route templates, status and timing over contact/content values. Protect any remaining actor/IP fields as confidential. Proposed retention: runtime logs 30 days, admin audit/sync history 90 days; access only by the designated operator/admin. | Never record passwords, raw cookies/tokens, Authorization headers, private keys, full connection strings or raw uploaded files. Redact errors before logging and never copy secrets into audit reasons. |
+| Database/backups | Apply least-privilege network/DB access; public content does not justify a public database. | Require authenticated DB access, volume/database-level encryption and encrypted backups with reviewed access. Proposed backup retention: at most 30 days, including expiry after account deletion; document longer retention separately. | Keep runtime secrets outside domain collections and backups of application records; any authorized credential backup requires separate encrypted custody and lifecycle records. |
+| Privacy and minimization | Do not extract/re-publish unnecessary personal details from public documents. | Use explicit response allowlists, masking for privileged contact views, owner-only APIs, memory-only authenticated client caches, pseudonymous/synthetic test fixtures and minimum necessary provider payloads. No advertising/analytics disclosure is authorized by this policy. | No plaintext secrets in client bundles or general datasets; use HttpOnly cookies for sessions and bounded transient handling for protocol tokens. |
+
+These are documented requirements and proposed retention periods, not a claim
+that automated purge jobs, encryption or provider retention settings already
+exist. Existing local HTTP, unauthenticated MongoDB, unverified host/backup
+encryption, and missing general retention scheduling remain implementation or
+operational gaps. Until resolved, use synthetic/minimized data and restrict the
+local stack; do not claim implemented V14.2.4 merely from this policy.
+
+Privacy applicability must be recorded before real personal data is collected
+or sent to a processor: identify affected users/jurisdictions, the purpose and
+applicable privacy/data-protection obligations (including reviewing Thailand's
+PDPA applicability), processor terms, geographic transfers, retention and
+deletion handling. No legal-compliance determination is asserted here. Keep
+identity/contact and certificate data confidential while applicability is being
+resolved; student-project or local-only status does not remove that protection.
+
+Review this classification whenever a schema, upload type, log field, processor
+or export changes, and at least monthly during development. Document exclusions
+and verify the inventory against both backend and frontend before assessment.
+Preserve the V14.2 implementation evidence below rather than treating this new
+classification as evidence of controls that are still missing.
+
 ## Data and access
 
 | Data | Where it is used or stored | Access and purpose |
