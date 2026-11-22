@@ -63,13 +63,16 @@ services:
     depends_on:
       mongo:
         condition: service_healthy
+    networks:
+      - application
+      - database
 
   mongo:
     image: mongo:8.0.0
 
-    # Host publish is for local scripts (promote-admin). Do not expose in production.
+    # Host access is only for local scripts (promote-admin); keep it off LAN interfaces.
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"
 
     environment:
       # CAUTIOUS
@@ -86,6 +89,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - database
 
   frontend:
     build: ./frontend
@@ -99,6 +104,13 @@ services:
       - /app/node_modules
     depends_on:
       - backend
+    networks:
+      - application
+
+networks:
+  application:
+  database:
+    internal: true
 
 volumes:
   mongo_data:

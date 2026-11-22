@@ -8,22 +8,28 @@ function safeErrorCode(value) {
   return typeof value === "string" && /^[A-Z][A-Z0-9_]{0,63}$/.test(value) ? value : undefined;
 }
 
+function safeText(value) {
+  return value.replace(/[\r\n\u2028\u2029]/g, " ");
+}
+
 function safeValue(value, field = "") {
   if (SENSITIVE_FIELD.test(field)) return "[REDACTED]";
   if (value instanceof Error) {
+    const name = safeErrorName(value.name);
+    const code = safeErrorCode(value.code);
     return {
-      name: value.name,
-      ...(typeof value.code === "string" ? { code: value.code } : {}),
+      ...(name ? { name } : {}),
+      ...(code ? { code } : {}),
     };
   }
   if (value instanceof Date) return value.toISOString();
   if (Array.isArray(value)) return value.map((item) => safeValue(item));
   if (value && Object.getPrototypeOf(value) === Object.prototype) {
     return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [key, safeValue(item, key)]),
+      Object.entries(value).map(([key, item]) => [safeText(key), safeValue(item, key)]),
     );
   }
-  if (typeof value === "string") return value.replace(/[\r\n\u2028\u2029]/g, " ");
+  if (typeof value === "string") return safeText(value);
   if (["number", "boolean"].includes(typeof value) || value === null) return value;
   return undefined;
 }
@@ -34,7 +40,7 @@ function buildLogEntry(level, event, fields = {}) {
     timestamp: new Date().toISOString(),
     level,
     service: "torrent-backend",
-    event,
+    event: safeText(typeof event === "string" ? event : "unknown"),
   };
 }
 

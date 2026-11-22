@@ -2,7 +2,7 @@
 
 ## Runtime log stream
 
-The backend writes one JSON object per line through Node's `console` API. `info` and `debug` go to stdout; `warn` and `error` go to stderr. The container/runtime log collector is the only external sink configured by this repository. The common envelope contains `timestamp` (ISO 8601 UTC), `level`, `service`, and `event`.
+The backend writes one JSON object per line through Node's `console` API. `info` and `debug` go to stdout; `warn` and `error` go to stderr. The frontend's small error logger writes JSON event records through `console.error`; server-side output goes to the Next.js runtime, and browser-side output stays in that browser's console. The container/runtime log collector is the only external sink configured by this repository. The common backend envelope contains `timestamp` (ISO 8601 UTC), `level`, `service`, and `event`.
 
 HTTP completion records include a server-generated `requestId` (also returned as `X-Request-Id`), method, route template, response status, duration, client IP, and authenticated actor ID/role when present. Query strings, request bodies, cookies, authorization headers, raw paths for unmatched routes, email addresses, and error messages/stacks are excluded. Security events use the same envelope and request ID; they include the event outcome and coarse route metadata. The logger redacts fields whose names indicate credentials, cookies, tokens, sessions, secrets, email, phone, or payment data.
 
@@ -27,10 +27,19 @@ Runtime timestamps are generated in UTC with an explicit `Z` offset. Mongoose ti
 - **V16.2.4:** Runtime logs are JSON Lines with stable envelope fields and request IDs shared with durable admin/manual-sync records.
 - **V16.2.5:** Request payloads, credentials, cookies, tokens, email fields, payment fields, and raw error messages/stacks are omitted or redacted. Sync history stores only status, source, counters, and sanitized error codes/names.
 
+## ASVS V16.4 log protection
+
+- **V16.4.1:** Backend output uses the shared JSON Lines logger. It removes CR/LF and Unicode line separators from event names, field names, and field values, JSON-encodes records, and validates error names/codes. Frontend call sites pass fixed event codes to a JSON-encoding logger; they do not include request errors or profile data. A regression test injects all four line separators and confirms a single parseable backend output line.
+- **V16.4.2:** The admin audit API requires an authenticated admin and exposes only `GET /api/admin/audit`; there are no HTTP update or delete routes for audit entries. In Compose, only the backend shares the private database network with MongoDB; the frontend cannot connect to MongoDB directly. The MongoDB host port is bound to `127.0.0.1`, so it is not reachable from other network interfaces. Runtime logs are emitted to stdout/stderr for the container runtime to collect.
+
+The repository does not configure production log-provider ACLs, retention, or immutable storage, and the local MongoDB development service does not enable database authentication. Verify production provider/database access controls and tamper protection in deployment configuration before claiming infrastructure-level log protection.
+
 ## Evidence collected
 
 - `src/app.js` installs the request logger before the API routes. `src/middleware/requestLogger.js` emits one completion record per response with a generated request ID, method, route template, status, duration, client IP, and available actor ID/role.
 - `src/controllers/auth/authController.js` records login success/failure and logout events. `src/middleware/requireAuth.js` and `src/middleware/requireRole.js` record authentication and authorization denials. `src/middleware/errorHandler.js` records unexpected server errors without including the raw error message or stack.
-- The focused automated evidence command, run on 2026-11-22 from `backend/`, was `node --require module-alias/register --test tests/logging/generalLogging.test.js`: **8 passed, 0 failed**. These tests capture logger output and verify HTTP request records, auth/security event redaction, server-error logging, UTC timestamps, request correlation, and the shared logging sink.
+- The focused automated evidence command, run on 2026-11-22 from `backend/`, was `node --require module-alias/register --test tests/logging/generalLogging.test.js`: **12 passed, 0 failed**. These tests capture logger output and verify HTTP request records, auth/security event redaction, server-error logging, UTC timestamps, request correlation, and that backend/frontend code use only their safe logging sinks.
+- `tests/auth/auditLogProtection.test.js` dispatches requests through the real Express admin router and auth middleware: anonymous GET returns 401, vendor GET/mutations return 403, admin GET succeeds, and admin PATCH/DELETE return 404. This focused route test passes. `tests/auth/mutationAuth.test.js` also checks the route through the complete app stack, but that suite cannot start in this checkout because `backend/node_modules` is missing the declared `csrf-csrf` package.
+- Frontend lint passed for the three changed files. `npx tsc --noEmit` could not complete because the checkout is missing the declared `lucide-react` package.
 
 This evidence verifies application code and focused tests. It does not verify log retention or retrieval in a deployed log provider, which is configured outside this repository. The admin audit `reason` is free text stored in MongoDB; review it separately before claiming sensitive-data redaction is complete for every durable record.

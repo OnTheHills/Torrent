@@ -1,4 +1,5 @@
 import type { Tor } from "@/types/tor";
+import { logClientError } from "@/lib/log";
 
 export interface CategoryFrequency {
   category: string;
@@ -160,7 +161,7 @@ export async function fetchTors(): Promise<Tor[]> {
   try {
     return await requestTors();
   } catch (error) {
-    console.error("Error fetching TORs:", error);
+    logClientError("tor_catalog_fetch_failed");
     return [];
   }
 }
@@ -192,7 +193,7 @@ export async function fetchBudgetPeers(
       }))
       .filter((row) => row.budgetThb > 0);
   } catch (error) {
-    console.error(`Error fetching budget peers for ${trimmed}:`, error);
+    logClientError("tor_budget_peers_fetch_failed");
     return [];
   }
 }
@@ -296,7 +297,7 @@ export async function fetchTorById(id: string): Promise<Tor | undefined> {
     const data = await response.json();
     return mapBackendTorToFrontendTor(data);
   } catch (error) {
-    console.error(`Error fetching TOR ${id}:`, error);
+    logClientError("tor_detail_fetch_failed");
     return undefined;
   }
 }

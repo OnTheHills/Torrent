@@ -5,7 +5,7 @@ const path = require("node:path");
 const { test } = require("node:test");
 const { requestLogger } = require("@/middleware/requestLogger");
 const { securityLog } = require("@/utils/securityLog");
-const { buildLogEntry } = require("@/utils/logger");
+const { buildLogEntry, logger } = require("@/utils/logger");
 const { errorHandler } = require("@/middleware/errorHandler");
 const AuditLog = require("@/models/admin/AuditLog");
 const { record } = require("@/services/admin/audit");
@@ -38,7 +38,11 @@ function responseMock() {
 function sourceFiles(directory) {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const filename = path.join(directory, entry.name);
-    return entry.isDirectory() ? sourceFiles(filename) : filename.endsWith(".js") ? [filename] : [];
+    return entry.isDirectory()
+      ? sourceFiles(filename)
+      : /\.(?:js|ts|tsx)$/.test(filename)
+        ? [filename]
+        : [];
   });
 }
 
@@ -154,13 +158,68 @@ test("log envelope owns timestamp and severity and errors omit messages", () => 
   assert.doesNotMatch(JSON.stringify(entry), /private details|do-not-log|forged/);
 });
 
+test("runtime log encoding prevents CRLF and Unicode line injection", (t) => {
+  const lines = [];
+  t.mock.method(console, "warn", (line) => lines.push(line));
+  logger.warn("security.event\r\nforged\u2028line\u2029", {
+    reason: "denied\r\nlevel=info\u2028forged\u2029line",
+    nested: { ["field\r\nforged\u2028line\u2029"]: "value\u2028line\u2029" },
+  });
+
+  assert.equal(lines.length, 1);
+  assert.doesNotMatch(lines[0], /[\r\n\u2028\u2029]/);
+  const entry = JSON.parse(lines[0]);
+  assert.equal(entry.event, "security.event  forged line ");
+  assert.equal(entry.reason, "denied  level=info forged line");
+  assert.equal(entry.nested["field  forged line "], "value line ");
+});
+
+test("direct Error serialization validates names and codes", () => {
+  const entry = buildLogEntry("error", "operation.failed", {
+    error: Object.assign(new Error("must be omitted"), {
+      name: "private@example.test",
+      code: "TOKEN=private-value",
+    }),
+  });
+  assert.deepEqual(entry.error, {});
+  assert.doesNotMatch(JSON.stringify(entry), /private@example|TOKEN=|must be omitted/);
+});
+
 test("production logging uses only the documented shared console sink", () => {
-  const sourceRoot = path.resolve(__dirname, "../../src");
-  const directWrites = sourceFiles(sourceRoot).filter((filename) =>
-    filename !== path.join(sourceRoot, "utils/logger.js") &&
+  const backendSource = path.resolve(__dirname, "../../src");
+  const frontendSource = path.resolve(__dirname, "../../../frontend/src");
+  const sharedSinks = new Set([
+    path.join(backendSource, "utils/logger.js"),
+    path.join(frontendSource, "lib/log.ts"),
+  ]);
+  const directWrites = [backendSource, frontendSource].flatMap(sourceFiles).filter((filename) =>
+    !sharedSinks.has(filename) &&
     /\bconsole\.(?:log|info|warn|error|debug)\s*\(/.test(readFileSync(filename, "utf8")),
   );
   assert.deepEqual(directWrites, []);
+});
+
+test("frontend log sink emits only JSON event metadata", () => {
+  const source = readFileSync(path.resolve(__dirname, "../../../frontend/src/lib/log.ts"), "utf8");
+  assert.match(source, /console\.error\(JSON\.stringify\(/);
+  assert.match(source, /timestamp:\s*new Date\(\)\.toISOString\(\)/);
+  assert.match(source, /event:\s*event\.replace\(\//);
+  assert.match(source, /\\u2028\\u2029/);
+  assert.doesNotMatch(source, /error\.message|error\.stack|submittedProfile|actorEmail/);
+});
+
+test("development MongoDB is published to host loopback only", () => {
+  const composeFile = path.resolve(__dirname, "../../../docker-compose.yml");
+  const compose = readFileSync(composeFile, "utf8");
+  assert.match(compose, /"127\.0\.0\.1:27017:27017"/);
+  assert.doesNotMatch(compose, /"27017:27017"/);
+
+  const service = (name) =>
+    new RegExp(`^  ${name}:([\\s\\S]*?)(?=^  [\\w-]+:|^networks:)`, "m").exec(compose)?.[1] || "";
+  assert.match(service("backend"), /networks:\n\s+- application\n\s+- database/);
+  assert.match(service("mongo"), /networks:\n\s+- database/);
+  assert.match(service("frontend"), /networks:\n\s+- application/);
+  assert.doesNotMatch(service("frontend"), /\n\s+- database/);
 });
 
 test("error metadata rejects arbitrary codes and stored errors omit messages", () => {
