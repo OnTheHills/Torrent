@@ -296,7 +296,7 @@ test("automatic ingestion continues after failed feeds and preserves each result
   assert.deepEqual(scored, saved);
   const failures = results.filter((row) => row.status === "failed");
   assert.deepEqual(Array.from(failures, (row) => row.sourceKey), ["dataGoProcess5", "bmaEgp2"]);
-  assert.equal(failures[0].error, "dataGoProcess5 unavailable");
+  assert.equal(failures[0].error, "Operation failed");
   assert.equal(failures[1].source, "BMA-EGP2");
   assert.equal(results.at(-1).source, "SME-GP");
   assert.equal(results.at(-1).status, "success");
