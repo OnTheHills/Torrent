@@ -19,6 +19,13 @@ function loadModule(file, dependencies, env = {}) {
     process: { env },
     console: { log() {}, error() {} },
     require(name) {
+      if (name === "@/utils/logger") {
+        return {
+          errorFields: () => ({}),
+          logger: { debug() {}, info() {}, warn() {}, error() {} },
+          safeErrorSummary: () => "Operation failed",
+        };
+      }
       assert.ok(name in dependencies, `Unexpected dependency: ${name}`);
       return dependencies[name];
     },
@@ -134,7 +141,7 @@ test("sync job saves data.go projects but waits for a TOR document before matchi
   const saved = [];
   const queued = [];
   const scored = [];
-  const job = loadModule("../src/jobs/syncAPI.js", {
+  const job = loadModule("../../src/jobs/syncAPI.js", {
     "node:path": { join: (...parts) => {
       const name = parts.at(-2);
       const file = parts.at(-1);
@@ -178,7 +185,7 @@ test("sync job saves data.go projects but waits for a TOR document before matchi
 
 test("data.go project enters matching only after its TOR has been extracted", async () => {
   const queued = [];
-  const job = loadModule("../src/jobs/syncAPI.js", {
+  const job = loadModule("../../src/jobs/syncAPI.js", {
     "node:path": { join: (...parts) => `${parts.at(-1)}:${parts.at(-2)}` },
     "@/repositories/tor/torRepository": {
       saveChanged: async () => ({ changedTorIds: ["project-id"], createdTorIds: ["project-id"], created: 1 }),
@@ -197,7 +204,7 @@ test("data.go project enters matching only after its TOR has been extracted", as
 test("data.go rate limit still processes saved TOR ZIPs", async () => {
   const queued = [];
   const saved = [{ refId: "egp-1", documentUrl: "https://process5.gprocurement.go.th/tor.zip" }];
-  const job = loadModule("../src/jobs/syncAPI.js", {
+  const job = loadModule("../../src/jobs/syncAPI.js", {
     "node:path": { join: (...parts) => `${parts.at(-1)}:${parts.at(-2)}` },
     "@/repositories/tor/torRepository": {
       saveChanged: async () => ({ created: 0, updated: 0, unchanged: 0, changedTorIds: [], createdTorIds: [] }),
@@ -259,7 +266,7 @@ function automaticJob({ fail = [] } = {}) {
     };
     dependencies[`adapter:${name}`] = { adapt: (rows) => rows };
   }
-  return { job: loadModule("../src/jobs/syncAPI.js", dependencies), fetched, saved, queued, scored, stages };
+  return { job: loadModule("../../src/jobs/syncAPI.js", dependencies), fetched, saved, queued, scored, stages };
 }
 
 test("automatic ingestion persists all five sources sequentially and still enriches SME-GP", async () => {
@@ -322,7 +329,7 @@ test("TOR persistence bulk-writes new and changed records but skips identical re
       _id: pair.refId === "data-1" ? "tor-1" : "tor-2",
     }));
   }
-  const repository = loadModule("../src/repositories/tor/torRepository.js", {
+  const repository = loadModule("../../src/repositories/tor/torRepository.js", {
     "node:util": require("node:util"),
     "@/models/tor/TOR": {
       find: (query) => ({
@@ -370,7 +377,7 @@ for (const flag of [undefined, "false", "true"]) {
   test(`sync job honors FETCH_ON_STARTUP=${flag} and schedules midnight Bangkok`, async () => {
     let syncs = 0;
     let scheduled;
-    const job = loadModule("../src/scheduler/syncScheduler.js", {
+    const job = loadModule("../../src/scheduler/syncScheduler.js", {
       "node-cron": { schedule: (...args) => { scheduled = args; } },
       "@/jobs/syncAPI": { syncAPI: async (options) => {
         assert.equal(options.automatic, true);
@@ -391,7 +398,7 @@ for (const flag of [undefined, "false", "true"]) {
 
 test("startup sync failure still enables the nightly job", async () => {
   let scheduled = false;
-  const job = loadModule("../src/scheduler/syncScheduler.js", {
+  const job = loadModule("../../src/scheduler/syncScheduler.js", {
     "node-cron": { schedule: () => { scheduled = true; } },
     "@/jobs/syncAPI": { syncAPI: async () => { throw new Error("API unavailable"); } },
     "@/services/admin/syncRuns": syncRunsMock,
@@ -406,7 +413,7 @@ test("automatic batch run retains healthy feed summaries when another feed fails
     { source: "BMA-EGP2", sourceKey: "bmaEgp2", status: "failed", fetched: 0, error: "Unavailable" },
     { source: "EGP-RSS", sourceKey: "egpRss", status: "success", fetched: 4 },
   ];
-  const job = loadModule("../src/scheduler/syncScheduler.js", {
+  const job = loadModule("../../src/scheduler/syncScheduler.js", {
     "node-cron": { schedule() {} },
     "@/jobs/syncAPI": { syncAPI: async () => summary },
     "@/services/admin/syncRuns": {

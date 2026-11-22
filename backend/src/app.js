@@ -7,6 +7,7 @@ const { createRateLimiter } = require("@/middleware/rateLimit");
 const { securityHeaders } = require("@/middleware/securityHeaders");
 const { httpGuards } = require("@/middleware/httpGuards");
 const { errorHandler } = require("@/middleware/errorHandler");
+const { requestLogger } = require("@/middleware/requestLogger");
 const authRouter = require("@/routes/authRoute");
 const userRouter = require("@/routes/userRoute");
 const vendorProfileRouter = require("@/routes/vendorProfileRoute");
@@ -25,6 +26,7 @@ const corsOrigins = process.env.CORS_ORIGIN.split(",").map((origin) =>
 );
 
 app.set("trust proxy", Number(process.env.TRUST_PROXY) || 1);
+app.use(requestLogger);
 app.use(httpGuards);
 app.use(securityHeaders);
 

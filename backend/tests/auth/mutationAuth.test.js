@@ -6,7 +6,7 @@ const jwt = require("jsonwebtoken");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { SECRET_NAMES } = require("../src/config/secrets");
+const { SECRET_NAMES } = require("../../src/config/secrets");
 
 test("the application requires a session for mutations and preserves public exceptions", { timeout: 15000 }, async (t) => {
   const environment = {

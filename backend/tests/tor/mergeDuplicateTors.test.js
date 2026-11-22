@@ -141,7 +141,7 @@ test("mergeByRefIds hides secondary and updates survivor", async () => {
 
   const module = { exports: {} };
   vm.runInNewContext(
-    readFileSync(path.join(__dirname, "../src/services/tor/mergeDuplicateTors.js"), "utf8"),
+    readFileSync(path.join(__dirname, "../../src/services/tor/mergeDuplicateTors.js"), "utf8"),
     {
       module,
       console,

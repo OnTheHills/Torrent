@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const SessionRevocation = require("@/models/user/SessionRevocation");
+const { errorFields, logger } = require("@/utils/logger");
 
 // In-memory mirror so revoke checks stay fast and work before indexes settle.
 const memory = new Map();
@@ -30,7 +31,7 @@ async function revokeJti(jti, expiresAt) {
     );
   } catch (error) {
     // Memory still holds the revoke if Mongo is temporarily unavailable.
-    console.error("session revoke persist failed:", error.message);
+    logger.error("session_revocation.persist_failed", errorFields(error));
   }
 }
 
@@ -53,7 +54,7 @@ async function isRevoked(jti) {
     memory.set(jti, expiryMs);
     return true;
   } catch (error) {
-    console.error("session revoke lookup failed:", error.message);
+    logger.error("session_revocation.lookup_failed", errorFields(error));
     return false;
   }
 }

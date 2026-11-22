@@ -4,8 +4,8 @@ const os = require("node:os");
 const path = require("node:path");
 const { test } = require("node:test");
 const jwt = require("jsonwebtoken");
-const { SECRET_NAMES, readSecret, validateSecrets } = require("../src/config/secrets");
-const { syncSecrets } = require("../scripts/sync-docker-secrets");
+const { SECRET_NAMES, readSecret, validateSecrets } = require("../../src/config/secrets");
+const { syncSecrets } = require("../../scripts/sync-docker-secrets");
 
 function temporaryDirectory(t) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "torrent-secrets-"));

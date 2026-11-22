@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { logger } = require("@/utils/logger");
 const { readSecret } = require("@/config/secrets");
 const User = require("@/models/user/User");
 const VendorProfile = require("@/models/vendor/VendorProfile");
@@ -23,7 +24,7 @@ async function connectDatabase() {
     Notification.init(),
   ]);
   await migrateVendorProfileFields();
-  console.log("Connected to MongoDB");
+  logger.info("database.connected", { database: "mongodb" });
 }
 
 module.exports = { connectDatabase };

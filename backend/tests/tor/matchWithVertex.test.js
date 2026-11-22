@@ -22,7 +22,7 @@ const VALID_SCORE = {
 function loadMatching({ certificates = [], score = VALID_SCORE, failure } = {}) {
   const calls = [];
   const module = { exports: {} };
-  vm.runInNewContext(readFileSync(path.join(__dirname, "../src/services/tor/matchWithVertex.js"), "utf8"), {
+  vm.runInNewContext(readFileSync(path.join(__dirname, "../../src/services/tor/matchWithVertex.js"), "utf8"), {
     module,
     process: { env: {} },
     require(name) {
@@ -118,7 +118,7 @@ test("certificate loading reads only registered PNGs matching the user and categ
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "vertex-certificates-"));
   const previousDirectory = process.env.CERTIFICATE_UPLOAD_DIR;
   process.env.CERTIFICATE_UPLOAD_DIR = directory;
-  const { readCertificates } = require("../src/services/vendor/certificateStorage");
+  const { readCertificates } = require("../../src/services/vendor/certificateStorage");
   t.mock.method(console, "warn", () => {});
   t.after(async () => {
     await fs.rm(directory, { recursive: true, force: true });

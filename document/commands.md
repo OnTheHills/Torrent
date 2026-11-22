@@ -277,7 +277,7 @@ Backend suite and one focused file, from the repository root:
 
 ```bash
 npm --prefix backend test
-npm --prefix backend test -- tests/mutationAuth.test.js
+npm --prefix backend test -- tests/auth/mutationAuth.test.js
 ```
 
 Frontend checks, starting from the repository root:
@@ -307,7 +307,7 @@ From the repository root, with application containers running:
 
 ```bash
 docker compose exec backend npm test
-docker compose exec backend npm test -- tests/dataGoProcess5.test.js
+docker compose exec backend npm test -- tests/tor/dataGoProcess5.test.js
 docker compose exec frontend npm run lint
 docker compose exec frontend npx tsc --noEmit
 docker compose exec frontend node --test tests/csrf-api.test.mjs

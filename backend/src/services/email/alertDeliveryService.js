@@ -7,6 +7,7 @@ const emailAlertRepository = require("@/repositories/email/emailAlertRepository"
 const notificationService = require("@/services/notificationService");
 const { fitScoreApplies } = require("@/jobs/matchTors");
 const { alertMessage } = require("@/utils/email/alertTemplate");
+const { errorFields, logger, safeErrorSummary } = require("@/utils/logger");
 const {
   EMAIL_PREF_BY_KIND,
   MIN_EMAIL_MATCH_PERCENT,
@@ -127,9 +128,9 @@ async function deliverPendingAlerts(now = new Date()) {
       const status = error.permanent ? "failed" : "pending";
       const backoff = Math.min(EMAIL_RETRY_MAX_MINUTES, 2 ** Math.min(alert.attempts, EMAIL_RETRY_EXPONENT_CAP)) * EMAIL_RETRY_BASE_MS;
       await emailAlertRepository.updateSending(alert._id, {
-        status, retryAt: new Date(Date.now() + backoff), lastError: error.message,
+        status, retryAt: new Date(Date.now() + backoff), lastError: safeErrorSummary(error),
       });
-      console.error("Email alert delivery failed", { key: alert.key, message: error.message });
+      logger.error("email_alert.delivery_failed", errorFields(error));
     }
   }
   return sent;

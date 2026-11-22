@@ -10,7 +10,7 @@ const { hashHex, verifyHmac } = require("@/utils/cryptoAlgorithms");
 // Exercise real service code with synthetic keys, without environment changes.
 function loadService(relativePath, sessionAlgorithm) {
   const module = { exports: {} };
-  vm.runInNewContext(readFileSync(path.join(__dirname, "../src", relativePath), "utf8"), {
+  vm.runInNewContext(readFileSync(path.join(__dirname, "../../src", relativePath), "utf8"), {
     module, Buffer, console, process: { env: {} },
     require(name) {
       if (name === "@/config/secrets") return { readSecret: () => "synthetic-crypto-parameter-test-key" };

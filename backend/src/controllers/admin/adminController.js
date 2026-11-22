@@ -1,6 +1,7 @@
 const admin = require("@/services/admin/adminService");
 const { runLineWeeklyDigest } = require("@/services/line/lineDigestService");
 const { clientMessage, statusOf } = require("@/middleware/errorHandler");
+const { errorFields, logger } = require("@/utils/logger");
 
 function send(work) {
   return async function (request, response, next) {
@@ -22,13 +23,13 @@ module.exports = {
     try {
       return response.json(await runLineWeeklyDigest());
     } catch (error) {
-      console.error("line-digest/run failed", error);
+      logger.error("line_digest.manual_run.failed", errorFields(error));
       return next(error);
     }
   },
-  applyRules: send((request) => admin.applyRules(request.user, request.body)),
+  applyRules: send((request) => admin.applyRules(request.user, request.body, request.requestId)),
   auditLog: send((request) => admin.auditLog(request.query)),
-  bulkTors: send((request) => admin.bulkTors(request.user, request.body)),
+  bulkTors: send((request) => admin.bulkTors(request.user, request.body, request.requestId)),
   getTor: send((request) => admin.getTor(request.params.id)),
   streamTorPdf: async (request, response, next) => {
     try {
@@ -46,16 +47,16 @@ module.exports = {
   matchJobs: send(() => admin.matchJobs()),
   overview: send(() => admin.overview()),
   previewRules: send((request) => admin.previewRules(request.body)),
-  rescore: send((request) => admin.rescore(request.user, request.body.reason)),
-  retryMatches: send((request) => admin.retryMatches(request.user, request.body)),
-  reviewCertificate: send((request) => admin.reviewCertificate(request.user, request.body)),
+  rescore: send((request) => admin.rescore(request.user, request.body.reason, request.requestId)),
+  retryMatches: send((request) => admin.retryMatches(request.user, request.body, request.requestId)),
+  reviewCertificate: send((request) => admin.reviewCertificate(request.user, request.body, request.requestId)),
   reviewQueue: send((request) => admin.reviewQueue(request.query)),
-  reviewTor: send((request) => admin.reviewTor(request.params.id, request.user, request.body)),
+  reviewTor: send((request) => admin.reviewTor(request.params.id, request.user, request.body, request.requestId)),
   searchTors: send((request) => admin.searchTors(request.query)),
   settings: send(() => admin.settings()),
   sources: send(() => admin.sources()),
-  updateTor: send((request) => admin.updateTor(request.params.id, request.user, request.body)),
+  updateTor: send((request) => admin.updateTor(request.params.id, request.user, request.body, request.requestId)),
   getUser: send((request) => admin.getUser(request.params.id)),
-  updateUser: send((request) => admin.updateUser(request.params.id, request.user, request.body)),
+  updateUser: send((request) => admin.updateUser(request.params.id, request.user, request.body, request.requestId)),
   users: send(() => admin.users()),
 };

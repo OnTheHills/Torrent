@@ -1,14 +1,15 @@
 const cron = require("node-cron");
 const { syncAPI } = require("@/jobs/syncAPI");
 const syncRuns = require("@/services/admin/syncRuns");
+const { errorFields, logger, safeErrorSummary } = require("@/utils/logger");
 
 // Schedule the TOR synchronization workflow without exposing cron concerns to controllers.
 
 async function startSyncScheduler() {
   async function runSync(label, trigger) {
-    console.log(`Running ${label} procurement sync job...`);
+    logger.info("sync.run.started", { source: "all", trigger });
     const run = await syncRuns.start("all", null, trigger).catch((error) => {
-      console.error(`${label} sync run record failed:`, error);
+      logger.error("sync.run.record_start_failed", { source: "all", ...errorFields(error) });
       return null;
     });
     try {
@@ -19,15 +20,26 @@ async function startSyncScheduler() {
         ? failures.map((row) => `${row.sourceKey}: ${row.error}`).join(" | ")
         : undefined;
       if (run) await syncRuns.finish(run, { status, summary: result, error }).catch(() => {});
-      console.log(`${label} sync job completed (${status}):`, result);
+      logger.info("sync.run.completed", {
+        source: "all",
+        trigger,
+        status,
+        sources: result.map(({ sourceKey, status: sourceStatus, fetched, created, updated }) => ({
+          source: sourceKey,
+          status: sourceStatus,
+          fetched,
+          created,
+          updated,
+        })),
+      });
     } catch (error) {
-      if (run) await syncRuns.finish(run, { status: "failed", error: error.message }).catch(() => {});
-      console.error(`${label} sync job failed:`, error);
+      if (run) await syncRuns.finish(run, { status: "failed", error: safeErrorSummary(error) }).catch(() => {});
+      logger.error("sync.run.failed", { source: "all", trigger, ...errorFields(error) });
     }
   }
 
   await syncRuns.closeInterrupted().catch((error) => {
-    console.error("Closing interrupted sync runs failed:", error);
+    logger.error("sync.run.close_interrupted_failed", errorFields(error));
   });
 
   // Startup uses the same all-source ingestion as the nightly job.
@@ -40,7 +52,7 @@ async function startSyncScheduler() {
     noOverlap: true,
   });
 
-  console.log("Procurement sync scheduled for 00:00 Asia/Bangkok daily.");
+  logger.info("sync.schedule.registered", { schedule: "0 0 * * *", timeZone: "Asia/Bangkok" });
 }
 
 module.exports = { startSyncScheduler };

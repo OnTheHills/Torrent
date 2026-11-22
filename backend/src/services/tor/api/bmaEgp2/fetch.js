@@ -10,6 +10,7 @@ const {
   USER_AGENT,
 } = require("@/constants/bmaConstants");
 const { wait } = require("@/utils/torUtils");
+const { errorFields, logger } = require("@/utils/logger");
 
 async function fetchPage({ budgetYear, announceTypeId, pageNo, pageSize }) {
   const url = new URL(API_URL);
@@ -65,9 +66,12 @@ async function fetchBmaProjects({
           }
           pageCount = Math.max(Number.parseInt(result.pageCount || 1, 10), 1);
         } catch (error) {
-          console.error(
-            `Failed to fetch BMA e-GP2 ${budgetYear} ${announceType.code} page ${pageNo}: ${error.message}`,
-          );
+          logger.error("bma_egp2.page_fetch.failed", {
+            budgetYear,
+            announceType: announceType.code,
+            page: pageNo,
+            ...errorFields(error),
+          });
         }
         pageNo++;
       }

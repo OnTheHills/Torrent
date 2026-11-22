@@ -21,7 +21,7 @@ const CONFIGURED_ENV = {
 function loadVertexClient(env, FakeGoogleGenAI, logs = []) {
   const module = { exports: {} };
   vm.runInNewContext(
-    readFileSync(path.join(__dirname, "../src/services/ai/vertexClient.js"), "utf8"),
+    readFileSync(path.join(__dirname, "../../src/services/ai/vertexClient.js"), "utf8"),
     {
       module,
       AbortController,
@@ -41,6 +41,7 @@ function loadVertexClient(env, FakeGoogleGenAI, logs = []) {
       require(name) {
         if (name === "@google/genai") return { GoogleGenAI: FakeGoogleGenAI };
         if (name === "@/services/ai/vertexErrors") return vertexErrors;
+        if (name === "@/utils/logger") return { logger: { error: (event, fields) => logs.push([event, fields]) } };
         if (name === "node:fs" || name === "node:path") return require(name);
         throw new Error(`Unexpected dependency: ${name}`);
       },

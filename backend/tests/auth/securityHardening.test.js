@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { once } = require("node:events");
-const { SECRET_NAMES } = require("../src/config/secrets");
+const { SECRET_NAMES } = require("../../src/config/secrets");
 
 test("security hardening: Host session cookies, revoke, rate limits, headers", { timeout: 20000 }, async (t) => {
   const environment = {
