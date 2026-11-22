@@ -20,7 +20,7 @@ function loadSource(relativePath, replacements = {}) {
   });
   const loaded = new Module(filename);
   loaded.filename = filename;
-  loaded.require = (name) => name in replacements ? replacements[name] : require(name);
+  loaded.require = (name) => name === "@/lib/log" ? { logClientError() {} } : name in replacements ? replacements[name] : require(name);
   loaded._compile(outputText, filename);
   return loaded.exports;
 }
@@ -62,6 +62,8 @@ function renderChart(file, componentName, data, clientFunction) {
       return { data, isPending: false, isError: false };
     } },
     "@/components/providers/locale-provider": { useLocale: () => ({ locale: "en", t: (key) => dictionary.en[key] }) },
+    "@/components/dashboard/budget-chart": { BudgetTip: ({ children }) => React.createElement("div", null, children) },
+    "@/lib/utils": { cn: (...values) => values.filter(Boolean).join(" ") },
     "@/components/ui/button": { Button: ({ children }) => React.createElement("button", null, children) },
     "@/components/dashboard/budget-chart": { BudgetTip: ({ children }) => React.createElement("div", null, children) },
     "@/lib/api": api,

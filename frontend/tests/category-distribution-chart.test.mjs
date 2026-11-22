@@ -16,7 +16,7 @@ function loadSource(relativePath, replacements = {}) {
   });
   const loaded = new Module(filename);
   loaded.filename = filename;
-  loaded.require = (name) => name in replacements ? replacements[name] : require(name);
+  loaded.require = (name) => name === "@/lib/log" ? { logClientError() {} } : name in replacements ? replacements[name] : require(name);
   loaded._compile(outputText, filename);
   return loaded.exports;
 }

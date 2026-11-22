@@ -26,6 +26,26 @@ const cookieHelpers = loadTs("src/lib/session-cookie.ts");
 const torId = "507f1f77bcf86cd799439011";
 const sessionJar = { get: (name) => name === "torrent_session" ? { value: "test-session" } : undefined };
 
+test("proxy prevents caching protected pages and API responses", () => {
+  const { proxy } = loadTs("src/proxy.ts", {
+    "next/server": { NextResponse: {
+      next: () => new Response(null),
+      redirect: (url) => new Response(null, { status: 302, headers: { Location: String(url) } }),
+    } },
+    "@/config/routes": { routes: { login: "/login" } },
+    "@/lib/csp": { buildContentSecurityPolicy: () => "default-src 'self'" },
+    "@/lib/session-cookie": { readSessionCookie: (jar) => jar.get("torrent_session") },
+  });
+  for (const path of ["/app/profile", "/admin/users", "/api/sources/health"]) {
+    const response = proxy({ url: `https://torrent.test${path}`, nextUrl: { pathname: path }, headers: new Headers(), cookies: sessionJar });
+    assert.equal(response.headers.get("cache-control"), "no-store");
+    assert.equal(response.headers.get("referrer-policy"), "no-referrer");
+  }
+  const redirect = proxy({ url: "https://torrent.test/app/profile", nextUrl: { pathname: "/app/profile" }, headers: new Headers(), cookies: { get: () => undefined } });
+  assert.equal(redirect.status, 302);
+  assert.equal(redirect.headers.get("cache-control"), "no-store");
+});
+
 function pdfRoute(jar = sessionJar) {
   return loadTs("src/app/api/admin/tors/[id]/pdf/route.ts", {
     "next/headers": { cookies: async () => jar },

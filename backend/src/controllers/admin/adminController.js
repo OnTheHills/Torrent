@@ -36,7 +36,7 @@ module.exports = {
       const { bytes, contentType, filename } = await admin.streamTorPdf(request.params.id);
       response.setHeader("Content-Type", contentType);
       response.setHeader("Content-Disposition", `inline; filename="${filename}"`);
-      response.setHeader("Cache-Control", "private, max-age=300");
+      response.setHeader("Cache-Control", "private, no-store");
       return response.send(bytes);
     } catch (error) {
       const status = statusOf(error);

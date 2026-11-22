@@ -175,8 +175,8 @@ also gates `/app` to vendor/admin and `/admin` to admin through `/auth/me`.
 Removed APIs: `POST /users`, `POST /tors`, `POST /tor-matches`, and all `/user-bios` routes are no longer
 registered. After applicable authentication/CSRF checks they fall through to 404;
 anonymous/private API requests can receive 401 first. The separate vendor-profile
-`bio` field remains supported. There is no watchlist API: saved TOR IDs currently
-use browser localStorage rather than account-scoped server persistence.
+`bio` field remains supported. Saved TOR IDs use the account-scoped
+`/users/me/watchlist` API; the client does not import the old browser-wide list.
 
 ### Current field access and state rules
 
@@ -185,7 +185,7 @@ They are not a proposed stricter policy or a completed ASVS assessment.
 
 | Resource | Fields returned to an authorized reader | Write restrictions / resource attributes |
 | --- | --- | --- |
-| Auth / generic users | Stored user fields except schema-hidden `passwordHash`; no explicit allowlist for remaining identity, LINE, preference or session-version fields | Vendor account PATCH allows only `username`, `firstname`, `lastname`, `picture`; admin generic PATCH is broader |
+| Auth / generic users | Only `_id`, `email`, `role`, `firstname`, `lastname`, `username`, and `picture`; internal Google/LINE identifiers, link codes, preferences, and session state are excluded | Vendor account PATCH allows only `username`, `firstname`, `lastname`, `picture`; admin generic PATCH is broader |
 | Dedicated admin user views | Explicit presentation of identity/status, profile completeness and certificate metadata; detail adds profile summary and LINE status | `/admin/users/{id}` accepts role/disabled plus reason, audits, increments session version when privilege state changes |
 | Vendor profile | Stored profile fields, `userId`, certificate metadata/paths and timestamps | Controller allowlist; immutable owner; image retention/upload ownership rules below |
 | Public TOR list | Stored list fields except `description`, `requirements`, `sources`, `mergeConflicts`, `reviewNote`, `reviewScoreReason`, integrity notes, and heavy OCR requirement/summary/error fields; adds `matchEligible` | Public cannot write; hidden records excluded |

@@ -105,7 +105,9 @@ test("security hardening: Host session cookies, revoke, rate limits, headers", {
     const response = await fetch(`${base}/api/hello`);
     assert.equal(response.status, 200);
     assert.equal(response.headers.get("x-content-type-options"), "nosniff");
-    assert.equal(response.headers.get("referrer-policy"), "strict-origin-when-cross-origin");
+    assert.equal(response.headers.get("referrer-policy"), "no-referrer");
+    assert.equal(response.headers.get("cache-control"), "no-store");
+    assert.equal(response.headers.get("pragma"), "no-cache");
     assert.equal(response.headers.get("x-frame-options"), "DENY");
     assert.match(response.headers.get("content-security-policy") || "", /frame-ancestors 'none'/);
     assert.equal(response.headers.get("cross-origin-resource-policy"), "same-site");

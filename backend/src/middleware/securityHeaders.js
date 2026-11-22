@@ -1,7 +1,11 @@
 /** Baseline browser/API security headers for the Express host. */
 function securityHeaders(request, response, next) {
   response.setHeader("X-Content-Type-Options", "nosniff");
-  response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.setHeader("Referrer-Policy", "no-referrer");
+  if (/^\/api(?:\/|$)/i.test(request.path)) {
+    response.setHeader("Cache-Control", "no-store");
+    response.setHeader("Pragma", "no-cache");
+  }
   response.setHeader("X-Frame-Options", "DENY");
   response.setHeader(
     "Content-Security-Policy",

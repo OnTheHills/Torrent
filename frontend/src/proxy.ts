@@ -8,7 +8,7 @@ import { readSessionCookie } from "@/lib/session-cookie";
 function applySecurityHeaders(response: NextResponse, nonce: string) {
   response.headers.set("Content-Security-Policy", buildContentSecurityPolicy(nonce));
   response.headers.set("X-Content-Type-Options", "nosniff");
-  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.headers.set("Referrer-Policy", "no-referrer");
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set(
     "Permissions-Policy",
@@ -32,10 +32,12 @@ export function proxy(request: NextRequest) {
   if (isAdminRoute || isAppRoute) {
     const session = readSessionCookie(request.cookies);
     if (!session) {
-      return applySecurityHeaders(
+      const redirect = applySecurityHeaders(
         NextResponse.redirect(new URL(routes.login, request.url)),
         nonce,
       );
+      redirect.headers.set("Cache-Control", "no-store");
+      return redirect;
     }
     // Presence-only gate. Role checks use verified /auth/me in layouts —
     // never trust an unsigned JWT payload here (ASVS V9.2).
@@ -44,6 +46,9 @@ export function proxy(request: NextRequest) {
   const response = NextResponse.next({
     request: { headers: requestHeaders },
   });
+  if (isAdminRoute || isAppRoute || path.startsWith("/api/")) {
+    response.headers.set("Cache-Control", "no-store");
+  }
   return applySecurityHeaders(response, nonce);
 }
 
