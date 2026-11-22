@@ -222,6 +222,13 @@ test("development MongoDB is published to host loopback only", () => {
   assert.doesNotMatch(service("frontend"), /\n\s+- database/);
 });
 
+test("durable audit and sync records have no automatic TTL expiry", () => {
+  for (const model of [AuditLog, SyncRun]) {
+    const ttlIndexes = model.schema.indexes().filter(([, options]) => options.expireAfterSeconds !== undefined);
+    assert.deepEqual(ttlIndexes, [], `${model.modelName} retention is external/manual`);
+  }
+});
+
 test("error metadata rejects arbitrary codes and stored errors omit messages", () => {
   const error = Object.assign(new Error("private@example.test token=hidden"), {
     name: "https://attacker.test/name",
