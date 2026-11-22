@@ -180,6 +180,8 @@ Detailed records are required primarily for dependencies with known vulnerabilit
 
 ## 9. ASVS Compliance Assessment
 
+Architecture documentation for V15.1 (including SBOM location and resource-demanding functionality) is centralized in [Secure-Coding-Architecture.md](./Secure-Coding-Architecture.md).
+
 ### V15.1.1 — Dependency Update Documentation
 
 This requirement may be marked **Passed** when:
@@ -187,6 +189,15 @@ This requirement may be marked **Passed** when:
 - The dependency update policy is documented.
 - Security remediation timeframes are defined.
 - The policy has been reviewed and adopted by the project maintainer.
+
+### V15.1.2 — Third-Party Inventory / SBOM
+
+This requirement may be marked **Passed** when:
+
+- CycloneDX SBOMs exist under [sbom/](./sbom/) for backend and frontend lockfiles.
+- Trusted repository policy is documented (default `registry.npmjs.org`).
+- Direct dependency catalogs are listed in Secure-Coding-Architecture.md.
+- SBOMs are regenerated after intentional dependency changes (`./scripts/generate-sbom.sh`).
 
 ### V15.2.1 — Dependency Compliance Verification
 
