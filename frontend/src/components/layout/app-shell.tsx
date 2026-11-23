@@ -133,6 +133,7 @@ export function AppShell({
           ) : (
             children
           )}
+          <SiteFooter />
         </MainContent>
       </div>
     </SidebarProvider>

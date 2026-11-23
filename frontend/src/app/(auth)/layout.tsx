@@ -1,7 +1,11 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import { HomeHeroTiles } from "@/components/home/home-hero-tiles";
 import { BrandLockup } from "@/components/layout/brand-lockup";
+import { SiteFooter } from "@/components/layout/site-footer";
 import { routes } from "@/config/routes";
 
 export default function AuthLayout({
@@ -9,8 +13,11 @@ export default function AuthLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const showFooter = pathname !== routes.register;
+
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden hero-atmosphere text-hero-foreground">
+    <div className="relative flex min-h-screen flex-col overflow-x-hidden hero-atmosphere text-hero-foreground">
       <HomeHeroTiles className="pointer-events-none absolute inset-0 z-0 opacity-95" />
       <div
         aria-hidden
@@ -24,6 +31,11 @@ export default function AuthLayout({
           {children}
         </div>
       </div>
+      {showFooter ? (
+        <div className="relative z-10">
+          <SiteFooter />
+        </div>
+      ) : null}
     </div>
   );
 }

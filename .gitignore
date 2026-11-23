@@ -4,6 +4,6 @@ GEMINI.md
 .codex
 .GEMINI
 graphify-out
-/docs/project_details/*
+/docs/
 .cursor/skills/*
 .DS_Store
