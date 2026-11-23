@@ -56,7 +56,7 @@ docker compose down
 
 ## First-time setup
 
-Docker development needs Docker Desktop/Engine and Compose v2.24 or newer.
+Docker builds need Docker Desktop/Engine and Compose v2.24 or newer.
 Host npm development also needs Node.js 22 and npm. Use Node 22.18+ for frontend
 tests that import TypeScript directly.
 
@@ -245,31 +245,24 @@ npm --prefix frontend install --save-dev package-name
 Commit the affected `package.json` and `package-lock.json`. `npm ci` replaces
 installed modules and requires the manifest and lockfile to agree.
 
-The frontend is fully bind-mounted in Docker, so this updates its host manifest
-and lockfile as well as the container's modules:
+Both application images run production builds with `npm run start`. Source
+code is copied into the images; only backend uploads and credentials remain
+mounted. Install packages on the host as shown above, then rebuild:
 
 ```bash
-docker compose exec frontend npm install package-name
+./process.sh up backend
+./process.sh up frontend
 ```
 
-Backend package files are baked into its image. Installing inside the running
-backend container does **not** update host package files. If host npm is
-unavailable, update them through a disposable Node container:
+The backend build uses esbuild and preserves module paths in `dist/`. For host
+production use, run `npm run build` before `npm run start` in each app directory.
+Host `npm run dev` still supports development reloads.
 
-```bash
-docker run --rm -v "$PWD/backend:/app" -w /app node:22-alpine npm install package-name
-```
-
-After changing package files, rebuild and replace application dependency volumes:
-
-```bash
-./process.sh secrets
-docker compose up -d --build --force-recreate --renew-anon-volumes backend frontend
-```
-
-Atlas data is unaffected. If image build caching is the problem,
-run `docker compose build --no-cache backend frontend` first, then recreate with
-the command above.
+Compose supplies `frontend/.env` to the frontend build as a temporary BuildKit
+secret. Next.js embeds `NEXT_PUBLIC_*` values at build time, so changes to these
+public values require `docker compose build --no-cache frontend` before
+recreating the frontend: secret contents do not invalidate BuildKit caches.
+The env file stays out of the image. Atlas data is independent of image rebuilds.
 
 ## Tests, lint, types, and builds
 
@@ -292,7 +285,7 @@ node --test tests/*.test.mjs
 npm run build
 ```
 
-The frontend has no `npm test` script. Its tests use Node's test runner; some
+The frontend `npm test` script uses Node's test runner; some
 import `.ts` files directly, so use Node 22.18+ (or Node 22 with
 `--experimental-strip-types`). Install backend dependencies too: the dashboard
 API contract test loads backend modules. CI currently runs frontend ESLint.
@@ -305,20 +298,21 @@ node --test tests/csrf-api.test.mjs
 
 ### Docker checks
 
-From the repository root, with application containers running:
+Build both production images and check the running applications:
 
 ```bash
-docker compose exec backend npm test
-docker compose exec backend npm test -- tests/tor/dataGoProcess5.test.js
-docker compose exec frontend npm run lint
-docker compose exec frontend npx tsc --noEmit
-docker compose exec frontend node --test tests/csrf-api.test.mjs
+docker compose build backend frontend
+docker compose up -d backend frontend
+docker compose ps
+docker compose logs --tail=30 backend frontend
+curl --fail http://localhost:5175/api/tors
+curl --fail --output /dev/null http://localhost:3000/
 ```
 
-Backend tests are copied into the image at build time; rebuild after editing them.
-The frontend dashboard API contract test imports `../../backend/` and cannot run
-in the frontend container's isolated filesystem. Run the full frontend suite on
-the host with both applications' dependencies installed.
+Run backend regression tests on the host with `npm --prefix backend test`.
+The production backend image excludes the test suite and development packages.
+Run frontend tests on the host with both applications' dependencies installed;
+the dashboard API contract test imports backend modules.
 
 ### Serve a local production frontend build
 
@@ -342,13 +336,12 @@ These public GET requests need no login:
 
 ```bash
 curl --fail-with-body http://localhost:5175/
-curl --fail-with-body http://localhost:5175/api/hello
 curl --fail-with-body http://localhost:5175/api/tors
 curl --fail-with-body http://localhost:5175/api/tors/category-distribution
 curl --fail-with-body http://localhost:5175/api/tors/top-departments-by-budget
 ```
 
-`/api/hello` returns `{"message":"Hello from Express!"}`; `/api/tors` returns an
+The development-only `/api/hello` diagnostic is disabled in production. `/api/tors` returns an
 array. Count visible TORs without printing the whole catalog (requires host Node):
 
 ```bash
@@ -683,7 +676,7 @@ backend environment separately from the frontend deployment.
 | `403 INVALID_ORIGIN` | Use an exact origin from `CORS_ORIGIN` |
 | `403 INVALID_CSRF_TOKEN` | Fetch a new token using the same cookie jar, then send cookie and header |
 | `403 Forbidden.` | Check that the account has the required role |
-| Package missing in Docker after dependency change | Rebuild and renew application dependency volumes as above |
+| Package missing in Docker after dependency change | Rebuild the affected application image as above |
 | Google login fails | Match both OAuth client IDs and register the actual frontend origin |
 
 ### Port already in use
@@ -714,7 +707,7 @@ Apply changed secret files or Docker settings with `./process.sh up backend`.
 
 ### Empty listings or zero budgets
 
-Check `/api/hello`, `/api/tors`, backend logs, and database counts. An empty array
+Check `/api/tors`, backend logs, and database counts. An empty array
 means there are no visible stored TORs; a failed request points to a backend or
 network problem. Trigger an authenticated sync or enable startup fetching.
 

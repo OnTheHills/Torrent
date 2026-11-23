@@ -18,9 +18,7 @@ services:
       - "5175:5175"
 
     volumes:
-      # Mount development files individually so backend/.env is never exposed.
-      - ./backend/src:/app/src
-      - ./backend/scripts:/app/scripts
+      # Persist uploads and mount provider credentials separately from the image.
       - ./backend/upload:/app/upload
       - ./backend/.secret:/app/.secret:ro
 
@@ -29,6 +27,7 @@ services:
         required: false
 
     environment:
+      NODE_ENV: production
       # env_file supplies ordinary settings. Override every raw secret with an
       # empty value, even when it is still present in .env during provisioning.
       JWT_SECRET: ""
@@ -64,19 +63,19 @@ services:
       - application
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      secrets:
+        - frontend_build_env
     restart: always
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     environment:
+      NODE_ENV: production
       BACKEND_API_URL: http://backend:5175/api
     env_file:
       - path: ./frontend/.env
         required: false
-    volumes:
-      # Keep dependencies from the rebuilt image; bind only files edited during development.
-      - ./frontend/src:/app/src
-      - ./frontend/public:/app/public
     depends_on:
       - backend
     networks:
@@ -86,6 +85,8 @@ networks:
   application:
 
 secrets:
+  frontend_build_env:
+    file: ./frontend/.env
   jwt_secret:
     file: ./backend/.secrets/jwt_secret
   mongo_uri:

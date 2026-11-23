@@ -139,7 +139,7 @@ configuration change.
 Open http://localhost:3000. Set `FRONTEND_PORT` in your shell if you want to use a different host port. Verify the backend and follow startup logs with:
 
 ```bash
-curl http://localhost:5175/api/hello
+curl --fail http://localhost:5175/api/tors
 docker compose logs -f
 ```
 
@@ -273,22 +273,28 @@ npm install --save-dev package-name
 
 Commit both `package.json` and `package-lock.json` after intentional dependency changes.
 
-### Docker development workflow
+### Docker build and start
 
-The source directories are bind-mounted into the containers, while each container keeps its own `/app/node_modules` volume. Install a package inside the relevant running container so the container's modules and the host lockfiles stay in sync:
-
-```bash
-docker compose exec frontend npm install package-name
-docker compose exec backend npm install package-name
-```
-
-For development-only packages, append `--save-dev`. After changing dependency files, a clean rebuild is the most reliable way to reproduce the installation:
+Both Docker images run `npm run start` with `NODE_ENV=production`.
+The backend uses esbuild to compile `src/` into `dist/`; the frontend runs
+`next build` before `next start`. Source code is baked into the images, so
+rebuild after editing code or dependencies:
 
 ```bash
-docker compose down
-docker compose build --no-cache frontend backend
-docker compose up
+./process.sh up backend
+./process.sh up frontend
 ```
+
+Install packages in the host application directory and commit both
+`package.json` and `package-lock.json`. Container installs do not update them.
+For frontend builds, Compose mounts `frontend/.env` as a temporary build secret
+so the browser's `NEXT_PUBLIC_*` configuration is embedded correctly. After changing these public values, run
+`docker compose build --no-cache frontend` before recreating the frontend;
+BuildKit secret contents do not invalidate cached build layers. The env file
+is excluded from the image.
+
+For host development, `npm run dev` remains available. To run a host production
+build, run `npm run build` followed by `npm run start` in each app directory.
 
 ## Useful commands
 
@@ -302,7 +308,8 @@ docker compose up
 | `./process.sh secrets` | repository root | Create/update Compose secrets from `backend/.env`, preserving omitted values |
 | `./process.sh` | repository root | Regenerate secrets and rebuild/recreate the complete Docker stack |
 | `./process.sh up backend` | repository root | Regenerate secrets and rebuild/recreate the backend |
-| `npm run start` | `backend/` | Start Express without nodemon |
+| `npm run build` | `backend/` | Compile backend JavaScript into `dist/` using esbuild |
+| `npm run start` | `backend/` | Run the compiled backend; requires `npm run build` first |
 | `npm run probe` | `backend/` | Probe configured public procurement sources |
 | `docker compose ps` | repository root | Show container and health status |
 | `docker compose logs -f backend` | repository root | Follow backend logs |
@@ -317,7 +324,7 @@ The backend provides JSON CRUD routes for:
 - `/api/tors`
 - `/api/tor-matches`
 
-Each collection supports `POST /`, `GET /`, `GET /:id`, `PATCH /:id`, and `DELETE /:id`. Basic checks are available at `/` and `/api/hello`.
+Each collection supports `POST /`, `GET /`, `GET /:id`, `PATCH /:id`, and `DELETE /:id`. Use `GET /api/tors` for a production API check. The `/` and `/api/hello` diagnostics are enabled by default only in development.
 
 ### Session and CSRF protection
 
@@ -414,5 +421,5 @@ queue matching; its latest details are used when a TOR is next processed.
 - **Atlas authentication fails:** replace `<db_password>` with the database user's URL-encoded password, and confirm access to `Torrent`.
 - **Atlas connection times out:** check Atlas Network Access for the backend's public outbound IP and confirm the cluster is available.
 - **A port is already in use:** stop the process using ports 3000 or 5175, or change the corresponding Compose port mapping.
-- **A newly installed package is missing in Docker:** rebuild the affected image, or install it with `docker compose exec` as described above.
+- **A newly installed package is missing in Docker:** install it in the host app directory and rebuild the affected image.
 - **Source-health results are yellow/red:** those checks call external government websites, so availability and network restrictions can affect the result without breaking the rest of the app.

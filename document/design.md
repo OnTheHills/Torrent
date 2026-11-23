@@ -340,7 +340,7 @@ https://drive.google.com/file/d/1yh_ex4VEBdWsiu_e6mPSK1XS_6KwqVLL/view?usp=shari
 | /api/admin/* | admin | Ops, review, settings, audit |
 | /api/line | webhook HMAC; vendor/admin for link APIs | LINE integration |
 | /api/users, /api/user-bios | as routed | Account / bio helpers |
-| /, /api/hello | public | Liveness |
+| /, /api/hello | development diagnostics | Disabled by default in production |
 
 ### 8.3 Representative Contracts
 
@@ -513,7 +513,7 @@ CD: The full deploy pipeline (build → staging → prod) is not fully specified
 ### 13.5 Containerization
 
 - Dockerfiles for frontend/backend; Compose orchestration
-- Bind mounts for live code; anonymous volumes for node_modules
+- Build JavaScript into images and run npm start; backend esbuild output in dist/, frontend Next.js production build
 - Backend upload directory preserved via host bind in Compose workflow
 
 ## 14. Testing Strategy
@@ -538,7 +538,7 @@ Run examples are documented in README for certificate tests; other suites via No
 
 ### 14.3 End-to-end Testing
 
-No dedicated E2E framework locked in this document yet (Playwright for product UI is optional later). Manual Compose smoke: FE load, /api/hello, admin sync, vendor login.
+No dedicated E2E framework locked in this document yet (Playwright for product UI is optional later). Manual Compose smoke: FE load, GET /api/tors, admin sync, vendor login.
 
 ### 14.4 Quality Metrics
 
@@ -587,7 +587,7 @@ cp backend/.env.example backend/.env
 
 - Open:
   - Frontend: http://localhost:3000
-  - Backend: http://localhost:5175 (GET /api/hello for a quick check)
+  - Backend: http://localhost:5175 (GET /api/tors for a quick check)
 - Optional: follow logs with docker compose logs -f.
 
 #### Next time (already configured)
