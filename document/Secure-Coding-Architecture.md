@@ -32,7 +32,7 @@ Verification: policy adopted by the project maintainer; timeframes are explicit 
 | --- | --- | --- |
 | npm (backend + frontend) | `https://registry.npmjs.org` (default npm registry) | No project `.npmrc` overrides registry; lockfile `resolved` URLs use `registry.npmjs.org` |
 | Docker base images | Images pinned in Compose / Dockerfiles from official or project-approved registries | Reviewed when images change |
-| Node / MongoDB runtimes | Vendor distribution used by local Compose | Reviewed with runtime upgrades |
+| Node / MongoDB runtimes | Node image used by Compose; MongoDB managed in Atlas | Review Node upgrades and Atlas cluster/driver compatibility |
 
 Private or alternate registries are **not** configured. New dependencies must come from the default npm registry unless an exception is recorded in [dependency-management.md](./dependency-management.md).
 

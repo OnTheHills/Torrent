@@ -1,7 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { parseEnv } = require("node:util");
-const { SECRET_NAMES, REQUIRED_SECRETS } = require("../src/config/secrets");
+const { SECRET_NAMES, REQUIRED_SECRETS, validateAtlasUri } = require("../src/config/secrets");
 
 const backendRoot = path.resolve(__dirname, "..");
 
@@ -21,7 +21,15 @@ function syncSecrets({ envFile = path.join(backendRoot, ".env"), outputDir = pat
   for (const name of SECRET_NAMES) {
     const filename = path.join(outputDir, name.toLowerCase());
     let value;
-    if (Object.hasOwn(environment, name)) {
+    if (name === "MONGO_URI") {
+      // The Atlas URI is managed directly in this file. An old env assignment
+      // must never overwrite it when process.sh prepares other secrets.
+      if (!fs.existsSync(filename) || !fs.lstatSync(filename).isFile()) {
+        throw new Error("Create backend/.secrets/mongo_uri with your Atlas URI before creating secrets.");
+      }
+      value = fs.readFileSync(filename, "utf8");
+      validateAtlasUri(value);
+    } else if (Object.hasOwn(environment, name)) {
       // An explicit blank clears an optional credential; an omitted/commented
       // setting preserves the existing secret after initial provisioning.
       value = environment[name];

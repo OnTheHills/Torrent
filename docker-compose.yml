@@ -18,17 +18,16 @@ services:
       - "5175:5175"
 
     volumes:
-      # Mount development files individually so backend/.env is never exposed.
-      - ./backend/src:/app/src
-      - ./backend/scripts:/app/scripts
+      # Persist uploads and mount provider credentials separately from the image.
       - ./backend/upload:/app/upload
       - ./backend/.secret:/app/.secret:ro
 
     env_file:
       - path: ./backend/.env
-        required: false # Allows `docker compose up -d mongo` before secret setup.
+        required: false
 
     environment:
+      NODE_ENV: production
       # env_file supplies ordinary settings. Override every raw secret with an
       # empty value, even when it is still present in .env during provisioning.
       JWT_SECRET: ""
@@ -39,6 +38,7 @@ services:
       DATA_GO_API_KEY: ""
       CSRF_SECRET: ""
       RESEND_API_KEY: ""
+      # Clear the legacy host URI too, in case it remains in a local env file.
       MONGO_URI_HOST: ""
       SECRETS_ONLY: "true"
       JWT_SECRET_FILE: /run/secrets/jwt_secret
@@ -59,52 +59,23 @@ services:
       - data_go_api_key
       - csrf_secret
       - resend_api_key
-    depends_on:
-      mongo:
-        condition: service_healthy
     networks:
       - application
-      - database
-
-  mongo:
-    image: mongo:8.0.0
-
-    # Host access is only for local scripts (promote-admin); keep it off LAN interfaces.
-    ports:
-      - "127.0.0.1:27017:27017"
-
-    environment:
-      # CAUTIOUS
-      # Docker Desktop’s Linux VM is kernel 6.19+; Mongo 8.0 refuses to boot without this.
-      # https://jira.mongodb.org/browse/SERVER-121912
-      GLIBC_TUNABLES: glibc.pthread.rseq=1
-
-    volumes:
-      - mongo_data:/data/db
-
-    healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
-
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    networks:
-      - database
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      secrets:
+        - frontend_build_env
     restart: always
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     environment:
+      NODE_ENV: production
       BACKEND_API_URL: http://backend:5175/api
     env_file:
       - path: ./frontend/.env
         required: false
-    volumes:
-      # Keep dependencies from the rebuilt image; bind only files edited during development.
-      - ./frontend/src:/app/src
-      - ./frontend/public:/app/public
     depends_on:
       - backend
     networks:
@@ -112,13 +83,10 @@ services:
 
 networks:
   application:
-  database:
-    internal: true
-
-volumes:
-  mongo_data:
 
 secrets:
+  frontend_build_env:
+    file: ./frontend/.env
   jwt_secret:
     file: ./backend/.secrets/jwt_secret
   mongo_uri:

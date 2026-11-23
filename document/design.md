@@ -204,7 +204,7 @@ Not microservices: jobs share the same process and repositories as the HTTP API.
 | AI | Vertex AI Gemini |
 | Auth | Google Identity + HTTP-only JWT cookie |
 | Messaging | LINE Messaging API, Gmail |
-| Local runtime | Docker Compose (frontend, backend, mongo) |
+| Local runtime | Docker Compose (frontend, backend) with MongoDB Atlas |
 
 ### 5.4 Data Flow and Control Flow
 
@@ -340,7 +340,7 @@ https://drive.google.com/file/d/1yh_ex4VEBdWsiu_e6mPSK1XS_6KwqVLL/view?usp=shari
 | /api/admin/* | admin | Ops, review, settings, audit |
 | /api/line | webhook HMAC; vendor/admin for link APIs | LINE integration |
 | /api/users, /api/user-bios | as routed | Account / bio helpers |
-| /, /api/hello | public | Liveness |
+| /, /api/hello | development diagnostics | Disabled by default in production |
 
 ### 8.3 Representative Contracts
 
@@ -489,8 +489,8 @@ Exact RPS targets are not fixed yet.
 
 | Environment | How |
 | --- | --- |
-| Local npm | Frontend :3000, backend :5175, local or Compose Mongo |
-| Local Compose | docker-compose.yml — frontend, backend, mongo:8, volume mongo_data |
+| Local npm | Frontend :3000, backend :5175, MongoDB Atlas via secret file |
+| Local Compose | docker-compose.yml — frontend/backend; external MongoDB Atlas |
 | Production | Evolving (proposal mentioned Vercel for FE; API/worker separate). Details TBD. |
 
 ### 13.2 CI/CD Pipeline
@@ -506,14 +506,14 @@ CD: The full deploy pipeline (build → staging → prod) is not fully specified
 ### 13.4 Cloud / Hosting
 
 - AI: GCP Vertex
-- DB: MongoDB local or Atlas
+- DB: MongoDB Atlas, using `backend/.secrets/mongo_uri`
 - Frontend hosting candidate: Vercel (proposal)
 - Backend/worker: container or VM — finalize with team
 
 ### 13.5 Containerization
 
 - Dockerfiles for frontend/backend; Compose orchestration
-- Bind mounts for live code; anonymous volumes for node_modules
+- Build JavaScript into images and run npm start; backend esbuild output in dist/, frontend Next.js production build
 - Backend upload directory preserved via host bind in Compose workflow
 
 ## 14. Testing Strategy
@@ -538,7 +538,7 @@ Run examples are documented in README for certificate tests; other suites via No
 
 ### 14.3 End-to-end Testing
 
-No dedicated E2E framework locked in this document yet (Playwright for product UI is optional later). Manual Compose smoke: FE load, /api/hello, admin sync, vendor login.
+No dedicated E2E framework locked in this document yet (Playwright for product UI is optional later). Manual Compose smoke: FE load, GET /api/tors, admin sync, vendor login.
 
 ### 14.4 Quality Metrics
 
@@ -562,25 +562,22 @@ Read in this order:
 
 ### 15.2 How to run the project
 
-Prerequisites: Docker Desktop (or Docker Engine + Compose v2.30+). Host Node/Mongo are optional if you use Compose only.
+Prerequisites: Docker Desktop (or Docker Engine + Compose v2.30+). Host Node.js is optional if you use Compose only. MongoDB is hosted in Atlas.
 
 #### First time
 
 - Clone the repo and open a terminal at the repository root.
-- Create env from the example and fill real values (JWT, Mongo, API keys, etc.):
+- Create env from the example and fill signing secrets and API settings:
 
 ```bash
 cp backend/.env.example backend/.env
 ```
 
-- For Compose Mongo, set in backend/.env:
-
-```dotenv
-PORT=5175
-MONGO_URI=mongodb://mongo:27017/csp_project
-```
-
-(mongo is the Compose service name — not localhost inside the container.)
+- Put the complete Atlas `mongodb+srv://` URI in `backend/.secrets/mongo_uri`
+  with the database user's URL-encoded password. Both host npm and Docker read
+  this same file; Docker mounts it at `/run/secrets/mongo_uri`. No raw database
+  URI is loaded from `.env`, and setup preserves the URI file. The application
+  uses database `Torrent`. Allow the backend's outbound IP in Atlas Network Access.
 
 - Prepare Docker secrets and start the stack:
 
@@ -590,7 +587,7 @@ MONGO_URI=mongodb://mongo:27017/csp_project
 
 - Open:
   - Frontend: http://localhost:3000
-  - Backend: http://localhost:5175 (GET /api/hello for a quick check)
+  - Backend: http://localhost:5175 (GET /api/tors for a quick check)
 - Optional: follow logs with docker compose logs -f.
 
 #### Next time (already configured)
@@ -631,7 +628,7 @@ These repository notes supplement the November 13 reference. They retain impleme
 - Secret provisioning and rotation use backend-only file mounts in Compose, as described in [Cryptographic.md](Cryptographic.md) and [commands.md](commands.md#secret-setup-and-rotation). The reference's environment-variable wording is not a claim that secrets belong in frontend bundles.
 - Current alert emails use Resend; the reference's Gmail label is not the implemented email transport.
 - The reference lists `/api/user-bios` and `UserBio.js`; the standalone user-bio route/service was removed from the current backend. Consult [Open API.md](Open%20API.md) for current endpoint contracts.
-- Local HTTP and MongoDB connections do not establish HTTPS enforcement. Deployment/Atlas/Vercel statements in the reference describe proposed hosting, not a deployment completed by this project.
+- Local frontend/API HTTP does not establish browser HTTPS enforcement. The current database configuration targets Atlas through its URI secret; verify live connectivity and provider controls separately. Vercel hosting remains proposed.
 - Algorithm selection, strict session verification, e-GP library compatibility and retry-stable email hashes are documented in [Cryptographic.md](Cryptographic.md) and their regression tests.
 
 ### Existing repository diagrams

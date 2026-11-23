@@ -38,7 +38,7 @@ to people even when an email address is not stored directly.
 
 These are documented requirements and proposed retention periods, not a claim
 that automated purge jobs, encryption or provider retention settings already
-exist. Existing local HTTP, unauthenticated MongoDB, unverified host/backup
+exist. Existing local HTTP, unverified Atlas access controls and host/backup
 encryption, and missing general retention scheduling remain implementation or
 operational gaps. Until resolved, use synthetic/minimized data and restrict the
 local stack; do not claim implemented V14.2.4 merely from this policy.
@@ -115,11 +115,12 @@ classification as evidence of controls that are still missing.
   Compose stack exposes the frontend and backend directly for development and
   does not terminate browser TLS. Production must terminate HTTPS at a trusted
   edge and use encrypted transport to any separately hosted database.
-- The local Compose MongoDB has a persistent volume, no configured MongoDB
-  authentication, and no MongoDB TLS. Compose restricts its host port to
-  loopback and puts MongoDB on an internal network shared with the backend.
-  Production must provide database authentication, network ACLs, encrypted
-  disks/backups, and monitored backup access.
+- MongoDB is hosted in Atlas. The backend reads the authenticated SRV URI from
+  `backend/.secrets/mongo_uri`; Docker mounts it only into the backend. Compose
+  defines no MongoDB server, database port, or database volume. SRV connections
+  enable TLS by default; see [MongoDB TLS documentation](https://www.mongodb.com/docs/drivers/node/current/security/tls/).
+  Atlas database roles, Network Access, disk/backup encryption, backup access,
+  and retention must be verified in the provider configuration.
 - The application does not encrypt profile fields or certificate files at the
   application layer. File permissions and route authorization are enforced;
   host-volume and backup encryption remain deployment controls.

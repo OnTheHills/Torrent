@@ -208,18 +208,15 @@ test("frontend log sink emits only JSON event metadata", () => {
   assert.doesNotMatch(source, /error\.message|error\.stack|submittedProfile|actorEmail/);
 });
 
-test("development MongoDB is published to host loopback only", () => {
+test("Atlas credentials are mounted only into the backend and no local database is configured", () => {
   const composeFile = path.resolve(__dirname, "../../../docker-compose.yml");
   const compose = readFileSync(composeFile, "utf8");
-  assert.match(compose, /"127\.0\.0\.1:27017:27017"/);
-  assert.doesNotMatch(compose, /"27017:27017"/);
-
+  assert.doesNotMatch(compose, /^  mongo:|mongo_data|27017|local-db/m);
   const service = (name) =>
     new RegExp(`^  ${name}:([\\s\\S]*?)(?=^  [\\w-]+:|^networks:)`, "m").exec(compose)?.[1] || "";
-  assert.match(service("backend"), /networks:\n\s+- application\n\s+- database/);
-  assert.match(service("mongo"), /networks:\n\s+- database/);
-  assert.match(service("frontend"), /networks:\n\s+- application/);
-  assert.doesNotMatch(service("frontend"), /\n\s+- database/);
+  assert.match(service("backend"), /MONGO_URI_FILE: \/run\/secrets\/mongo_uri/);
+  assert.match(service("backend"), /secrets:[\s\S]*?- mongo_uri/);
+  assert.doesNotMatch(service("frontend"), /mongo_uri|MONGO_URI/);
 });
 
 test("durable audit and sync records have no automatic TTL expiry", () => {

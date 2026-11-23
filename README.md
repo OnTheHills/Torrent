@@ -1,6 +1,6 @@
 # TORRENT
 
-TORRENT is a web application for discovering, monitoring, and matching Thai public-sector Terms of Reference (TOR) opportunities. The repository currently contains a Next.js frontend, an Express/Mongoose REST API, and MongoDB persistence. The frontend also includes mock TOR data and a server-side source-health probe for public procurement feeds and agency pages.
+TORRENT is a web application for discovering, monitoring, and matching Thai public-sector Terms of Reference (TOR) opportunities. The repository currently contains a Next.js frontend, an Express/Mongoose REST API, and MongoDB Atlas persistence. The frontend also includes mock TOR data and a server-side source-health probe for public procurement feeds and agency pages.
 
 ## Project structure
 
@@ -8,7 +8,7 @@ TORRENT is a web application for discovering, monitoring, and matching Thai publ
 .
 ├── frontend/          Next.js 16 + React 19 + TypeScript UI
 ├── backend/           Express 5 REST API + Mongoose models
-├── docker-compose.yml Frontend, backend, and MongoDB development stack
+├── docker-compose.yml Frontend/backend stack connected to MongoDB Atlas
 ├── docs/              Project documentation and deployment notes
 └── graphify-out/      Generated project knowledge graph
 ```
@@ -22,7 +22,7 @@ The development services are:
 | --- | --- | --- |
 | Frontend | http://localhost:3000 | Next.js application |
 | Backend | http://localhost:5175 | Express REST API |
-| MongoDB | `localhost:27017` | Local database port |
+| MongoDB Atlas | `cluster0.nsacwyj.mongodb.net` | Hosted `Torrent` database |
 
 > The current frontend primarily renders its own mock data. The Express API runs separately and exposes CRUD endpoints; it is not yet the source for every frontend screen.
 
@@ -47,10 +47,22 @@ cp frontend/.env.example frontend/.env
 
 Edit `backend/.env` before creating the secrets:
 
-- Keep `PORT=5175` and use `MONGO_URI=mongodb://mongo:27017/Torrent` for the
-  included MongoDB container. An external MongoDB/Atlas URI also works if the
-  container can reach it. Inside the backend container, `localhost` refers to
-  the backend itself, so use the service name `mongo` for the included database.
+- Keep `PORT=5175`. Store the complete Atlas URI in
+  `backend/.secrets/mongo_uri` as a single line, without an env assignment or quotes:
+
+  ```text
+  mongodb+srv://sandeenakrub_db_user:<db_password>@cluster0.nsacwyj.mongodb.net/Torrent?retryWrites=true&w=majority&appName=Torrent
+  ```
+
+  Create `backend/.secrets/` if needed. Replace `<db_password>` with the database
+  user's URL-encoded password (`@` becomes `%40`). Keep the real URI private.
+  The backend and every maintenance script read this file automatically on the
+  host; Docker mounts the same file at `/run/secrets/mongo_uri`.
+  Do not put `MONGO_URI` or `MONGO_URI_HOST` in `.env`: they are ignored.
+- In Atlas, allow the backend's public outbound IP under **Network Access** and
+  give the database user read/write access to `Torrent`. See
+  [Atlas connection setup](https://www.mongodb.com/docs/atlas/driver-connection/).
+  Changing the connection does not copy records from another database.
 - Replace the `JWT_SECRET` placeholder with a long random value. Generate one
   with Docker, then copy its output into `JWT_SECRET`:
 
@@ -83,14 +95,14 @@ cd backend
 ```
 
 This command builds and runs the Docker Compose `secrets-init` helper, reads
-`backend/.env`, and creates the secret files in `backend/.secrets/`. Wait for
-it to finish successfully before proceeding.
+`backend/.env`, and creates the other secret files in `backend/.secrets/`.
+It validates and preserves the Atlas URI already in `mongo_uri`; it never imports
+a database URI from `.env`. Wait for it to finish successfully before proceeding.
 
-**After the secrets are created, comment out or delete all eight secret
+**After the secrets are created, comment out or delete the seven secret
 assignments from `backend/.env`, including blank optional ones:**
 
 - `JWT_SECRET`
-- `MONGO_URI`
 - `LINE_CHANNEL_ACCESS_TOKEN`
 - `LINE_CHANNEL_SECRET`
 - `COOKIE_SECRET`
@@ -116,16 +128,18 @@ cd ..
 This prepares secrets again, preserving the files created in step 3, then
 builds and starts the complete stack in the background. Compose will:
 
-1. pull MongoDB 8;
-2. build the frontend and backend Node 22 images;
-3. install each app's npm dependencies during the image build;
-4. wait for MongoDB's health check before starting the backend; and
-5. expose the frontend on port 3000 and the backend on port 5175.
+1. build the frontend and backend Node 22 images;
+2. install each app's npm dependencies during the image build;
+3. connect the backend directly to Atlas; and
+4. expose the frontend on port 3000 and the backend on port 5175.
 
+MongoDB runs in Atlas. Compose contains no MongoDB container, image, local
+port, or database volume. Historical Docker volumes are not deleted by this
+configuration change.
 Open http://localhost:3000. Set `FRONTEND_PORT` in your shell if you want to use a different host port. Verify the backend and follow startup logs with:
 
 ```bash
-curl http://localhost:5175/api/hello
+curl --fail http://localhost:5175/api/tors
 docker compose logs -f
 ```
 
@@ -169,7 +183,7 @@ use lowercase names, for example `JWT_SECRET` is stored in
 | Input setting | Backend secret file |
 | --- | --- |
 | `JWT_SECRET` | `/run/secrets/jwt_secret` |
-| `MONGO_URI` | `/run/secrets/mongo_uri` |
+| `backend/.secrets/mongo_uri` (managed directly) | `/run/secrets/mongo_uri` |
 | `LINE_CHANNEL_ACCESS_TOKEN` | `/run/secrets/line_channel_access_token` |
 | `LINE_CHANNEL_SECRET` | `/run/secrets/line_channel_secret` |
 | `COOKIE_SECRET` | `/run/secrets/cookie_secret` |
@@ -177,7 +191,9 @@ use lowercase names, for example `JWT_SECRET` is stored in
 | `CSRF_SECRET` | `/run/secrets/csrf_secret` |
 | `RESEND_API_KEY` | `/run/secrets/resend_api_key` |
 
-The `jwt_secret` and `mongo_uri` files must be nonempty. Blank integration
+The `jwt_secret` and `mongo_uri` files must be nonempty. The latter must contain
+a complete Atlas `mongodb+srv://` URI; placeholders and local URIs are rejected.
+Blank integration
 secret files retain the existing disabled/unconfigured behavior. Set the LINE
 token and signing secret files together when enabling LINE. A blank
 `csrf_secret` uses `cookie_secret`, then `jwt_secret`. Use a separate long
@@ -206,8 +222,12 @@ Recreation applies changed env settings and any replaced secret files. Compose
 secrets are file bind mounts; setup replaces updated files atomically while
 preserving omitted files. Changing the JWT secret invalidates existing
 sessions; changing the CSRF/cookie secret requires clients to fetch new tokens.
-The Mongo URI is now taken from your input without the old hardcoded override;
-use `mongo` as the hostname for the included database, or your external URI.
+The backend and maintenance scripts use `/run/secrets/mongo_uri` in Docker
+and `backend/.secrets/mongo_uri` automatically on the host. They never read a raw
+`MONGO_URI` or `MONGO_URI_HOST`, and setup never overwrites the URI file from env
+values. After editing the Atlas URI file, recreate the backend with the command
+above. For host npm after removing signing inputs from `.env`, set
+`JWT_SECRET_FILE=.secrets/jwt_secret` in `backend/.env`.
 
 Compose secrets keep these values out of the container environment and images,
 but their host files remain plaintext. Protect them on the host. This workflow
@@ -215,16 +235,10 @@ uses Compose file-backed secrets, not `docker secret create`; Docker's encrypted
 [Docker's Compose secrets documentation](https://docs.docker.com/compose/how-tos/use-secrets/)
 and [Swarm secrets documentation](https://docs.docker.com/engine/swarm/secrets/).
 
-Stop the stack while preserving database data:
+Stop the application stack (Atlas data is unaffected):
 
 ```bash
 docker compose down
-```
-
-Stop it and delete the MongoDB volume (this permanently removes local Compose data):
-
-```bash
-docker compose down -v
 ```
 
 ### Create the first admin
@@ -259,22 +273,28 @@ npm install --save-dev package-name
 
 Commit both `package.json` and `package-lock.json` after intentional dependency changes.
 
-### Docker development workflow
+### Docker build and start
 
-The source directories are bind-mounted into the containers, while each container keeps its own `/app/node_modules` volume. Install a package inside the relevant running container so the container's modules and the host lockfiles stay in sync:
-
-```bash
-docker compose exec frontend npm install package-name
-docker compose exec backend npm install package-name
-```
-
-For development-only packages, append `--save-dev`. After changing dependency files, a clean rebuild is the most reliable way to reproduce the installation:
+Both Docker images run `npm run start` with `NODE_ENV=production`.
+The backend uses esbuild to compile `src/` into `dist/`; the frontend runs
+`next build` before `next start`. Source code is baked into the images, so
+rebuild after editing code or dependencies:
 
 ```bash
-docker compose down
-docker compose build --no-cache frontend backend
-docker compose up
+./process.sh up backend
+./process.sh up frontend
 ```
+
+Install packages in the host application directory and commit both
+`package.json` and `package-lock.json`. Container installs do not update them.
+For frontend builds, Compose mounts `frontend/.env` as a temporary build secret
+so the browser's `NEXT_PUBLIC_*` configuration is embedded correctly. After changing these public values, run
+`docker compose build --no-cache frontend` before recreating the frontend;
+BuildKit secret contents do not invalidate cached build layers. The env file
+is excluded from the image.
+
+For host development, `npm run dev` remains available. To run a host production
+build, run `npm run build` followed by `npm run start` in each app directory.
 
 ## Useful commands
 
@@ -288,7 +308,8 @@ docker compose up
 | `./process.sh secrets` | repository root | Create/update Compose secrets from `backend/.env`, preserving omitted values |
 | `./process.sh` | repository root | Regenerate secrets and rebuild/recreate the complete Docker stack |
 | `./process.sh up backend` | repository root | Regenerate secrets and rebuild/recreate the backend |
-| `npm run start` | `backend/` | Start Express without nodemon |
+| `npm run build` | `backend/` | Compile backend JavaScript into `dist/` using esbuild |
+| `npm run start` | `backend/` | Run the compiled backend; requires `npm run build` first |
 | `npm run probe` | `backend/` | Probe configured public procurement sources |
 | `docker compose ps` | repository root | Show container and health status |
 | `docker compose logs -f backend` | repository root | Follow backend logs |
@@ -303,7 +324,7 @@ The backend provides JSON CRUD routes for:
 - `/api/tors`
 - `/api/tor-matches`
 
-Each collection supports `POST /`, `GET /`, `GET /:id`, `PATCH /:id`, and `DELETE /:id`. Basic checks are available at `/` and `/api/hello`.
+Each collection supports `POST /`, `GET /`, `GET /:id`, `PATCH /:id`, and `DELETE /:id`. Use `GET /api/tors` for a production API check. The `/` and `/api/hello` diagnostics are enabled by default only in development.
 
 ### Session and CSRF protection
 
@@ -396,9 +417,9 @@ queue matching; its latest details are used when a TOR is next processed.
 
 ## Troubleshooting
 
-- **Backend says `MONGO_URI is required`:** create `backend/.env` and set both variables shown above.
-- **Docker backend cannot connect to `127.0.0.1:27017`:** use `mongodb://mongo:27017/csp_project` for the Compose workflow.
-- **Local backend cannot resolve host `mongo`:** use `mongodb://127.0.0.1:27017/csp_project` for a bare-metal backend.
-- **A port is already in use:** stop the process using ports 3000, 5175, or 27017, or change the corresponding Compose port mapping.
-- **A newly installed package is missing in Docker:** rebuild the affected image, or install it with `docker compose exec` as described above.
+- **Database secret is missing or invalid:** put the complete Atlas URI in `backend/.secrets/mongo_uri`, then run `./process.sh up backend`.
+- **Atlas authentication fails:** replace `<db_password>` with the database user's URL-encoded password, and confirm access to `Torrent`.
+- **Atlas connection times out:** check Atlas Network Access for the backend's public outbound IP and confirm the cluster is available.
+- **A port is already in use:** stop the process using ports 3000 or 5175, or change the corresponding Compose port mapping.
+- **A newly installed package is missing in Docker:** install it in the host app directory and rebuild the affected image.
 - **Source-health results are yellow/red:** those checks call external government websites, so availability and network restrictions can affect the result without breaking the rest of the app.
