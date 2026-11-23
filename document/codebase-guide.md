@@ -28,9 +28,10 @@ Google Identity script -> GoogleButton -> POST /api/auth/google
 
 ## Read this project in this order
 
-1. `docker-compose.yml` shows the three runtime services: Next.js frontend,
-   Express backend, and MongoDB.
-2. `backend/src/server.js` starts the database and sync job; `backend/src/app.js` wires Express middleware and every API router.
+1. `docker-compose.yml` runs the Next.js frontend and Express backend. MongoDB
+   is hosted in Atlas; its URI is read from `backend/.secrets/mongo_uri` and
+   mounted into the backend at `/run/secrets/mongo_uri`.
+2. `backend/src/server.js` connects to Atlas and starts the sync job; `backend/src/app.js` wires Express middleware and every API router.
 3. `backend/src/jobs/syncAPI.js` coordinates the procurement imports and database upserts.
 4. `frontend/src/lib/api.ts` maps database-shaped TORs into the frontend `Tor`
    type.

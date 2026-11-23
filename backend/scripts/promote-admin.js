@@ -16,10 +16,6 @@ async function main() {
     process.exit(1);
   }
 
-  // The host backend .env points at the Docker hostname. This script may run on the host.
-  if (process.env.SECRETS_ONLY !== "true" && !process.env.MONGO_URI_FILE) {
-    process.env.MONGO_URI = process.env.MONGO_URI_HOST || "mongodb://127.0.0.1:27017/Torrent";
-  }
   await connectDatabase();
 
   const user = await userRepository.findByEmail(email);

@@ -84,7 +84,7 @@ openssl rand -base64 32
 
 | Setting | Docker backend | Host npm backend |
 | --- | --- | --- |
-| `backend/.env`: `MONGO_URI` | `mongodb://mongo:27017/Torrent` | `mongodb://127.0.0.1:27017/Torrent` |
+| `backend/.secrets/mongo_uri` | Complete Atlas `mongodb+srv://` URI, with URL-encoded database password | Same file, read automatically |
 | `backend/.env`: `PORT` | `5175` | `5175` |
 | `backend/.env`: `CORS_ORIGIN` | `http://localhost:3000,http://localhost:3001` | Same |
 | `backend/.env`: `COOKIE_SECURE` | `false` for local HTTP | Same |
@@ -104,7 +104,7 @@ service account JSON, cookies, and tokens private.
 | --- | --- |
 | Frontend | http://localhost:3000 |
 | Backend | http://localhost:5175 |
-| MongoDB | `localhost:27017` |
+| MongoDB Atlas | `cluster0.nsacwyj.mongodb.net` (`Torrent` database) |
 
 Choose Docker or host npm for each application; duplicate servers cannot use
 the same port.
@@ -118,20 +118,22 @@ With `backend/.env` configured:
 ```
 
 This prepares file-backed secrets, builds images, and recreates services in the
-background. The backend uses your configured `MONGO_URI`; Compose does not force
-a hardcoded URI. The hostname `mongo` resolves only inside Compose.
+background. The backend uses `backend/.secrets/mongo_uri`, mounted at
+`/run/secrets/mongo_uri`. Allow the backend's outbound IP in Atlas Network Access.
+There is no local MongoDB service, port, image, or database volume in Compose.
 
-### Host npm with Docker MongoDB
+### Host npm with Atlas
 
-Start only the database, then install dependencies from committed lockfiles:
+Use the same Atlas URI as Docker, then install dependencies from committed lockfiles:
 
 ```bash
-docker compose up -d mongo
 npm --prefix backend ci
 npm --prefix frontend ci
 ```
 
-Set the backend URI to `mongodb://127.0.0.1:27017/Torrent`.
+The backend reads `backend/.secrets/mongo_uri` automatically. Do not set raw
+`MONGO_URI` or `MONGO_URI_HOST`; they are ignored. For host sign-in, configure
+`JWT_SECRET` or `JWT_SECRET_FILE=.secrets/jwt_secret` as well.
 In terminal 1, starting from the repository root:
 
 ```bash
@@ -151,7 +153,6 @@ first stop the application containers:
 
 ```bash
 docker compose stop frontend backend
-docker compose up -d mongo
 ```
 
 ## Docker operations and secrets
@@ -162,7 +163,6 @@ docker compose up -d mongo
 docker compose ps -a
 docker compose logs --tail=100 backend
 docker compose logs --tail=100 frontend
-docker compose logs --tail=100 mongo
 docker compose logs --tail=100 -f
 docker compose exec backend sh
 docker compose exec frontend sh
@@ -203,10 +203,13 @@ changes require rebuilding the frontend.
 ./process.sh up backend
 ```
 
-`secrets` writes individual files under `backend/.secrets/` from `backend/.env`.
-`JWT_SECRET` and `MONGO_URI` must be nonempty. After initial setup, omitted or
-commented secret entries preserve existing files; an explicitly blank optional
-entry clears its file. Signing-secret changes invalidate sessions or CSRF tokens.
+`secrets` writes the seven non-database secret files under `backend/.secrets/`
+from `backend/.env`. Create `backend/.secrets/mongo_uri` directly with your full
+Atlas URI before setup; it is validated and never overwritten from env inputs.
+`jwt_secret` and `mongo_uri` must be nonempty. Database placeholders and local
+URIs are rejected. After initial setup, omitted or commented signing/integration
+entries preserve existing files; an explicitly blank optional entry clears its
+file. Signing-secret changes invalidate sessions or CSRF tokens.
 
 Check secret mounts without printing their contents:
 
@@ -214,14 +217,13 @@ Check secret mounts without printing their contents:
 docker compose exec backend node -e 'require("./src/config/secrets").validateSecrets(); console.log("Secret files are readable")'
 ```
 
-### Delete local Compose data
-
-**Destructive:** this removes the local MongoDB volume. Back up needed data first.
-It does not erase Atlas or host folders such as `backend/upload/` or `.secrets/`.
+### Stop the application
 
 ```bash
-docker compose down -v
+docker compose down
 ```
+
+This stops the application containers. Atlas database data is unaffected.
 
 ## Dependencies
 
@@ -265,7 +267,7 @@ After changing package files, rebuild and replace application dependency volumes
 docker compose up -d --build --force-recreate --renew-anon-volumes backend frontend
 ```
 
-This keeps the named `mongo_data` volume. If image build caching is the problem,
+Atlas data is unaffected. If image build caching is the problem,
 run `docker compose build --no-cache backend frontend` first, then recreate with
 the command above.
 
@@ -369,10 +371,9 @@ Host equivalent, from `backend/`:
 npm run promote-admin -- you@example.com
 ```
 
-The host script uses `MONGO_URI_HOST` or defaults to
-`mongodb://127.0.0.1:27017/Torrent`, rather than using raw `MONGO_URI`. For Atlas or
-a different host URI, set `MONGO_URI_HOST` privately in `backend/.env`, or configure
-`MONGO_URI_FILE`. Docker uses its mounted URI secret.
+The script uses the same Atlas secret file as the backend: automatically
+`backend/.secrets/mongo_uri` on the host, or the mounted secret in Docker.
+Raw `MONGO_URI` and `MONGO_URI_HOST` values are ignored.
 
 Promotion also re-enables a disabled account and records an audit event. Refresh
 the app after promotion. Admins can manage other roles through **Admin → Users**.
@@ -519,50 +520,14 @@ mounted as `/app/.secret/vertex-sa.json` in Docker.
 
 ## Database inspection and backup
 
-These commands target the included **local Compose MongoDB**, not Atlas. The
-application explicitly selects database `Torrent` in `connectDatabase.js`.
+MongoDB runs in Atlas, using the URI in `backend/.secrets/mongo_uri`.
+The application selects database `Torrent`. Use Atlas Data Explorer to inspect
+collections and counts. Use Atlas backup/restore facilities available for your
+cluster tier, with operator-managed access and retention. No database tools or
+MongoDB server run in the application containers.
 
-```bash
-docker compose exec mongo mongosh --quiet --eval 'db.adminCommand("ping")'
-docker compose exec mongo mongosh Torrent
-```
-
-Inside `mongosh`, use read-only checks:
-
-```javascript
-show collections
-db.tors.countDocuments({})
-db.tors.countDocuments({ hidden: { $ne: true } })
-db.tors.find({}, { refId: 1, source: 1, status: 1, budgetThb: 1 }).limit(5)
-db.sync_runs.find().sort({ createdAt: -1 }).limit(5)
-db.tor_match_jobs_by_tor.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }])
-exit
-```
-
-Back up the local database outside the repository:
-
-```bash
-mkdir -p "$HOME/torrent-backups"
-chmod 700 "$HOME/torrent-backups"
-TORRENT_BACKUP="$HOME/torrent-backups/Torrent-$(date +%Y%m%d-%H%M%S).archive.gz"
-docker compose exec -T mongo mongodump --db Torrent --archive --gzip > "$TORRENT_BACKUP"
-chmod 600 "$TORRENT_BACKUP"
-```
-
-Check that `mongodump` completed successfully before relying on the archive.
-This contains database records only; preserve `backend/upload/` separately for
-uploaded certificate files.
-
-**Restore replaces local collections:** set `TORRENT_BACKUP` to the intended
-archive and stop the apps to avoid concurrent writes:
-
-```bash
-docker compose stop frontend backend
-docker compose up -d mongo
-docker compose exec -T mongo mongorestore --archive --gzip --drop --nsInclude='Torrent.*' < "$TORRENT_BACKUP"
-```
-
-Check the result, then run `./process.sh` to start the applications again.
+Changing the URI does not migrate data from another database. Keep database
+credentials out of command arguments, logs, screenshots, and committed files.
 
 ## Maintenance scripts
 
@@ -584,8 +549,8 @@ node scripts/reconcile-tor-merges.js
 node scripts/enrich-sme-announcements.js
 ```
 
-Like `promote-admin`, host scripts use `MONGO_URI_HOST` or default to local
-`Torrent` unless `MONGO_URI_FILE` is configured. Confirm the target first.
+Like `promote-admin`, host scripts automatically read `backend/.secrets/mongo_uri`.
+Docker uses the same file mounted as a secret. Confirm the target first.
 Duplicate reconciliation can merge records and related references; SME enrichment
 downloads PDFs and updates existing data.
 
@@ -712,8 +677,8 @@ backend environment separately from the frontend deployment.
 | --- | --- |
 | Docker daemon unavailable | Start Docker Desktop and retry `docker compose ps` |
 | Missing/unreadable secret mount | Check `backend/.env`, then `./process.sh up backend` |
-| Backend cannot resolve `mongo` on host | Use `127.0.0.1:27017` for host npm |
-| Backend container cannot reach DB at localhost | Use `mongo:27017` for the included Compose DB |
+| Atlas authentication fails | Check the database user/password and URL-encode special password characters |
+| Atlas connection times out | Allow the backend outbound IP in Atlas Network Access; check cluster availability |
 | API `401` | Sign in again; check the session cookie |
 | `403 INVALID_ORIGIN` | Use an exact origin from `CORS_ORIGIN` |
 | `403 INVALID_CSRF_TOKEN` | Fetch a new token using the same cookie jar, then send cookie and header |
@@ -728,7 +693,6 @@ On macOS, find the process using each port:
 ```bash
 lsof -nP -iTCP:3000 -sTCP:LISTEN
 lsof -nP -iTCP:5175 -sTCP:LISTEN
-lsof -nP -iTCP:27017 -sTCP:LISTEN
 docker compose ps
 ```
 
@@ -739,13 +703,14 @@ ensure the backend allows that exact origin.
 ### Database connection failures
 
 ```bash
-docker compose ps -a mongo backend
-docker compose logs --tail=100 mongo backend
-docker compose exec mongo mongosh --quiet --eval 'db.adminCommand("ping")'
+docker compose ps -a backend
+docker compose logs --tail=100 backend
 ```
 
-For Atlas, check the configured URI and network access. Apply changed Docker
-settings with `./process.sh up backend`.
+Check that `backend/.secrets/mongo_uri` contains the complete Atlas URI with no
+password placeholder. Confirm Atlas Network Access allows the backend's public
+outbound IP and that the database user can read/write `Torrent`.
+Apply changed secret files or Docker settings with `./process.sh up backend`.
 
 ### Empty listings or zero budgets
 
@@ -770,5 +735,4 @@ npm run dev
 ```
 
 This removes generated output, including any production build. To refresh npm
-modules in Docker, use the dependency-volume commands above. Do not use
-`docker compose down -v` for that purpose: it also deletes local MongoDB data.
+modules in Docker, use the dependency-volume commands above. Atlas storage is independent of these application containers.

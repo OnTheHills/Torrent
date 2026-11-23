@@ -21,7 +21,7 @@
 | Frontend | Next.js 16, React 19, TypeScript |
 | Backend | Express 5, Mongoose |
 | Database | MongoDB |
-| Deploy (local) | Docker Compose (frontend, backend, MongoDB) |
+| Deploy (local) | Docker Compose (frontend, backend), external MongoDB Atlas |
 
 ```mermaid
 flowchart LR
