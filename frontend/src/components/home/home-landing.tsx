@@ -1,8 +1,5 @@
 "use client";
 
-import { Home03Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
-
 import { HomeAlerts } from "@/components/home/home-alerts";
 import { HomeCoverage } from "@/components/home/home-coverage";
 import { HomeHeroCards } from "@/components/home/home-hero-cards";
@@ -29,11 +26,7 @@ export function HomeLanding() {
         <HomeFrame className="relative z-10 flex min-h-[28rem] flex-col justify-end pb-8 pt-[calc(144px+1.5rem)] md:min-h-[32rem] md:pb-10 md:pt-[calc(144px+2rem)]">
           <div className="max-w-3xl md:max-w-5xl">
             <BrandLockup size="xxxxl" priority />
-            <HeroTitle
-              className="mt-0.5 md:mt-1"
-              preLine
-              icon={<HugeiconsIcon icon={Home03Icon} strokeWidth={1.75} />}
-            >
+            <HeroTitle className="mt-0.5 md:mt-1" preLine>
               {t("homeTitle")}
             </HeroTitle>
             <p className="mt-4 max-w-3xl text-base leading-[1.7] text-hero-muted md:max-w-4xl md:text-lg">
